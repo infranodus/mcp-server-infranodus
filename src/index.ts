@@ -9,7 +9,7 @@ dotenv.config();
 
 // Environment configuration
 const INFRANODUS_API_KEY = process.env.INFRANODUS_API_KEY;
-const INFRANODUS_API_BASE = "https://infranodus.com/api/v1";
+const INFRANODUS_API_BASE = "http://localhost:3000/api/v1";
 
 if (!INFRANODUS_API_KEY) {
 	// Exit silently without console output that could interfere with MCP protocol
@@ -89,7 +89,8 @@ interface TopCluster {
 		degree: number;
 		bc: number;
 	}>;
-	statements: number[];
+	statements?: number[];
+	statementIds?: number[];
 	topStatementId: number;
 	aiName?: string;
 }
@@ -193,7 +194,18 @@ async function makeInfraNodeusRequest(
 			throw new Error(`API request failed (${response.status}): ${errorText}`);
 		}
 
-		return await response.json();
+		const data = await response.json();
+		
+		// Handle wrapped response format
+		if (data.entriesAndGraphOfContext) {
+			return {
+				statements: data.entriesAndGraphOfContext.statements,
+				graph: data.entriesAndGraphOfContext.graph,
+				graphSummary: data.entriesAndGraphOfContext.graphSummary,
+			};
+		}
+		
+		return data;
 	} catch (error) {
 		// Don't log to console as it interferes with MCP protocol
 		throw error;
@@ -244,7 +256,7 @@ function transformToStructuredOutput(
 				id: cluster.community,
 				name: cluster.aiName,
 				concepts: cluster.nodes.slice(0, 10).map((n) => n.nodeName),
-				statementCount: cluster.statements?.length || 0,
+				statementCount: cluster.statementIds?.length || cluster.statements?.length || 0,
 			}));
 		}
 
@@ -317,18 +329,18 @@ function generateInsights(
 		insights.questions = [];
 
 		if (data.graph?.graphologyGraph.attributes.gaps) {
-			data.graph.graphologyGraph.attributes.gaps
-				.slice(0, 5)
-				.forEach((gap) => {
-					insights.questions!.push(
-						`How might "${gap.source}" relate to or influence "${gap.target}"?`
-					);
-				});
+			data.graph.graphologyGraph.attributes.gaps.slice(0, 5).forEach((gap) => {
+				insights.questions!.push(
+					`How might "${gap.source}" relate to or influence "${gap.target}"?`
+				);
+			});
 		}
 
 		if (data.graph?.graphologyGraph.attributes.top_nodes) {
-			const topNodes =
-				data.graph.graphologyGraph.attributes.top_nodes.slice(0, 3);
+			const topNodes = data.graph.graphologyGraph.attributes.top_nodes.slice(
+				0,
+				3
+			);
 			topNodes.forEach((node) => {
 				insights.questions!.push(
 					`What role does "${node}" play in connecting different aspects of this topic?`
@@ -362,9 +374,8 @@ function generateInsights(
 
 			if (attrs.top_clusters && attrs.top_clusters.length > 0) {
 				const dominantCluster = attrs.top_clusters[0];
-				const dominanceRatio =
-					dominantCluster.statements.length /
-					(data.statements?.length || 1);
+				const statementCount = dominantCluster.statementIds?.length || dominantCluster.statements?.length || 0;
+				const dominanceRatio = statementCount / (data.statements?.length || 1);
 				if (dominanceRatio > 0.5) {
 					insights.keyInsights.push(
 						`The text is strongly focused on "${
