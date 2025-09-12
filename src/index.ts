@@ -38,7 +38,7 @@ const GenerateGraphSchema = z.object({
 		.describe("Include full graph structure"),
 	aiTopics: z
 		.boolean()
-		.default(false)
+		.default(true)
 		.describe("Generate AI names for topics (uses OpenAI)"),
 	modifyAnalyzedText: z
 		.enum(["detectEntities", "extractEntitiesOnly", "none"])
@@ -195,7 +195,7 @@ async function makeInfraNodeusRequest(
 		}
 
 		const data = await response.json();
-		
+
 		// Handle wrapped response format
 		if (data.entriesAndGraphOfContext) {
 			return {
@@ -204,7 +204,7 @@ async function makeInfraNodeusRequest(
 				graphSummary: data.entriesAndGraphOfContext.graphSummary,
 			};
 		}
-		
+
 		return data;
 	} catch (error) {
 		// Don't log to console as it interferes with MCP protocol
@@ -256,7 +256,8 @@ function transformToStructuredOutput(
 				id: cluster.community,
 				name: cluster.aiName,
 				concepts: cluster.nodes.slice(0, 10).map((n) => n.nodeName),
-				statementCount: cluster.statementIds?.length || cluster.statements?.length || 0,
+				statementCount:
+					cluster.statementIds?.length || cluster.statements?.length || 0,
 			}));
 		}
 
@@ -374,7 +375,10 @@ function generateInsights(
 
 			if (attrs.top_clusters && attrs.top_clusters.length > 0) {
 				const dominantCluster = attrs.top_clusters[0];
-				const statementCount = dominantCluster.statementIds?.length || dominantCluster.statements?.length || 0;
+				const statementCount =
+					dominantCluster.statementIds?.length ||
+					dominantCluster.statements?.length ||
+					0;
 				const dominanceRatio = statementCount / (data.statements?.length || 1);
 				if (dominanceRatio > 0.5) {
 					insights.keyInsights.push(
