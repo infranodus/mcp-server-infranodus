@@ -2,14 +2,17 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import * as dotenv from "dotenv";
+
+// Load environment variables (dotenv v16 doesn't output to stdout by default)
+dotenv.config();
 
 // Environment configuration
 const INFRANODUS_API_KEY = process.env.INFRANODUS_API_KEY;
 const INFRANODUS_API_BASE = "https://infranodus.com/api/v1";
 
 if (!INFRANODUS_API_KEY) {
-	console.error("ERROR: INFRANODUS_API_KEY environment variable is required");
-	console.error("Get your API key from: https://infranodus.com/api-access");
+	// Exit silently without console output that could interfere with MCP protocol
 	process.exit(1);
 }
 
@@ -192,7 +195,7 @@ async function makeInfraNodeusRequest(
 
 		return await response.json();
 	} catch (error) {
-		console.error("InfraNodus API error:", error);
+		// Don't log to console as it interferes with MCP protocol
 		throw error;
 	}
 }
@@ -649,30 +652,26 @@ async function main(): Promise<void> {
 
 	// Handle graceful shutdown
 	process.on("SIGINT", async () => {
-		console.error("Shutting down InfraNodus MCP server...");
 		await server.close();
 		process.exit(0);
 	});
 
 	process.on("SIGTERM", async () => {
-		console.error("Shutting down InfraNodus MCP server...");
 		await server.close();
 		process.exit(0);
 	});
 
 	try {
 		await server.connect(transport);
-		console.error("InfraNodus MCP Server running");
-		console.error("API Key configured: Yes");
-		console.error("Ready to generate knowledge graphs!");
+		// Server is running - no console output to avoid protocol interference
 	} catch (error) {
-		console.error("Failed to start server:", error);
+		// Exit silently on error
 		process.exit(1);
 	}
 }
 
 // Run the server
 main().catch((error: unknown) => {
-	console.error("Fatal error:", error);
+	// Exit silently on fatal error
 	process.exit(1);
 });
