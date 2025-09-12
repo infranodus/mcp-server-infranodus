@@ -41,9 +41,11 @@ const GenerateGraphSchema = z.object({
 		.default(true)
 		.describe("Generate AI names for topics (uses OpenAI)"),
 	modifyAnalyzedText: z
-		.enum(["detectEntities", "extractEntitiesOnly", "none"])
-		.optional()
-		.describe("Entity detection mode for sparser graphs"),
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+		),
 });
 
 const AnalyzeExistingGraphSchema = z.object({
