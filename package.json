@@ -1,0 +1,27 @@
+{
+	"name": "infranodus-mcp-server",
+	"version": "1.0.0",
+	"description": "InfraNodus MCP server",
+	"type": "module",
+	"main": "dist/index.js",
+	"bin": {
+		"infranodus-mcp-server": "./dist/index.js"
+	},
+	"scripts": {
+		"build": "tsc",
+		"start": "npm run build && node dist/index.js",
+		"dev": "npm run build && node dist/index.js",
+		"watch": "tsc --watch",
+		"inspect": "npm run build && npx @modelcontextprotocol/inspector node dist/index.js"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.18.0",
+		"dotenv": "^17.2.2"
+	},
+	"devDependencies": {
+		"@modelcontextprotocol/inspector": "latest",
+		"@types/dotenv": "^6.1.1",
+		"@types/node": "^20.0.0",
+		"typescript": "^5.0.0"
+	}
+}
