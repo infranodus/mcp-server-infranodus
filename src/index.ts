@@ -11,7 +11,10 @@ import { aboutResource } from "./resources/about.js";
 
 // Validate configuration
 if (!validateConfig()) {
-	// Exit silently without console output that could interfere with MCP protocol
+	// Log to stderr before exiting
+	console.error(
+		"ERROR: Configuration validation failed. Check stderr output above."
+	);
 	process.exit(1);
 }
 
@@ -65,6 +68,9 @@ async function main(): Promise<void> {
 		// Server is running - no console output to avoid protocol interference
 	} catch (error) {
 		// Exit silently on error
+		console.error(
+			"ERROR: MCP server failed to connect. Check stderr output above."
+		);
 		process.exit(1);
 	}
 }
@@ -72,5 +78,6 @@ async function main(): Promise<void> {
 // Run the server
 main().catch(() => {
 	// Exit silently on fatal error
+	console.error("ERROR: Fatal error of MCP server. Check stderr output above.");
 	process.exit(1);
 });

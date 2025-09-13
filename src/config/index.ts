@@ -16,7 +16,10 @@ export const config = {
 
 export function validateConfig(): boolean {
 	if (!config.apiKey) {
-		// Exit silently without console output that could interfere with MCP protocol
+		// Log to stderr so it appears in Claude's logs without interfering with MCP protocol
+		console.error(
+			"ERROR: INFRANODUS_API_KEY is not set in environment variables"
+		);
 		return false;
 	}
 	return true;
