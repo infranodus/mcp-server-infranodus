@@ -17,7 +17,56 @@ if (!INFRANODUS_API_KEY) {
 }
 
 // Define Zod schemas for input validation
+
 const GenerateGraphSchema = z.object({
+	text: z
+		.string()
+		.min(1, "Text is required for analysis")
+		.describe("Text that you'd like to analyze"),
+	includeStatements: z
+		.boolean()
+		.default(false)
+		.describe("Include processed statements in response"),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+		),
+});
+
+const AnalyzeExistingGraphSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "Graph name is required")
+		.describe(
+			"Name of the existing InfraNodus graph in your account to retrieve"
+		),
+	includeStatements: z
+		.boolean()
+		.default(true)
+		.describe("Include processed statements in response"),
+	includeGraphSummary: z
+		.boolean()
+		.default(false)
+		.describe("Include AI-generated graph summary for RAG prompt augmentation"),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+		),
+});
+
+const GenerateContentGapsSchema = z.object({
+	text: z
+		.string()
+		.min(1, "Text is required for analysis")
+		.describe("Text that you'd like to retrieve content gaps from"),
+});
+
+// This below is used for adding options later to each tool
+const _GenerateGeneralGraphSchema = z.object({
 	text: z
 		.string()
 		.min(1, "Text is required for analysis")
@@ -53,53 +102,6 @@ const GenerateGraphSchema = z.object({
 		.describe(
 			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
 		),
-});
-
-const AnalyzeExistingGraphSchema = z.object({
-	graphName: z
-		.string()
-		.min(1, "Graph name is required")
-		.describe(
-			"Name of the existing InfraNodus graph in your account to retrieve"
-		),
-	doNotSave: z
-		.boolean()
-		.default(true)
-		.describe("Don't save the text to the InfraNodus graph"),
-	addStats: z.boolean().default(true).describe("Include network statistics"),
-	includeStatements: z
-		.boolean()
-		.default(true)
-		.describe("Include processed statements in response"),
-	includeGraphSummary: z
-		.boolean()
-		.default(true)
-		.describe("Include AI-generated graph summary for RAG prompt augmentation"),
-	extendedGraphSummary: z
-		.boolean()
-		.default(true)
-		.describe("Include extended graph summary"),
-	includeGraph: z
-		.boolean()
-		.default(true)
-		.describe("Include full graph structure"),
-	aiTopics: z
-		.boolean()
-		.default(true)
-		.describe("Generate AI names for topics (uses OpenAI)"),
-	modifyAnalyzedText: z
-		.enum(["none", "detectEntities", "extractEntitiesOnly"])
-		.default("none")
-		.describe(
-			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
-		),
-});
-
-const GenerateContentGapsSchema = z.object({
-	text: z
-		.string()
-		.min(1, "Text is required for analysis")
-		.describe("Text that you'd like to retrieve content gaps from"),
 });
 
 // Type definitions for API responses
@@ -176,6 +178,7 @@ interface GraphResponse {
 		mainConcepts?: string[];
 		conceptualGateways?: string[];
 		topRelations?: string[];
+		topBigrams?: string[];
 	};
 	userName?: string;
 	isPublic?: boolean;
@@ -184,33 +187,23 @@ interface GraphResponse {
 
 // Structured output types
 interface KnowledgeGraphOutput {
-	summary?: string;
 	statistics: {
 		modularity: number;
 		nodeCount: number;
 		edgeCount: number;
 		clusterCount: number;
 	};
-	topConcepts: string[];
-	topics: Array<{
-		id: string;
-		name?: string;
-		concepts: string[];
-		statementCount: number;
-	}>;
-	gaps: Array<{
-		from: string;
-		to: string;
-		bridgeConcepts: string[];
-		weight: number;
-	}>;
-	statements?: Array<{
-		id: number;
-		content: string;
-		concepts: string[];
-		topicId: string;
-	}>;
+	graphSummary?: string;
+	contentGaps?: string[];
+	mainTopics?: string[];
+	mainConcepts?: string[];
+	conceptualGateways?: string[];
+	topRelations?: string[];
+	topBigrams?: string[];
+	statements?: Array<Statement>;
 	graphologyGraph?: any; // Full graph data if needed
+	userName?: string;
+	isPublic?: boolean;
 }
 
 interface GapsOutput {
@@ -278,14 +271,19 @@ function transformToStructuredOutput(
 			edgeCount: 0,
 			clusterCount: 0,
 		},
-		topConcepts: [],
-		topics: [],
-		gaps: [],
-		statements: [],
 	};
 
 	if (data.graphSummary) {
-		output.summary = data.graphSummary;
+		output.graphSummary = data.graphSummary;
+	}
+
+	if (data.extendedGraphSummary) {
+		output.contentGaps = data.extendedGraphSummary.contentGaps;
+		output.mainTopics = data.extendedGraphSummary.mainTopics;
+		output.mainConcepts = data.extendedGraphSummary.mainConcepts;
+		output.conceptualGateways = data.extendedGraphSummary.conceptualGateways;
+		output.topRelations = data.extendedGraphSummary.topRelations;
+		output.topBigrams = data.extendedGraphSummary.topBigrams;
 	}
 
 	if (data.graph?.graphologyGraph) {
@@ -299,32 +297,6 @@ function transformToStructuredOutput(
 			clusterCount: graph.attributes?.top_clusters?.length || 0,
 		};
 
-		// Top concepts
-		if (graph.attributes?.top_nodes) {
-			output.topConcepts = graph.attributes.top_nodes.slice(0, 15);
-		}
-
-		// Topics/Clusters
-		if (graph.attributes?.top_clusters) {
-			output.topics = graph.attributes.top_clusters.map((cluster) => ({
-				id: cluster.community,
-				name: cluster.aiName,
-				concepts: cluster.nodes.slice(0, 10).map((n) => n.nodeName),
-				statementCount:
-					cluster.statementIds?.length || cluster.statements?.length || 0,
-			}));
-		}
-
-		// Gaps
-		if (graph.attributes?.gaps) {
-			output.gaps = graph.attributes.gaps.map((gap) => ({
-				from: gap.source,
-				to: gap.target,
-				bridgeConcepts: gap.concepts || [],
-				weight: gap.weight,
-			}));
-		}
-
 		// Include raw graph if requested
 		if (includeRaw) {
 			output.graphologyGraph = graph;
@@ -333,12 +305,7 @@ function transformToStructuredOutput(
 
 	// Statements
 	if (data.statements) {
-		output.statements = data.statements.slice(0, 20).map((stmt) => ({
-			id: stmt.id,
-			content: stmt.content,
-			concepts: stmt.statementHashtags.slice(0, 10),
-			topicId: stmt.topStatementCommunity,
-		}));
+		output.statements = data.statements;
 	}
 
 	return output;
@@ -478,24 +445,23 @@ server.registerTool(
 	},
 	async (params: z.infer<typeof GenerateGraphSchema>) => {
 		try {
+			const includeGraph = true;
 			// Build query parameters
 			const queryParams = new URLSearchParams({
-				doNotSave: params.doNotSave.toString(),
-				addStats: params.addStats.toString(),
+				doNotSave: "true",
+				addStats: "true",
 				includeStatements: params.includeStatements.toString(),
-				includeGraphSummary: params.includeGraphSummary.toString(),
-				extendedGraphSummary: params.extendedGraphSummary.toString(),
-				includeGraph: params.includeGraph.toString(),
+				includeGraphSummary: "false",
+				extendedGraphSummary: "true",
+				includeGraph: includeGraph ? "true" : "false",
+				aiTopics: "true",
 			});
-
-			if (params.aiTopics) {
-				queryParams.append("aiTopics", "true");
-			}
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
 			const requestBody: any = {
 				text: params.text,
+				aiTopics: "true",
 			};
 
 			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {
@@ -518,7 +484,7 @@ server.registerTool(
 
 			const structuredOutput = transformToStructuredOutput(
 				response,
-				params.includeGraph
+				includeGraph
 			);
 
 			return {
@@ -556,23 +522,22 @@ server.registerTool(
 	},
 	async (params: z.infer<typeof AnalyzeExistingGraphSchema>) => {
 		try {
+			const includeGraph = true;
 			const queryParams = new URLSearchParams({
-				doNotSave: params.doNotSave.toString(),
-				addStats: params.addStats.toString(),
+				doNotSave: "true",
+				addStats: "true",
 				includeStatements: params.includeStatements.toString(),
 				includeGraphSummary: params.includeGraphSummary.toString(),
-				extendedGraphSummary: params.extendedGraphSummary.toString(),
-				includeGraph: params.includeGraph.toString(),
+				extendedGraphSummary: "true",
+				includeGraph: includeGraph ? "true" : "false",
+				aiTopics: "true",
 			});
-
-			if (params.aiTopics) {
-				queryParams.append("aiTopics", "true");
-			}
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
 			const requestBody = {
 				name: params.graphName,
+				aiTopics: "true",
 			};
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
@@ -591,7 +556,7 @@ server.registerTool(
 
 			const structuredOutput = transformToStructuredOutput(
 				response,
-				params.includeGraph
+				includeGraph
 			);
 
 			return {
