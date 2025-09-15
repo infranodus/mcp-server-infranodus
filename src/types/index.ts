@@ -111,7 +111,7 @@ export interface TopicsOutput {
 }
 
 export interface GraphOverview {
-	graphOverview?: string;
+	textOverview?: string;
 }
 
 export interface ResearchQuestionsOutput {

@@ -84,7 +84,7 @@ export function generateTextOverview(data: GraphResponse): GraphOverview {
 	const graphOverview: GraphOverview = {};
 
 	if (data.graphSummary) {
-		graphOverview.graphOverview = data.graphSummary;
+		graphOverview.textOverview = data.graphSummary;
 	}
 
 	return graphOverview;
