@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { configSchema, serverInfo } from "./config/index.js";
 import {
@@ -13,6 +14,7 @@ import {
 	generateTextOverviewTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
+import * as dotenv from "dotenv";
 
 // Export the config schema for Smithery
 export { configSchema };
@@ -94,4 +96,56 @@ export default function createServer({
 
 	// Return the server instance
 	return server.server;
+}
+
+// Main function for STDIO compatibility (local development)
+async function main() {
+	// Load environment variables for local development
+	dotenv.config();
+
+	const config = {
+		apiKey: process.env.INFRANODUS_API_KEY!,
+		apiBase: process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1",
+	};
+
+	// Validate config
+	if (!config.apiKey) {
+		console.error("ERROR: INFRANODUS_API_KEY is not set in environment variables");
+		process.exit(1);
+	}
+
+	// Create server with config
+	const server = createServer({ config });
+
+	// Create STDIO transport
+	const transport = new StdioServerTransport();
+
+	// Handle graceful shutdown
+	process.on("SIGINT", async () => {
+		await server.close();
+		process.exit(0);
+	});
+
+	process.on("SIGTERM", async () => {
+		await server.close();
+		process.exit(0);
+	});
+
+	try {
+		await server.connect(transport);
+		// Server is running - no console output to avoid protocol interference
+	} catch (error) {
+		console.error("ERROR: MCP server failed to connect");
+		process.exit(1);
+	}
+}
+
+// Run the server if this is the main module (for local development)
+// When using Smithery CLI, this won't execute as the module is imported
+// Use a simple check that works in both ESM and CJS
+if (process.argv[1]?.endsWith('index.js') || process.argv[1]?.endsWith('index.ts')) {
+	main().catch((error) => {
+		console.error("ERROR: Fatal error of MCP server", error);
+		process.exit(1);
+	});
 }
