@@ -7,6 +7,7 @@ import {
 	analyzeExistingGraphTool,
 	generateContentGapsTool,
 	generateResearchQuestionsTool,
+	generateResearchQuestionsFromGraphTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 
@@ -45,6 +46,12 @@ server.registerTool(
 	generateResearchQuestionsTool.name,
 	generateResearchQuestionsTool.definition,
 	generateResearchQuestionsTool.handler
+);
+
+server.registerTool(
+	generateResearchQuestionsFromGraphTool.name,
+	generateResearchQuestionsFromGraphTool.definition,
+	generateResearchQuestionsFromGraphTool.handler
 );
 
 // Register resources

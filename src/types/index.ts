@@ -106,6 +106,10 @@ export interface GapsOutput {
 	contentGaps?: string[];
 }
 
+export interface ResearchQuestionsOutput {
+	questions?: string[];
+}
+
 export interface InsightsOutput {
 	summary?: string;
 	topics?: Array<{

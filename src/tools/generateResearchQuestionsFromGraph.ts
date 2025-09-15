@@ -1,17 +1,19 @@
 import { z } from "zod";
-import { GenerateResearchQuestionsSchema } from "../schemas/index.js";
+import { GenerateResearchQuestionsFromGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { generateResearchQuestions } from "../utils/transformers.js";
 
-export const generateResearchQuestionsTool = {
-	name: "generateResearchQuestions",
+export const generateResearchQuestionsFromGraphTool = {
+	name: "generateResearchQuestionsFromGraph",
 	definition: {
-		title: "Generate Research Questions from Text",
+		title: "Generate Research Questions from an InfraNodus Graph",
 		description:
-			"Analyze text and generate research questions based on the content gaps identified",
-		inputSchema: GenerateResearchQuestionsSchema.shape,
+			"Retrieve an InfraNodus graph and generate research questions based on the content gaps identified",
+		inputSchema: GenerateResearchQuestionsFromGraphSchema.shape,
 	},
-	handler: async (params: z.infer<typeof GenerateResearchQuestionsSchema>) => {
+	handler: async (
+		params: z.infer<typeof GenerateResearchQuestionsFromGraphSchema>
+	) => {
 		try {
 			// Build query parameters
 			const queryParams = new URLSearchParams({
@@ -30,10 +32,10 @@ export const generateResearchQuestionsTool = {
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
 			const requestBody: any = {
-				text: params.text,
+				name: params.graphName,
 				aiTopics: "true",
 				requestMode: "question",
-				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
+				modelToUse: params.modelToUse,
 			};
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

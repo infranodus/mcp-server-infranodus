@@ -3,6 +3,7 @@ import {
 	KnowledgeGraphOutput,
 	GapsOutput,
 	InsightsOutput,
+	ResearchQuestionsOutput,
 } from "../types/index.js";
 
 export function transformToStructuredOutput(
@@ -74,6 +75,18 @@ export function generateGaps(data: GraphResponse): GapsOutput {
 	}
 
 	return gaps;
+}
+
+export function generateResearchQuestions(
+	data: GraphResponse
+): ResearchQuestionsOutput {
+	const researchQuestions: ResearchQuestionsOutput = {};
+
+	if (data.aiAdvice) {
+		researchQuestions.questions = data.aiAdvice;
+	}
+
+	return researchQuestions;
 }
 
 export function generateInsights(
