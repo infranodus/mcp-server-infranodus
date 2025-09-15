@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Test Client - InfraNodus MCP</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .status.connected {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.disconnected {
+            background: #f44336;
+            color: white;
+        }
+        .status.connecting {
+            background: #FF9800;
+            color: white;
+        }
+        .events {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Monaco', monospace;
+            font-size: 12px;
+        }
+        .event {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            background: #2a2a2a;
+        }
+        .event.error {
+            border-left-color: #f44336;
+            background: #3a2020;
+        }
+        .event.complete {
+            border-left-color: #2196F3;
+        }
+        .timestamp {
+            color: #888;
+            font-size: 10px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Monaco', monospace;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #444;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 InfraNodus MCP Server - SSE Test Client</h1>
+
+        <div class="status disconnected" id="status">
+            Disconnected
+        </div>
+
+        <div class="controls">
+            <button id="connectBtn" onclick="connectSSE()">Connect SSE</button>
+            <button id="disconnectBtn" onclick="disconnectSSE()" disabled>Disconnect</button>
+            <button id="testBtn" onclick="testSSE()">Test SSE Stream</button>
+            <button id="analyzeBtn" onclick="analyzeText()">Analyze Text</button>
+            <button id="healthBtn" onclick="checkHealth()">Check Health</button>
+            <button id="clearBtn" onclick="clearEvents()">Clear Events</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress" style="width: 0%">0%</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📝 Input Text</h2>
+        <textarea id="inputText" placeholder="Enter text to analyze...">
+The development of artificial intelligence has revolutionized many industries. Machine learning algorithms can now process vast amounts of data and identify patterns that humans might miss. Natural language processing enables computers to understand and generate human language. Computer vision allows machines to interpret visual information from the world.
+        </textarea>
+    </div>
+
+    <div class="container">
+        <h2>📊 Server Events</h2>
+        <div class="events" id="events"></div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let streamId = null;
+        const serverUrl = 'http://localhost:3000';
+
+        function updateStatus(status, text) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = text;
+        }
+
+        function addEvent(type, data) {
+            const eventsEl = document.getElementById('events');
+            const eventEl = document.createElement('div');
+            eventEl.className = `event ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            eventEl.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                <strong>${type}:</strong> ${JSON.stringify(data, null, 2)}
+            `;
+
+            eventsEl.appendChild(eventEl);
+            eventsEl.scrollTop = eventsEl.scrollHeight;
+        }
+
+        function updateProgress(percentage) {
+            const progressEl = document.getElementById('progress');
+            progressEl.style.width = `${percentage}%`;
+            progressEl.textContent = `${percentage}%`;
+        }
+
+        function connectSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            streamId = `client-${Date.now()}`;
+            updateStatus('connecting', 'Connecting...');
+
+            eventSource = new EventSource(`${serverUrl}/sse/stream/${streamId}`);
+
+            eventSource.onopen = () => {
+                updateStatus('connected', `Connected (Stream: ${streamId})`);
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                addEvent('info', { message: 'SSE connection established' });
+            };
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('message', data);
+            };
+
+            eventSource.addEventListener('connected', (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('connected', data);
+            });
+
+            eventSource.addEventListener('progress', (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('progress', data);
+                if (data.progress !== undefined) {
+                    updateProgress(data.progress);
+                }
+            });
+
+            eventSource.addEventListener('complete', (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('complete', data);
+                updateProgress(100);
+            });
+
+            eventSource.addEventListener('error', (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('error', data);
+            });
+
+            eventSource.onerror = (error) => {
+                updateStatus('disconnected', 'Connection error');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+                addEvent('error', { message: 'SSE connection error' });
+            };
+        }
+
+        function disconnectSSE() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            updateStatus('disconnected', 'Disconnected');
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('disconnectBtn').disabled = true;
+            addEvent('info', { message: 'SSE connection closed' });
+            updateProgress(0);
+        }
+
+        async function testSSE() {
+            addEvent('info', { message: 'Starting SSE test stream' });
+
+            const testSource = new EventSource(`${serverUrl}/test/sse`);
+
+            testSource.addEventListener('test', (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('test', data);
+                updateProgress(data.counter * 10);
+            });
+
+            testSource.addEventListener('complete', (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('complete', data);
+                testSource.close();
+            });
+
+            testSource.onerror = () => {
+                testSource.close();
+                addEvent('error', { message: 'Test stream error' });
+            };
+        }
+
+        async function analyzeText() {
+            const text = document.getElementById('inputText').value;
+
+            if (!text.trim()) {
+                addEvent('error', { message: 'Please enter text to analyze' });
+                return;
+            }
+
+            if (!streamId) {
+                addEvent('info', { message: 'Connecting SSE first...' });
+                connectSSE();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            updateProgress(0);
+            addEvent('info', { message: 'Sending analysis request' });
+
+            try {
+                const response = await fetch(`${serverUrl}/api/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text,
+                        streamId,
+                        options: {
+                            optimize: 'gap',
+                            includeGraphSummary: 'true',
+                            modelToUse: 'gpt-4o'
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    addEvent('success', { message: 'Analysis complete', result });
+                } else {
+                    addEvent('error', result);
+                }
+            } catch (error) {
+                addEvent('error', { message: error.message });
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${serverUrl}/health`);
+                const health = await response.json();
+                addEvent('health', health);
+            } catch (error) {
+                addEvent('error', { message: 'Health check failed', error: error.message });
+            }
+        }
+
+        function clearEvents() {
+            document.getElementById('events').innerHTML = '';
+            updateProgress(0);
+        }
+
+        // Auto-connect on load
+        window.addEventListener('load', () => {
+            addEvent('info', { message: 'Client loaded, ready to connect' });
+        });
+    </script>
+</body>
+</html>

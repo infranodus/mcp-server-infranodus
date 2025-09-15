@@ -10,13 +10,23 @@
 	"scripts": {
 		"build": "tsc",
 		"start": "npm run build && node dist/index.js",
+		"start:http": "npm run build && node dist/http-server.js",
 		"dev": "npm run build && node dist/index.js",
+		"dev:http": "npm run build && node dist/http-server.js",
 		"watch": "tsc --watch",
-		"inspect": "npm run build && npx @modelcontextprotocol/inspector node dist/index.js"
+		"inspect": "npm run build && npx @modelcontextprotocol/inspector node dist/index.js",
+		"test:sse": "./scripts/test-sse.sh",
+		"monitor": "./scripts/monitor.sh",
+		"docker:build": "docker build -t infranodus-mcp-server .",
+		"docker:run": "docker run -p 3000:3000 --env-file .env infranodus-mcp-server",
+		"docker:up": "docker-compose up",
+		"docker:down": "docker-compose down"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.18.0",
-		"dotenv": "^16.6.1"
+		"dotenv": "^16.6.1",
+		"express": "^4.18.2",
+		"cors": "^2.8.5"
 	},
 	"devDependencies": {
 		"@modelcontextprotocol/inspector": "latest",
