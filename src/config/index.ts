@@ -1,26 +1,21 @@
-import * as dotenv from "dotenv";
+import { z } from "zod";
 
-// Load environment variables
-dotenv.config();
+// Define the configuration schema for Smithery
+export const configSchema = z.object({
+	apiKey: z.string().describe("Your InfraNodus API key"),
+	apiBase: z
+		.string()
+		.default("https://infranodus.com/api/v1")
+		.describe("InfraNodus API base URL"),
+});
 
-export const config = {
-	apiKey: process.env.INFRANODUS_API_KEY,
-	apiBase: process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1",
-	server: {
-		name: "infranodus-mcp-server",
-		version: "1.0.0",
-		description:
-			"MCP server for InfraNodus knowledge graph generation and text analysis",
-	},
+// Export the type for use in other files
+export type Config = z.infer<typeof configSchema>;
+
+// Server metadata
+export const serverInfo = {
+	name: "infranodus-mcp-server",
+	version: "1.0.0",
+	description:
+		"MCP server for InfraNodus knowledge graph generation and text analysis",
 };
-
-export function validateConfig(): boolean {
-	if (!config.apiKey) {
-		// Log to stderr so it appears in Claude's logs without interfering with MCP protocol
-		console.error(
-			"ERROR: INFRANODUS_API_KEY is not set in environment variables"
-		);
-		return false;
-	}
-	return true;
-}

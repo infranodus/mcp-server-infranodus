@@ -1,11 +1,13 @@
 import { GraphResponse } from "../types/index.js";
-import { config } from "../config/index.js";
 
 export async function makeInfraNodusRequest(
 	endpoint: string,
 	body: any
 ): Promise<GraphResponse> {
 	try {
+		// Get config from global scope (set by Smithery)
+		const config = (global as any).infranodusConfig;
+
 		const response = await fetch(`${config.apiBase}${endpoint}`, {
 			method: "POST",
 			headers: {
