@@ -21,7 +21,9 @@ Available Tools:
 1. generateKnowledgeGraph - Convert any text into a knowledge graph with topics, concepts, and structural analysis
 2. analyzeExistingGraphByName - Retrieve and analyze graphs from your InfraNodus account
 3. generateContentGaps - Generate content gaps from text
-4. generateResearchQuestions - Generate research questions based on content gaps
+4. generateTopicalClusters - Generate topics and clusters of keywords from text using knowledge graph analysis
+5. generateResearchQuestions - Generate research questions based on content gaps
+6. generateResearchQuestionsFromGraph - Generate research questions based on an existing InfraNodus graph
 
 Key Features:
 - Topic modeling and clustering
