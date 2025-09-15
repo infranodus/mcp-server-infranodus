@@ -4,9 +4,16 @@
 	"description": "InfraNodus MCP server",
 	"type": "module",
 	"module": "src/index.ts",
+	"main": "dist/index.js",
+	"bin": {
+		"infranodus-mcp-server": "./dist/index.js"
+	},
 	"scripts": {
 		"build": "npx @smithery/cli build",
-		"dev": "npx @smithery/cli dev"
+		"dev": "npx @smithery/cli dev",
+		"watch": "tsc --watch",
+		"inspect": "npm run build && npx @modelcontextprotocol/inspector node dist/index.js",
+		"start": "npm run build && node dist/index.js"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.18.0",
