@@ -118,6 +118,34 @@ export const GenerateResearchQuestionsFromGraphSchema = z.object({
 		),
 });
 
+export const GenerateResponsesFromGraphSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "Graph name is required")
+		.describe(
+			"Name of the existing InfraNodus graph in your account to retrieve"
+		),
+	prompt: z
+		.string()
+		.min(1, "Prompt is required")
+		.describe("Prompt to generate responses to from the graph"),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.1",
+			"claude-sonnet-4",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5",
+			"gpt-5-mini",
+		])
+		.default("gpt-4o")
+		.describe(
+			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
+		),
+});
+
 // This is used for adding options later to each tool
 export const GenerateGeneralGraphSchema = z.object({
 	text: z

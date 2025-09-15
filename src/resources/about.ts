@@ -24,6 +24,7 @@ Available Tools:
 4. generateTopicalClusters - Generate topics and clusters of keywords from text using knowledge graph analysis
 5. generateResearchQuestions - Generate research questions based on content gaps
 6. generateResearchQuestionsFromGraph - Generate research questions based on an existing InfraNodus graph
+7. generateResponsesFromGraph - Generate responses from an existing InfraNodus graph or ontology
 
 Key Features:
 - Topic modeling and clustering

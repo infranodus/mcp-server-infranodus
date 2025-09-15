@@ -9,6 +9,7 @@ import {
 	generateTopicalClustersTool,
 	generateResearchQuestionsTool,
 	generateResearchQuestionsFromGraphTool,
+	generateResponsesFromGraphTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 
@@ -59,6 +60,12 @@ server.registerTool(
 	generateResearchQuestionsFromGraphTool.name,
 	generateResearchQuestionsFromGraphTool.definition,
 	generateResearchQuestionsFromGraphTool.handler
+);
+
+server.registerTool(
+	generateResponsesFromGraphTool.name,
+	generateResponsesFromGraphTool.definition,
+	generateResponsesFromGraphTool.handler
 );
 
 // Register resources

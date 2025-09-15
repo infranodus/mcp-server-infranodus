@@ -114,6 +114,10 @@ export interface ResearchQuestionsOutput {
 	questions?: string[];
 }
 
+export interface ResponsesOutput {
+	responses?: string[];
+}
+
 export interface InsightsOutput {
 	summary?: string;
 	topics?: Array<{

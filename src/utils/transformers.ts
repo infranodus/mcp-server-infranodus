@@ -5,6 +5,7 @@ import {
 	TopicsOutput,
 	InsightsOutput,
 	ResearchQuestionsOutput,
+	ResponsesOutput,
 } from "../types/index.js";
 
 export function transformToStructuredOutput(
@@ -98,6 +99,16 @@ export function generateResearchQuestions(
 	}
 
 	return researchQuestions;
+}
+
+export function generateResponses(data: GraphResponse): ResponsesOutput {
+	const responses: ResponsesOutput = {};
+
+	if (data.aiAdvice) {
+		responses.responses = data.aiAdvice;
+	}
+
+	return responses;
 }
 
 export function generateInsights(

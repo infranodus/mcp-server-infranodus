@@ -49,12 +49,22 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 5. **generateResearchQuestions**
 
    - Generate research questions that bridge content gaps
+   - Use them as prompts in your LLM models and AI workflows
+   - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
 6. **generateResearchQuestionsFromGraph**
+
    - Generate research questions based on an existing InfraNodus graph
+   - Use them as prompts in your LLM models
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
+
+7. **generateResponsesFromGraph**
+   - Generate responses based on an existing InfraNodus graph
+   - Integrate them into your LLM workflows and AI assistants
+   - Use any AI model (included in InfraNodus API)
+   - Use any prompt
 
 _More capabilites coming soon!_
 
