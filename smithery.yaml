@@ -1,0 +1,4 @@
+runtime: "typescript"
+env:
+  NODE_ENV: "production"
+  INFRANODUS_API_KEY: "your-infranodus-api-key"
