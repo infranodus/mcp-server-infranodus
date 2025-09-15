@@ -5,3 +5,4 @@ export { generateTopicalClustersTool } from "./generateTopicalClusters.js";
 export { generateResearchQuestionsTool } from "./generateResearchQuestions.js";
 export { generateResearchQuestionsFromGraphTool } from "./generateResearchQuestionsFromGraph.js";
 export { generateResponsesFromGraphTool } from "./generateResponsesFromGraph.js";
+export { generateTextOverviewTool } from "./generateTextOverview.js";

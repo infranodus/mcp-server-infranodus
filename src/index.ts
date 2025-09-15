@@ -10,6 +10,7 @@ import {
 	generateResearchQuestionsTool,
 	generateResearchQuestionsFromGraphTool,
 	generateResponsesFromGraphTool,
+	generateTextOverviewTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 
@@ -66,6 +67,12 @@ server.registerTool(
 	generateResponsesFromGraphTool.name,
 	generateResponsesFromGraphTool.definition,
 	generateResponsesFromGraphTool.handler
+);
+
+server.registerTool(
+	generateTextOverviewTool.name,
+	generateTextOverviewTool.definition,
+	generateTextOverviewTool.handler
 );
 
 // Register resources

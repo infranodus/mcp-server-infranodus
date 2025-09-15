@@ -25,6 +25,7 @@ Available Tools:
 5. generateResearchQuestions - Generate research questions based on content gaps
 6. generateResearchQuestionsFromGraph - Generate research questions based on an existing InfraNodus graph
 7. generateResponsesFromGraph - Generate responses from an existing InfraNodus graph or ontology
+8. generateTextOverview - Generate a topical overview of a text and provide insights for LLMs to generate better responses
 
 Key Features:
 - Topic modeling and clustering

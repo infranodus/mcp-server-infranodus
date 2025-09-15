@@ -1,24 +1,24 @@
 import { z } from "zod";
-import { GenerateContentGapsSchema } from "../schemas/index.js";
+import { GenerateTextOverviewSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { generateGaps } from "../utils/transformers.js";
+import { generateTextOverview } from "../utils/transformers.js";
 
-export const generateContentGapsTool = {
-	name: "generateContentGaps",
+export const generateTextOverviewTool = {
+	name: "generateTextOverview",
 	definition: {
-		title: "Generate Content Gaps",
+		title: "Generate an Overview of a Text",
 		description:
-			"Generate content gaps from text using knowledge graph analysis",
-		inputSchema: GenerateContentGapsSchema.shape,
+			"Generate a topical overview of a text and provide insights for LLMs to generate better responses",
+		inputSchema: GenerateTextOverviewSchema.shape,
 	},
-	handler: async (params: z.infer<typeof GenerateContentGapsSchema>) => {
+	handler: async (params: z.infer<typeof GenerateTextOverviewSchema>) => {
 		try {
 			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
-				includeGraphSummary: "false",
-				extendedGraphSummary: "true",
+				includeGraphSummary: "true",
+				extendedGraphSummary: "false",
 				includeGraph: "false",
 				includeStatements: "false",
 				aiTopics: "true",
@@ -42,13 +42,13 @@ export const generateContentGapsTool = {
 				};
 			}
 
-			const insights = generateGaps(response);
+			const textOverview = generateTextOverview(response);
 
 			return {
 				content: [
 					{
 						type: "text" as const,
-						text: JSON.stringify(insights, null, 2),
+						text: JSON.stringify(textOverview, null, 2),
 					},
 				],
 			};

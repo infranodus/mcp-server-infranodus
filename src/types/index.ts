@@ -110,6 +110,10 @@ export interface TopicsOutput {
 	topicalClusters?: string[];
 }
 
+export interface GraphOverview {
+	graphOverview?: string;
+}
+
 export interface ResearchQuestionsOutput {
 	questions?: string[];
 }

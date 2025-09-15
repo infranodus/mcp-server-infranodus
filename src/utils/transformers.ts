@@ -2,6 +2,7 @@ import {
 	GraphResponse,
 	KnowledgeGraphOutput,
 	GapsOutput,
+	GraphOverview,
 	TopicsOutput,
 	InsightsOutput,
 	ResearchQuestionsOutput,
@@ -77,6 +78,16 @@ export function generateGaps(data: GraphResponse): GapsOutput {
 	}
 
 	return gaps;
+}
+
+export function generateTextOverview(data: GraphResponse): GraphOverview {
+	const graphOverview: GraphOverview = {};
+
+	if (data.graphSummary) {
+		graphOverview.graphOverview = data.graphSummary;
+	}
+
+	return graphOverview;
 }
 
 export function generateTopics(data: GraphResponse): TopicsOutput {
