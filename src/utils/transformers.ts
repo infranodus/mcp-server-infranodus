@@ -2,6 +2,7 @@ import {
 	GraphResponse,
 	KnowledgeGraphOutput,
 	GapsOutput,
+	TopicsOutput,
 	InsightsOutput,
 	ResearchQuestionsOutput,
 } from "../types/index.js";
@@ -75,6 +76,16 @@ export function generateGaps(data: GraphResponse): GapsOutput {
 	}
 
 	return gaps;
+}
+
+export function generateTopics(data: GraphResponse): TopicsOutput {
+	const topicalClusters: TopicsOutput = {};
+
+	if (data.extendedGraphSummary?.mainTopics) {
+		topicalClusters.topicalClusters = data.extendedGraphSummary.mainTopics;
+	}
+
+	return topicalClusters;
 }
 
 export function generateResearchQuestions(

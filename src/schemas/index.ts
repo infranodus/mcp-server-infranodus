@@ -47,6 +47,15 @@ export const GenerateContentGapsSchema = z.object({
 		.describe("Text that you'd like to retrieve content gaps from"),
 });
 
+export const GenerateTopicalClustersSchema = z.object({
+	text: z
+		.string()
+		.min(1, "Text is required for analysis")
+		.describe(
+			"Text that you'd like to retrieve topics and topical clusters from"
+		),
+});
+
 export const GenerateResearchQuestionsSchema = z.object({
 	text: z
 		.string()

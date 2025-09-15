@@ -6,6 +6,7 @@ import {
 	generateKnowledgeGraphTool,
 	analyzeExistingGraphTool,
 	generateContentGapsTool,
+	generateTopicalClustersTool,
 	generateResearchQuestionsTool,
 	generateResearchQuestionsFromGraphTool,
 } from "./tools/index.js";
@@ -40,6 +41,12 @@ server.registerTool(
 	generateContentGapsTool.name,
 	generateContentGapsTool.definition,
 	generateContentGapsTool.handler
+);
+
+server.registerTool(
+	generateTopicalClustersTool.name,
+	generateTopicalClustersTool.definition,
+	generateTopicalClustersTool.handler
 );
 
 server.registerTool(

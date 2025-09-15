@@ -106,6 +106,10 @@ export interface GapsOutput {
 	contentGaps?: string[];
 }
 
+export interface TopicsOutput {
+	topicalClusters?: string[];
+}
+
 export interface ResearchQuestionsOutput {
 	questions?: string[];
 }
