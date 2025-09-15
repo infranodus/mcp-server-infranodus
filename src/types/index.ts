@@ -76,6 +76,7 @@ export interface GraphResponse {
 	};
 	userName?: string;
 	isPublic?: boolean;
+	aiAdvice?: string[];
 	error?: string;
 }
 

@@ -5,7 +5,7 @@ dotenv.config();
 
 export const config = {
 	apiKey: process.env.INFRANODUS_API_KEY,
-	apiBase: process.env.INFRANODUS_API_BASE || "http://localhost:3000/api/v1",
+	apiBase: process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1",
 	server: {
 		name: "infranodus-mcp-server",
 		version: "1.0.0",

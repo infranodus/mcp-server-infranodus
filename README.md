@@ -34,10 +34,14 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Export graph data with full statistics
 
 3. **generateContentGaps**
+
    - Detect missing connections in discourse
    - Identify underexplored topics
    - Generate research questions
    - Suggest content development opportunities
+
+4. **generateResearchQuestions**
+   - Generate research questions based on content gaps
 
 _More capabilites coming soon!_
 

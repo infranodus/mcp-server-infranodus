@@ -6,6 +6,7 @@ import {
 	generateKnowledgeGraphTool,
 	analyzeExistingGraphTool,
 	generateContentGapsTool,
+	generateResearchQuestionsTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 
@@ -38,6 +39,12 @@ server.registerTool(
 	generateContentGapsTool.name,
 	generateContentGapsTool.definition,
 	generateContentGapsTool.handler
+);
+
+server.registerTool(
+	generateResearchQuestionsTool.name,
+	generateResearchQuestionsTool.definition,
+	generateResearchQuestionsTool.handler
 );
 
 // Register resources
