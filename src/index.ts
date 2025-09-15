@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { config, validateConfig } from "./config/index.js";
 import {
 	generateKnowledgeGraphTool,
+	createKnowledgeGraphTool,
 	analyzeExistingGraphTool,
 	generateContentGapsTool,
 	generateTopicalClustersTool,
@@ -31,6 +32,12 @@ server.registerTool(
 	generateKnowledgeGraphTool.name,
 	generateKnowledgeGraphTool.definition,
 	generateKnowledgeGraphTool.handler
+);
+
+server.registerTool(
+	createKnowledgeGraphTool.name,
+	createKnowledgeGraphTool.definition,
+	createKnowledgeGraphTool.handler
 );
 
 server.registerTool(

@@ -67,6 +67,18 @@ export function transformToStructuredOutput(
 		output.statements = data.statements;
 	}
 
+	if (data.userName) {
+		output.userName = data.userName;
+	}
+
+	if (data.graphName) {
+		output.graphName = data.graphName;
+	}
+
+	if (data.graphUrl) {
+		output.graphUrl = data.graphUrl;
+	}
+
 	return output;
 }
 

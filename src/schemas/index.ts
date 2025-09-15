@@ -17,6 +17,27 @@ export const GenerateGraphSchema = z.object({
 		),
 });
 
+export const CreateGraphSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "Graph name is required")
+		.describe("Name of the graph to create in InfraNodus"),
+	text: z
+		.string()
+		.min(1, "Text is required for analysis")
+		.describe("Text that you'd like to analyze"),
+	includeStatements: z
+		.boolean()
+		.default(false)
+		.describe("Include processed statements in response"),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+		),
+});
+
 export const AnalyzeExistingGraphSchema = z.object({
 	graphName: z
 		.string()

@@ -68,9 +68,14 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Use any prompt
 
 8. **generateTextOverview**
+
    - Generate a topical overview of a text and provide insights for LLMs to generate better responses
    - Use it to get a high-level understanding of a text
    - Use it to augment prompts in your LLM workflows and AI assistants
+
+9. **createKnowledgeGraph**
+   - Create a knowledge graph in InfraNodus from text and provide a link to it
+   - Use it to create a knowledge graph in InfraNodus from text
 
 _More capabilites coming soon!_
 

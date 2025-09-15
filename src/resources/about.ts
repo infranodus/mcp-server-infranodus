@@ -4,7 +4,7 @@ export const aboutResource = {
 	definition: {
 		name: "About InfraNodus MCP Server",
 		description:
-			"Information about this MCP server and InfraNodus capabilities",
+			"InfraNodus MCP server can generate knowledge graphs and perform text analysis using the InfraNodus API. It can work with your existing InfraNodus graphs or with the text you submit via your LLM workflows or Claude desktop client. InfraNodus MCP can extract the main topics and identify the content gaps in any text and use the built-in AI with the model of your choice (no additional keys needed) to generate research questions that can be used as prompts to augment your LLM's responses.",
 		mimeType: "text/plain",
 	},
 	handler: async () => {
@@ -26,6 +26,7 @@ Available Tools:
 6. generateResearchQuestionsFromGraph - Generate research questions based on an existing InfraNodus graph
 7. generateResponsesFromGraph - Generate responses from an existing InfraNodus graph or ontology
 8. generateTextOverview - Generate a topical overview of a text and provide insights for LLMs to generate better responses
+9. createKnowledgeGraph - Create a knowledge graph in InfraNodus from text and provide a link to it
 
 Key Features:
 - Topic modeling and clustering

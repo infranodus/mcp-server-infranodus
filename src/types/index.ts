@@ -75,6 +75,8 @@ export interface GraphResponse {
 		topBigrams?: string[];
 	};
 	userName?: string;
+	graphName?: string;
+	graphUrl?: string;
 	isPublic?: boolean;
 	aiAdvice?: string[];
 	error?: string;
@@ -99,6 +101,8 @@ export interface KnowledgeGraphOutput {
 	knowledgeGraphByCluster?: any;
 	topClusters?: any;
 	userName?: string;
+	graphName?: string;
+	graphUrl?: string;
 	isPublic?: boolean;
 }
 
