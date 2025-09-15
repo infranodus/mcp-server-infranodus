@@ -13,7 +13,8 @@ export const createKnowledgeGraphTool = {
 	},
 	handler: async (params: z.infer<typeof CreateGraphSchema>) => {
 		try {
-			const includeGraph = true;
+			const includeNodesAndEdges = params.addNodesAndEdges;
+			const includeGraph = params.includeGraph;
 			// Build query parameters
 			const queryParams = new URLSearchParams({
 				doNotSave: "false",
@@ -54,7 +55,8 @@ export const createKnowledgeGraphTool = {
 
 			const structuredOutput = transformToStructuredOutput(
 				response,
-				includeGraph
+				includeGraph,
+				includeNodesAndEdges
 			);
 
 			return {

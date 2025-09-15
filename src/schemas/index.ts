@@ -8,7 +8,21 @@ export const GenerateGraphSchema = z.object({
 	includeStatements: z
 		.boolean()
 		.default(false)
-		.describe("Include processed statements in response"),
+		.describe(
+			"Include processed statements in response (add only if explicitly needed)"
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include full graph structure in response (add only if explicitly needed)"
+		),
+	addNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
+		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
@@ -29,7 +43,21 @@ export const CreateGraphSchema = z.object({
 	includeStatements: z
 		.boolean()
 		.default(false)
-		.describe("Include processed statements in response"),
+		.describe(
+			"Include processed statements in response (add only if explicitly needed)"
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include full graph structure in response (add only if explicitly needed)"
+		),
+	addNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
+		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
@@ -48,7 +76,21 @@ export const AnalyzeExistingGraphSchema = z.object({
 	includeStatements: z
 		.boolean()
 		.default(true)
-		.describe("Include processed statements in response"),
+		.describe(
+			"Include processed statements in response (add only if explicitly needed)"
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include full graph structure in response (add only if explicitly needed)"
+		),
+	addNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
+		),
 	includeGraphSummary: z
 		.boolean()
 		.default(false)
@@ -188,7 +230,21 @@ export const GenerateGeneralGraphSchema = z.object({
 	includeStatements: z
 		.boolean()
 		.default(true)
-		.describe("Include processed statements in response"),
+		.describe(
+			"Include processed statements in response (add only if explicitly needed)"
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include full graph structure in response (add only if explicitly needed)"
+		),
+	addNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
+		),
 	includeGraphSummary: z
 		.boolean()
 		.default(true)
@@ -197,10 +253,6 @@ export const GenerateGeneralGraphSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe("Include extended graph summary"),
-	includeGraph: z
-		.boolean()
-		.default(true)
-		.describe("Include full graph structure"),
 	aiTopics: z
 		.boolean()
 		.default(true)

@@ -13,7 +13,8 @@ export const analyzeExistingGraphTool = {
 	},
 	handler: async (params: z.infer<typeof AnalyzeExistingGraphSchema>) => {
 		try {
-			const includeGraph = true;
+			const includeNodesAndEdges = params.addNodesAndEdges;
+			const includeGraph = params.includeGraph;
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -48,7 +49,8 @@ export const analyzeExistingGraphTool = {
 
 			const structuredOutput = transformToStructuredOutput(
 				response,
-				includeGraph
+				includeGraph,
+				includeNodesAndEdges
 			);
 
 			return {

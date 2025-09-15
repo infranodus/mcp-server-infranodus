@@ -11,7 +11,8 @@ import {
 
 export function transformToStructuredOutput(
 	data: GraphResponse,
-	includeRaw: boolean = false
+	includeGraph: boolean = false,
+	includeNodesAndEdges: boolean = false
 ): KnowledgeGraphOutput {
 	const output: KnowledgeGraphOutput = {
 		statistics: {
@@ -57,8 +58,14 @@ export function transformToStructuredOutput(
 		}
 
 		// Include raw graph if requested
-		if (includeRaw) {
+		if (includeGraph) {
 			output.knowledgeGraph = graph;
+		}
+
+		// Include nodes and edges if requested
+		if (includeGraph && !includeNodesAndEdges) {
+			delete output.knowledgeGraph.nodes;
+			delete output.knowledgeGraph.edges;
 		}
 	}
 
