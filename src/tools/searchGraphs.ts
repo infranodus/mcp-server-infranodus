@@ -14,8 +14,9 @@ export const searchExistingGraphsTool = {
 		try {
 			const endpoint = `/search`;
 
+			const searchQuery = params.query;
 			const requestBody = {
-				query: params.query,
+				query: searchQuery,
 				contextNames:
 					params.contextNames && params.contextNames.length > 0
 						? params.contextNames.join(",")
@@ -36,7 +37,7 @@ export const searchExistingGraphsTool = {
 				};
 			}
 
-			const structuredOutput = generateSearchResult(response);
+			const structuredOutput = generateSearchResult(response, searchQuery);
 
 			return {
 				content: [

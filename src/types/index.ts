@@ -83,7 +83,7 @@ export interface GraphResponse {
 }
 
 export interface SearchResponse {
-	entriesAdded?: any[];
+	entriesAdded?: { ids: string[]; texts: string[] };
 	graph?: {
 		graphologyGraph: {
 			attributes: {
@@ -165,4 +165,11 @@ export interface InsightsOutput {
 
 export interface SearchOutput {
 	results?: Array<{ id: string; title: string; url: string }>;
+}
+
+export interface FetchOutput {
+	id: string;
+	title: string;
+	text: string;
+	url: string;
 }

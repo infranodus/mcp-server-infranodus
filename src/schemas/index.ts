@@ -116,6 +116,15 @@ export const SearchExistingGraphsSchema = z.object({
 		),
 });
 
+export const SearchExistingGraphsFetchSchema = z.object({
+	id: z
+		.string()
+		.min(1, "ID of the Search Result is required")
+		.describe(
+			"ID of the search result to retrieve (username:graph_name:search_query"
+		),
+});
+
 export const GenerateContentGapsSchema = z.object({
 	text: z
 		.string()

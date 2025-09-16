@@ -9,6 +9,7 @@ import {
 	ResearchQuestionsOutput,
 	ResponsesOutput,
 	SearchOutput,
+	FetchOutput,
 } from "../types/index.js";
 
 export function transformToStructuredOutput(
@@ -143,10 +144,15 @@ export function generateResponses(data: GraphResponse): ResponsesOutput {
 	return responses;
 }
 
-export function generateSearchResult(data: SearchResponse): SearchOutput {
+export function generateSearchResult(
+	data: SearchResponse,
+	query: string
+): SearchOutput {
 	const results: SearchOutput = { results: [] };
 
 	const userName = data.userName || "";
+
+	const searchQuery = query || "";
 
 	const searchResultsExist =
 		data.graphUrls &&
@@ -157,13 +163,43 @@ export function generateSearchResult(data: SearchResponse): SearchOutput {
 	if (searchResultsExist) {
 		const graphNames = data.graphNames || [];
 		results.results = data.graphUrls?.map((url, index) => ({
-			id: `${userName}:${graphNames[index]}`,
+			id: `${userName}:${graphNames[index]}:${searchQuery}`,
 			title: graphNames[index],
 			url: url,
 		}));
 	}
 
 	return results;
+}
+
+export function generateFetchResult(
+	data: SearchResponse,
+	query: string
+): FetchOutput {
+	const fetchResults: FetchOutput = { id: "", title: "", text: "", url: "" };
+
+	const userName = data.userName || "";
+
+	const searchQuery = query || "";
+
+	const searchResultsExist =
+		data.graphUrls &&
+		data.graphNames &&
+		data.graphUrls.length > 0 &&
+		data.graphNames.length > 0;
+
+	const searchResultsTextArray = data.entriesAdded?.texts;
+
+	if (searchResultsExist) {
+		const graphNames = data.graphNames || [];
+		const graphUrls = data.graphUrls || [];
+		fetchResults.id = `${userName}:${graphNames[0]}:${searchQuery}`;
+		fetchResults.title = graphNames[0];
+		fetchResults.text = searchResultsTextArray?.join("\n") || "";
+		fetchResults.url = graphUrls[0];
+	}
+
+	return fetchResults;
 }
 
 export function generateInsights(

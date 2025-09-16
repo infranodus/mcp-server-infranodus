@@ -13,6 +13,7 @@ import {
 	generateResponsesFromGraphTool,
 	generateTextOverviewTool,
 	searchExistingGraphsTool,
+	searchExistingGraphsFetchTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 import * as dotenv from "dotenv";
@@ -91,6 +92,12 @@ export default function createServer({
 		searchExistingGraphsTool.name,
 		searchExistingGraphsTool.definition,
 		searchExistingGraphsTool.handler
+	);
+
+	server.registerTool(
+		searchExistingGraphsFetchTool.name,
+		searchExistingGraphsFetchTool.definition,
+		searchExistingGraphsFetchTool.handler
 	);
 
 	// Register resources

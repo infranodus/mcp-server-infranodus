@@ -82,8 +82,12 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 
 - Search through existing InfraNodus graphs
 - Also use it to search through the public graphs of a specific user
+- Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-11.
+11. **fetch**
+
+- Fetch a specific search result for a graph
+- Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 
 _More capabilites coming soon!_
 
