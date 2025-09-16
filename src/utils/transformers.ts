@@ -157,7 +157,7 @@ export function generateSearchResult(data: SearchResponse): SearchOutput {
 	if (searchResultsExist) {
 		const graphNames = data.graphNames || [];
 		results.results = data.graphUrls?.map((url, index) => ({
-			id: `${userName}-${graphNames[index]}`,
+			id: `${userName}:${graphNames[index]}`,
 			title: graphNames[index],
 			url: url,
 		}));
