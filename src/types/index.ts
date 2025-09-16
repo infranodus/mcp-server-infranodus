@@ -82,6 +82,28 @@ export interface GraphResponse {
 	error?: string;
 }
 
+export interface SearchResponse {
+	entriesAdded?: any[];
+	graph?: {
+		graphologyGraph: {
+			attributes: {
+				modularity: number;
+				top_nodes: string[];
+				top_clusters?: TopCluster[];
+				gaps: GraphGap[];
+				dotGraphByCluster?: any;
+			};
+			nodes: GraphNode[];
+			edges: GraphEdge[];
+		};
+		statementHasthags: any[];
+	};
+	userName?: string;
+	graphUrls?: string[];
+	graphNames?: string[];
+	error?: string;
+}
+
 export interface KnowledgeGraphOutput {
 	statistics: {
 		modularity: number;
@@ -139,4 +161,8 @@ export interface InsightsOutput {
 	}>;
 	questions?: string[];
 	keyInsights?: string[];
+}
+
+export interface SearchOutput {
+	results?: Array<{ id: string; title: string; url: string }>;
 }

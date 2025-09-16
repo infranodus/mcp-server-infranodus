@@ -12,6 +12,7 @@ import {
 	generateResearchQuestionsFromGraphTool,
 	generateResponsesFromGraphTool,
 	generateTextOverviewTool,
+	searchExistingGraphsTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 import * as dotenv from "dotenv";
@@ -84,6 +85,12 @@ export default function createServer({
 		generateTextOverviewTool.name,
 		generateTextOverviewTool.definition,
 		generateTextOverviewTool.handler
+	);
+
+	server.registerTool(
+		searchExistingGraphsTool.name,
+		searchExistingGraphsTool.definition,
+		searchExistingGraphsTool.handler
 	);
 
 	// Register resources

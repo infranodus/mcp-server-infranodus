@@ -74,8 +74,16 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Use it to augment prompts in your LLM workflows and AI assistants
 
 9. **create_knowledge_graph**
+
    - Create a knowledge graph in InfraNodus from text and provide a link to it
    - Use it to create a knowledge graph in InfraNodus from text
+
+10. **search**
+
+- Search through existing InfraNodus graphs
+- Also use it to search through the public graphs of a specific user
+
+11.
 
 _More capabilites coming soon!_
 

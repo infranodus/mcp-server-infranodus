@@ -103,6 +103,19 @@ export const AnalyzeExistingGraphSchema = z.object({
 		),
 });
 
+export const SearchExistingGraphsSchema = z.object({
+	query: z
+		.string()
+		.min(1, "Search query is required")
+		.describe("Query to search for in existing InfraNodus graphs"),
+	contextNames: z
+		.array(z.string())
+		.default([])
+		.describe(
+			"Names of the existing InfraNodus graphs to search in (comma-separated list, empty for all)"
+		),
+});
+
 export const GenerateContentGapsSchema = z.object({
 	text: z
 		.string()

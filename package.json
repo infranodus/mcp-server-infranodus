@@ -10,10 +10,11 @@
 	},
 	"scripts": {
 		"build": "npx @smithery/cli build",
+		"build:inspect": "tsc",
 		"dev": "npx @smithery/cli dev",
 		"watch": "tsc --watch",
-		"inspect": "npm run build && npx @modelcontextprotocol/inspector node dist/index.js",
-		"start": "npm run build && node dist/index.js"
+		"inspect": "npm run build:inspect && npx @modelcontextprotocol/inspector node dist/index.js",
+		"start": "npm run build:inspect && node dist/index.js"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.18.0",

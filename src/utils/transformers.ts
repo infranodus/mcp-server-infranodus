@@ -1,5 +1,6 @@
 import {
 	GraphResponse,
+	SearchResponse,
 	KnowledgeGraphOutput,
 	GapsOutput,
 	GraphOverview,
@@ -7,6 +8,7 @@ import {
 	InsightsOutput,
 	ResearchQuestionsOutput,
 	ResponsesOutput,
+	SearchOutput,
 } from "../types/index.js";
 
 export function transformToStructuredOutput(
@@ -139,6 +141,29 @@ export function generateResponses(data: GraphResponse): ResponsesOutput {
 	}
 
 	return responses;
+}
+
+export function generateSearchResult(data: SearchResponse): SearchOutput {
+	const results: SearchOutput = { results: [] };
+
+	const userName = data.userName || "";
+
+	const searchResultsExist =
+		data.graphUrls &&
+		data.graphNames &&
+		data.graphUrls.length > 0 &&
+		data.graphNames.length > 0;
+
+	if (searchResultsExist) {
+		const graphNames = data.graphNames || [];
+		results.results = data.graphUrls?.map((url, index) => ({
+			id: `${userName}-${index}-${graphNames[index]}`,
+			title: graphNames[index],
+			url: url,
+		}));
+	}
+
+	return results;
 }
 
 export function generateInsights(

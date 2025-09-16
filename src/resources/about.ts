@@ -27,6 +27,7 @@ Available Tools:
 7. generate_responses_from_graph - Generate responses from an existing InfraNodus graph or ontology
 8. generate_text_overview - Generate a topical overview of a text and provide insights for LLMs to generate better responses
 9. create_knowledge_graph - Create a knowledge graph in InfraNodus from text and provide a link to it
+10. search - Search through existing InfraNodus graphs
 
 Key Features:
 - Topic modeling and clustering
