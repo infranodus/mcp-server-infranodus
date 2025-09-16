@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 export const generateKnowledgeGraphTool = {
-	name: "generateKnowledgeGraph",
+	name: "generate_knowledge_graph",
 	definition: {
 		title: "Generate Knowledge Graph from Text",
 		description:

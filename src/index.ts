@@ -110,7 +110,9 @@ async function main() {
 
 	// Validate config
 	if (!config.apiKey) {
-		console.error("ERROR: INFRANODUS_API_KEY is not set in environment variables");
+		console.error(
+			"ERROR: INFRANODUS_API_KEY is not set in environment variables"
+		);
 		process.exit(1);
 	}
 
@@ -143,7 +145,10 @@ async function main() {
 // Run the server if this is the main module (for local development)
 // When using Smithery CLI, this won't execute as the module is imported
 // Use a simple check that works in both ESM and CJS
-if (process.argv[1]?.endsWith('index.js') || process.argv[1]?.endsWith('index.ts')) {
+if (
+	process.argv[1]?.endsWith("index.js") ||
+	process.argv[1]?.endsWith("index.ts")
+) {
 	main().catch((error) => {
 		console.error("ERROR: Fatal error of MCP server", error);
 		process.exit(1);

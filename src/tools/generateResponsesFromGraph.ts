@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { generateResponses } from "../utils/transformers.js";
 
 export const generateResponsesFromGraphTool = {
-	name: "generateResponsesFromGraph",
+	name: "generate_responses_from_graph",
 	definition: {
 		title: "Generate Responses and Expert Advice from an InfraNodus Graph",
 		description:

@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 export const analyzeExistingGraphTool = {
-	name: "analyzeExistingGraphByName",
+	name: "analyze_existing_graph_by_name",
 	definition: {
 		title: "Analyze Existing InfraNodus Graph",
 		description:

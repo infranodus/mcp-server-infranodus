@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { generateTopics } from "../utils/transformers.js";
 
 export const generateTopicalClustersTool = {
-	name: "generateTopicalClusters",
+	name: "generate_topical_clusters",
 	definition: {
 		title: "Generate Topical Clusters",
 		description:

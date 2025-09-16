@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { generateGaps } from "../utils/transformers.js";
 
 export const generateContentGapsTool = {
-	name: "generateContentGaps",
+	name: "generate_content_gaps",
 	definition: {
 		title: "Generate Content Gaps",
 		description:

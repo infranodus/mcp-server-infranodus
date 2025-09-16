@@ -19,7 +19,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 
 ### Available Tools
 
-1. **generateKnowledgeGraph**
+1. **generate_knowledge_graph**
 
    - Convert any text into a visual knowledge graph
    - Extract topics, concepts, and their relationships
@@ -27,53 +27,53 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Apply AI-powered topic naming
    - Perform entity detection for cleaner graphs
 
-2. **analyzeExistingGraphByName**
+2. **analyze_existing_graph_by_name**
 
    - Retrieve and analyze existing graphs from your InfraNodus account
    - Access previously saved analyses
    - Export graph data with full statistics
 
-3. **generateContentGaps**
+3. **generate_content_gaps**
 
    - Detect missing connections in discourse
    - Identify underexplored topics
    - Generate research questions
    - Suggest content development opportunities
 
-4. **generateTopicalClusters**
+4. **generate_topical_clusters**
 
    - Generate topics and clusters of keywords from text using knowledge graph analysis
    - Make sure to beyond genetic insights and detect smaller topics
    - Use the topical clusters to establish topical authority for SEO
 
-5. **generateResearchQuestions**
+5. **generate_research_questions**
 
    - Generate research questions that bridge content gaps
    - Use them as prompts in your LLM models and AI workflows
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-6. **generateResearchQuestionsFromGraph**
+6. **generate_research_questions**
 
    - Generate research questions based on an existing InfraNodus graph
    - Use them as prompts in your LLM models
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-7. **generateResponsesFromGraph**
+7. **generate_responses_from_graph**
 
    - Generate responses based on an existing InfraNodus graph
    - Integrate them into your LLM workflows and AI assistants
    - Use any AI model (included in InfraNodus API)
    - Use any prompt
 
-8. **generateTextOverview**
+8. **generate_text_overview**
 
    - Generate a topical overview of a text and provide insights for LLMs to generate better responses
    - Use it to get a high-level understanding of a text
    - Use it to augment prompts in your LLM workflows and AI assistants
 
-9. **createKnowledgeGraph**
+9. **create_knowledge_graph**
    - Create a knowledge graph in InfraNodus from text and provide a link to it
    - Use it to create a knowledge graph in InfraNodus from text
 
@@ -223,7 +223,7 @@ npm run watch
 
 ## API Documentation
 
-### generateKnowledgeGraph
+### generate_knowledge_graph
 
 Analyzes text and generates a knowledge graph.
 
@@ -233,7 +233,7 @@ Analyzes text and generates a knowledge graph.
 - `includeStatements` (boolean): Include original statements in response
 - `modifyAnalyzedText` (string): Text modification options ("none", "entities", "lemmatize")
 
-### analyzeExistingGraphByName
+### analyze_existing_graph_by_name
 
 Retrieves and analyzes an existing graph from your InfraNodus account.
 
@@ -243,7 +243,7 @@ Retrieves and analyzes an existing graph from your InfraNodus account.
 - `includeStatements` (boolean): Include statements in response
 - `includeGraphSummary` (boolean): Include graph summary
 
-### generateContentGaps
+### generate_content_gaps
 
 Identifies content gaps and missing connections in text.
 

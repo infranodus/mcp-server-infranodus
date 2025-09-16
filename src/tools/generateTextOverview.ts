@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { generateTextOverview } from "../utils/transformers.js";
 
 export const generateTextOverviewTool = {
-	name: "generateTextOverview",
+	name: "generate_text_overview",
 	definition: {
 		title: "Generate an Overview of a Text",
 		description:
