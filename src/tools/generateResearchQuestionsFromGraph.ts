@@ -8,7 +8,7 @@ export const generateResearchQuestionsFromGraphTool = {
 	definition: {
 		title: "Generate Research Questions from an Existing InfraNodus Graph",
 		description:
-			"Retrieve an existing InfraNodus knowledge graph and generate research questions based on the content gaps identified between the topical clusters inside the graph",
+			"Retrieve an existing InfraNodus knowledge graph and generate research questions based on the content gaps identified between the topical clusters inside the graph that can be used to improve the text and the discourse it relates to",
 		inputSchema: GenerateResearchQuestionsFromGraphSchema.shape,
 	},
 	handler: async (

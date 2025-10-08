@@ -1,17 +1,17 @@
 import { z } from "zod";
-import { GenerateResearchQuestionsSchema } from "../schemas/index.js";
+import { GenerateResearchIdeasSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { generateResearchQuestions } from "../utils/transformers.js";
+import { generateResearchIdeas } from "../utils/transformers.js";
 
-export const generateResearchQuestionsTool = {
-	name: "generate_research_questions",
+export const generateResearchIdeasTool = {
+	name: "generate_research_ideas",
 	definition: {
-		title: "Generate Research Questions from Text",
+		title: "Generate Research Ideas from Text",
 		description:
-			"Analyze text and generate innovative research questions based on the content gaps identified between the topical clusters inside the text that can be used to improve the text and the discourse it relates to",
-		inputSchema: GenerateResearchQuestionsSchema.shape,
+			"Analyze text and generate innovative research ideas based on the content gaps identified between the topical clusters inside the text that can be used to improve the text and the discourse it relates to",
+		inputSchema: GenerateResearchIdeasSchema.shape,
 	},
-	handler: async (params: z.infer<typeof GenerateResearchQuestionsSchema>) => {
+	handler: async (params: z.infer<typeof GenerateResearchIdeasSchema>) => {
 		try {
 			// Build query parameters
 			const queryParams = new URLSearchParams({
@@ -32,13 +32,13 @@ export const generateResearchQuestionsTool = {
 			const requestBody: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: "question",
+				requestMode: "response",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
-			const researchQuestions = generateResearchQuestions(response);
+			const researchIdeas = generateResearchIdeas(response);
 
 			if (response.error) {
 				return {
@@ -56,7 +56,7 @@ export const generateResearchQuestionsTool = {
 				content: [
 					{
 						type: "text" as const,
-						text: JSON.stringify(researchQuestions, null, 2),
+						text: JSON.stringify(researchIdeas, null, 2),
 					},
 				],
 			};

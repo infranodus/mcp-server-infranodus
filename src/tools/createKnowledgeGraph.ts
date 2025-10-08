@@ -8,21 +8,25 @@ export const createKnowledgeGraphTool = {
 	definition: {
 		title: "Create a Knowledge Graph in InfraNodus from Text",
 		description:
-			"Create a knowledge graph in InfraNodus from text and provide a link to it",
+			"Create a knowledge graph in InfraNodus from text, save it, and provide its name and a link to it for future use. ",
 		inputSchema: CreateGraphSchema.shape,
 	},
 	handler: async (params: z.infer<typeof CreateGraphSchema>) => {
 		try {
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
+			const buildingEntitiesGraph =
+				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
 			// Build query parameters
 			const queryParams = new URLSearchParams({
 				doNotSave: "false",
 				addStats: "true",
-				includeStatements: params.includeStatements.toString(),
+				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
-				includeGraph: includeGraph ? "true" : "false",
+				includeGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
+				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
+				compactStatements: params.includeStatements ? "true" : "false",
 				aiTopics: "true",
 				optimize: "develop",
 			});
@@ -56,7 +60,8 @@ export const createKnowledgeGraphTool = {
 			const structuredOutput = transformToStructuredOutput(
 				response,
 				includeGraph,
-				includeNodesAndEdges
+				includeNodesAndEdges,
+				buildingEntitiesGraph
 			);
 
 			return {

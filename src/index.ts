@@ -9,6 +9,7 @@ import {
 	generateContentGapsTool,
 	generateTopicalClustersTool,
 	generateResearchQuestionsTool,
+	generateResearchIdeasTool,
 	generateResearchQuestionsFromGraphTool,
 	generateResponsesFromGraphTool,
 	generateTextOverviewTool,
@@ -87,6 +88,12 @@ export default function createServer({
 		generateResearchQuestionsTool.name,
 		generateResearchQuestionsTool.definition,
 		wrapHandler(generateResearchQuestionsTool.handler)
+	);
+
+	mcpServer.registerTool(
+		generateResearchIdeasTool.name,
+		generateResearchIdeasTool.definition,
+		wrapHandler(generateResearchIdeasTool.handler)
 	);
 
 	mcpServer.registerTool(

@@ -53,35 +53,42 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-6. **research_questions_from_graph**
+6. **generate_research_ideas**
+
+   - Generate innovative research ideas based on content gaps identified in the text
+   - Get actionable ideas to improve the text and develop the discourse
+   - Use any AI model (included in InfraNodus API)
+   - Ideas are generated from gaps between topical clusters
+
+7. **research_questions_from_graph**
 
    - Generate research questions based on an existing InfraNodus graph
    - Use them as prompts in your LLM models
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-7. **generate_responses_from_graph**
+8. **generate_responses_from_graph**
 
    - Generate responses based on an existing InfraNodus graph
    - Integrate them into your LLM workflows and AI assistants
    - Use any AI model (included in InfraNodus API)
    - Use any prompt
 
-8. **develop_conceptual_bridges**
+9. **develop_conceptual_bridges**
 
    - Analyze text and develop latent ideas based on concepts that connect this text to a broader discourse
    - Discover hidden themes and patterns that link your text to wider contexts
    - Use any AI model (included in InfraNodus API)
    - Generate insights that help develop the discourse
 
-9. **develop_latent_topics**
+10. **develop_latent_topics**
 
-   - Analyze text and extract underdeveloped topics with ideas on how to develop them
-   - Identify topics that need more attention and elaboration
-   - Use any AI model (included in InfraNodus API)
-   - Get actionable suggestions for content expansion
+- Analyze text and extract underdeveloped topics with ideas on how to develop them
+- Identify topics that need more attention and elaboration
+- Use any AI model (included in InfraNodus API)
+- Get actionable suggestions for content expansion
 
-10. **develop_text_tool**
+11. **develop_text_tool**
 
 - Comprehensive text analysis combining content gap ideas, latent topics, and conceptual bridges
 - Executes multiple analyses in sequence with progress tracking
@@ -89,56 +96,56 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 - Identifies latent topics and conceptual bridges to develop
 - Finds content gaps for deeper exploration
 
-11. **generate_text_overview**
+12. **generate_text_overview**
 
 - Generate a topical overview of a text and provide insights for LLMs to generate better responses
 - Use it to get a high-level understanding of a text
 - Use it to augment prompts in your LLM workflows and AI assistants
 
-12. **create_knowledge_graph**
+13. **create_knowledge_graph**
 
 - Create a knowledge graph in InfraNodus from text and provide a link to it
 - Use it to create a knowledge graph in InfraNodus from text
 
-13. **overlap_between_texts**
+14. **overlap_between_texts**
 
 - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
 - Use it to find similar topics and keywords across different texts
 
-14. **difference_between_texts**
+15. **difference_between_texts**
 
 - Compare knowledge graphs from two or more texts and find what's not present in the first graph that's present in the others
 - Use it to find how one text can be enriched with the others
 
-15. **analyze_google_search_results**
+16. **analyze_google_search_results**
 
 - Generate a graph with keywords and topics for Google search results for a certain query
 - Use it to understand the current informational supply (what people find)
 
-16. **analyze_related_search_queries**
+17. **analyze_related_search_queries**
 
 - Generate a graph from the search queries suggested by Google for a certain query
 - Use it to understand the current informational demand (what people are looking for)
 
-17. **search_queries_vs_search_results**
+18. **search_queries_vs_search_results**
 
 - Generate a graph of keyword combinations and topics people tend to search for that do not readily appear in the search results for the same queries
 - Use it to understand what people search for but don't yet find
 
-18. **generate_seo_report**
+19. **generate_seo_report**
 
 - Analyze content for SEO optimization by comparing it with Google search results and search queries
 - Identify content gaps and opportunities for better search visibility
 - Get comprehensive analysis of what's in search results but not in your text
 - Discover what people search for but don't find in current results
 
-19. **search**
+20. **search**
 
 - Search through existing InfraNodus graphs
 - Also use it to search through the public graphs of a specific user
 - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-20. **fetch**
+21. **fetch**
 
 - Fetch a specific search result for a graph
 - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
@@ -238,8 +245,10 @@ Below we describe the two different ways to set up your InfraNodus MCP server.
    git clone https://github.com/yourusername/mcp-server-infranodus.git
    cd mcp-server-infranodus
    npm install
-   npm run build
+   npm run build:inspect
    ```
+
+Note that `build:inspect` will generate the `dist/index.js` file which you will then use in your server setup. The standard `npm run build` command will only build a Smithery file.
 
 2. **Set up your API key:**
 

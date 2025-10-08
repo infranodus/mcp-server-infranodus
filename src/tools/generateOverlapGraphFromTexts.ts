@@ -21,7 +21,7 @@ export const generateOverlapGraphFromTextsTool = {
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
-				includeStatements: params.includeStatements.toString(),
+				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
 				includeGraph: includeGraph ? "true" : "false",

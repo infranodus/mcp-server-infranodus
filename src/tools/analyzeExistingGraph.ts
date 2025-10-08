@@ -6,22 +6,26 @@ import { transformToStructuredOutput } from "../utils/transformers.js";
 export const analyzeExistingGraphTool = {
 	name: "analyze_existing_graph_by_name",
 	definition: {
-		title: "Analyze Existing InfraNodus Graph",
+		title: "Analyze or Extract an Existing InfraNodus Graph",
 		description:
-			"Retrieve and analyze an existing graph from your InfraNodus account",
+			"Extract and analyze an existing graph from your InfraNodus account",
 		inputSchema: AnalyzeExistingGraphSchema.shape,
 	},
 	handler: async (params: z.infer<typeof AnalyzeExistingGraphSchema>) => {
 		try {
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
+			const buildingEntitiesGraph =
+				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
-				includeStatements: params.includeStatements.toString(),
-				includeGraphSummary: params.includeGraphSummary.toString(),
+				includeStatements: params.includeStatements ? "true" : "false",
+				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: "true",
-				includeGraph: includeGraph ? "true" : "false",
+				includeGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
+				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
+				compactStatements: params.includeStatements ? "true" : "false",
 				aiTopics: "true",
 				optimize: "develop",
 			});
@@ -50,7 +54,8 @@ export const analyzeExistingGraphTool = {
 			const structuredOutput = transformToStructuredOutput(
 				response,
 				includeGraph,
-				includeNodesAndEdges
+				includeNodesAndEdges,
+				buildingEntitiesGraph
 			);
 
 			return {

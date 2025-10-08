@@ -15,7 +15,7 @@ export type Config = z.infer<typeof configSchema>;
 // Server metadata
 export const serverInfo = {
 	name: "infranodus-mcp-server",
-	version: "1.0.0",
+	version: "1.1.0",
 	description:
-		"MCP server for InfraNodus knowledge graph generation and text analysis",
+		"MCP server for InfraNodus knowledge graph generation, comparison, entity extraction, content gap, and SEO analysis.",
 };

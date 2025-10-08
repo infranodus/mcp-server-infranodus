@@ -178,6 +178,10 @@ export interface ResearchQuestionsOutput {
 	questions?: string[];
 }
 
+export interface ResearchIdeasOutput {
+	ideas?: string[];
+}
+
 export interface LatentConceptsOutput {
 	ideas?: string[];
 	latentConceptsToDevelop?: string[];

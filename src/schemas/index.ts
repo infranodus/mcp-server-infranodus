@@ -29,7 +29,7 @@ export const GenerateGraphSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
 		),
 });
 
@@ -66,7 +66,7 @@ export const CreateGraphSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
 		),
 });
 
@@ -103,7 +103,7 @@ export const AnalyzeExistingGraphSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
 		),
 });
 
@@ -171,6 +171,38 @@ export const GenerateResearchQuestionsSchema = z.object({
 		.number()
 		.default(0)
 		.describe("Depth of content gaps to generate questions for"),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.1",
+			"claude-sonnet-4",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5",
+			"gpt-5-mini",
+		])
+		.default("gpt-4o")
+		.describe(
+			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
+		),
+});
+
+export const GenerateResearchIdeasSchema = z.object({
+	text: z
+		.string()
+		.min(1, "Text is required for analysis")
+		.describe(
+			"Text that you'd like to generate research ideas from. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+		),
+	useSeveralGaps: z
+		.boolean()
+		.default(false)
+		.describe("Generate ideas for several content gaps found in text"),
+	gapDepth: z
+		.number()
+		.default(0)
+		.describe("Depth of content gaps to generate ideas for"),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
@@ -319,7 +351,7 @@ export const GenerateGeneralGraphSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
 		),
 });
 
@@ -337,7 +369,7 @@ export const GenerateOverlapGraphFromTextsSchema = z.object({
 					.enum(["none", "detectEntities", "extractEntitiesOnly"])
 					.default("none")
 					.describe(
-						"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
 					),
 			})
 		)
@@ -379,7 +411,7 @@ export const GenerateDifferenceGraphFromTextsSchema = z.object({
 					.enum(["none", "detectEntities", "extractEntitiesOnly"])
 					.default("none")
 					.describe(
-						"Entity detection: none (normal), detectEntities (detect entities and keywords), extractEntitiesOnly (only entities)"
+						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
 					),
 			})
 		)
@@ -659,6 +691,12 @@ export const DevelopTextToolSchema = z.object({
 		.number()
 		.default(0)
 		.describe("Depth of content gaps to generate questions for"),
+	extendedIdeationMode: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Use extended ideation mode to generate ideas instead of questions. Only run if explicitly requested or if the previous run with of this tool did not provide sufficient results"
+		),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",

@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-mcp-server",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "InfraNodus MCP server",
 	"type": "module",
 	"module": "src/index.ts",

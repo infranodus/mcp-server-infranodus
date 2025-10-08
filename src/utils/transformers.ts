@@ -7,6 +7,7 @@ import {
 	TopicsOutput,
 	InsightsOutput,
 	ResearchQuestionsOutput,
+	ResearchIdeasOutput,
 	ResponsesOutput,
 	SearchOutput,
 	FetchOutput,
@@ -21,7 +22,8 @@ import {
 export function transformToStructuredOutput(
 	data: GraphResponse,
 	includeGraph: boolean = false,
-	includeNodesAndEdges: boolean = false
+	includeNodesAndEdges: boolean = false,
+	buildingEntitiesGraph: boolean = false
 ): KnowledgeGraphOutput {
 	const output: KnowledgeGraphOutput = {
 		statistics: {
@@ -62,7 +64,9 @@ export function transformToStructuredOutput(
 		}
 
 		if (graph.attributes?.top_clusters) {
-			output.topClusters = graph.attributes.top_clusters;
+			if (!buildingEntitiesGraph) {
+				output.topClusters = graph.attributes.top_clusters;
+			}
 			delete graph.attributes.top_clusters;
 		}
 
@@ -215,7 +219,7 @@ export function generateTopicNames(data: GraphResponse): TopicNamesOutput {
 export function generateResearchQuestions(
 	data: GraphResponse
 ): ResearchQuestionsOutput {
-	const researchQuestions: ResearchQuestionsOutput = {};
+	const researchQuestions: ResearchQuestionsOutput = { questions: [] };
 
 	if (data.aiAdvice) {
 		researchQuestions.questions = data.aiAdvice.map((advice) => advice.text);
@@ -224,10 +228,32 @@ export function generateResearchQuestions(
 	return researchQuestions;
 }
 
+export function generateResearchIdeas(
+	data: GraphResponse
+): ResearchIdeasOutput {
+	const researchIdeas: ResearchIdeasOutput = { ideas: [] };
+
+	if (data.aiAdvice) {
+		researchIdeas.ideas = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	return researchIdeas;
+}
+
+export function generateResponses(data: GraphResponse): ResponsesOutput {
+	const responses: ResponsesOutput = { responses: [] };
+
+	if (data.aiAdvice) {
+		responses.responses = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	return responses;
+}
+
 export function extractLatentConceptsIdeas(
 	data: GraphResponse
 ): LatentConceptsOutput {
-	const latentConcepts: LatentConceptsOutput = {};
+	const latentConcepts: LatentConceptsOutput = { ideas: [] };
 
 	if (data.aiAdvice) {
 		latentConcepts.ideas = data.aiAdvice.map((advice) => advice.text);
@@ -265,16 +291,6 @@ export function extractLatentTopicsIdeas(
 	}
 
 	return latentConcepts;
-}
-
-export function generateResponses(data: GraphResponse): ResponsesOutput {
-	const responses: ResponsesOutput = {};
-
-	if (data.aiAdvice) {
-		responses.responses = data.aiAdvice.map((advice) => advice.text);
-	}
-
-	return responses;
 }
 
 export function generateSearchResult(

@@ -65,7 +65,7 @@ export const developTextTool = {
 			const requestBodyResearch: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: "response",
+				requestMode: params.extendedIdeationMode ? "response" : "question",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 
@@ -74,6 +74,7 @@ export const developTextTool = {
 				requestBodyResearch
 			);
 
+			// Extract content gaps and AI advice from research questions response
 			const researchQuestions = generateResearchQuestions(researchResponse);
 
 			const contentGaps = generateGaps(researchResponse);
@@ -84,11 +85,6 @@ export const developTextTool = {
 					researchQuestions.questions?.length || 0
 				} research questions`
 			);
-
-			// Extract content gaps and AI advice from research questions response
-			const contentGapsFromResearch =
-				researchResponse.extendedGraphSummary?.contentGaps || [];
-			const aiAdviceFromResearch = researchResponse.aiAdvice || [];
 
 			// Step 2: Develop Latent Topics
 			await progress.report(40, "🎯 Analyzing text for latent topics...");
@@ -109,7 +105,7 @@ export const developTextTool = {
 			const requestBodyLatent: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: "response",
+				requestMode: params.extendedIdeationMode ? "response" : "question",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 
@@ -150,7 +146,7 @@ export const developTextTool = {
 				endpointBridges,
 				{
 					text: params.text,
-					requestMode: "response",
+					requestMode: params.extendedIdeationMode ? "response" : "question",
 					modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 				}
 			);
