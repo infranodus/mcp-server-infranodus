@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "infranodus": {
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-server-infranodus/dist/index.js"],
+      "env": {
+        "INFRANODUS_API_KEY": "your-infranodus-api-key-here"
+      }
+    }
+  }
+}

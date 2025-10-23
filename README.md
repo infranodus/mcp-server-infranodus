@@ -8,6 +8,31 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 
 ![InfraNodus MCP Server](https://infranodus.com/images/front/infranodus-overview.jpg)
 
+---
+
+## 📚 Documentation
+
+### Quick Start
+- **[QUICKSTART Guide](./docs/QUICKSTART.md)** - Get up and running in 5 minutes
+- **[Installation Guide](./docs/INSTALLATION.md)** - Detailed setup for all platforms
+
+### Core Documentation
+- **[API Reference](./docs/API_REFERENCE.md)** - Complete guide to all 21 tools
+- **[Workflows](./docs/WORKFLOWS.md)** - FirstMile business use cases and strategies
+- **[Cross-Platform Sync](./docs/CROSS_PLATFORM.md)** - Keep graphs synced across Desktop, Mobile, VS Code
+
+### Resources
+- **[Configuration Templates](./config/)** - Ready-to-use config files for each platform
+- **[Workflow Templates](./workflows/)** - Step-by-step guides (Discovery Calls, SEO, etc.)
+
+### Getting Started Path
+1. [Quick Start](./docs/QUICKSTART.md) (5 minutes)
+2. [Run First Workflow](./workflows/discovery-call-analysis.md) (10 minutes)
+3. [Explore API Reference](./docs/API_REFERENCE.md) (as needed)
+4. [Setup Cross-Platform](./docs/CROSS_PLATFORM.md) (optional)
+
+---
+
 ## Features
 
 ### You Can Use It To

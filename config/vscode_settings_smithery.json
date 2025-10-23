@@ -1,0 +1,9 @@
+{
+  "claude-code.mcpServers": {
+    "infranodus": {
+      "type": "http",
+      "url": "https://server.smithery.ai/@infranodus/mcp-server-infranodus/mcp?api_key=YOUR_SMITHERY_KEY&profile=YOUR_SMITHERY_PROFILE",
+      "headers": {}
+    }
+  }
+}

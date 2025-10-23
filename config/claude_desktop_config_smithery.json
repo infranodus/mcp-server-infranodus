@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "infranodus": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@infranodus/mcp-server-infranodus",
+        "--key",
+        "YOUR_SMITHERY_KEY",
+        "--profile",
+        "YOUR_SMITHERY_PROFILE"
+      ]
+    }
+  }
+}
