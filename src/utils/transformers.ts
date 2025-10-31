@@ -11,6 +11,7 @@ import {
 	ResponsesOutput,
 	SearchOutput,
 	FetchOutput,
+	StatementsSearchOutput,
 	KeywordsOutput,
 	TopicNamesOutput,
 	SummaryOutput,
@@ -349,6 +350,70 @@ export function generateFetchResult(
 	}
 
 	return fetchResults;
+}
+
+export function extractStatementsFromGraphResponse(
+	data: GraphResponse,
+	memoryContextName: string
+): StatementsSearchOutput {
+	const results: StatementsSearchOutput = {
+		statements: [],
+		userName: "",
+		graphNames: [],
+		graphUrls: [],
+	};
+
+	if (data.statements) {
+		results.statements = data.statements
+			.map((statement) => statement.content)
+			.filter((content): content is string => content !== undefined);
+	}
+	if (data.userName) {
+		results.userName = data.userName;
+	}
+	if (data.graphName) {
+		results.graphNames = [memoryContextName];
+	}
+
+	return results;
+}
+
+export function extractStatementsFromSearchResponse(
+	data: SearchResponse
+): StatementsSearchOutput {
+	const results: StatementsSearchOutput = {
+		statements: [],
+		userName: "",
+		graphNames: [],
+		graphUrls: [],
+	};
+
+	const searchResultsExist =
+		data.entriesAdded?.texts && data.entriesAdded?.texts.length > 0;
+
+	if (data.userName) {
+		results.userName = data.userName;
+	}
+
+	if (data.graphNames) {
+		results.graphNames = data.graphNames;
+	}
+
+	if (data.graphUrls) {
+		results.graphUrls = data.graphUrls;
+	}
+
+	if (data.error) {
+		results.error = data.error;
+	}
+
+	const searchResultsTextArray = data.entriesAdded?.texts;
+
+	if (searchResultsExist && searchResultsTextArray) {
+		results.statements = searchResultsTextArray;
+	}
+
+	return results;
 }
 
 export function generateInsights(

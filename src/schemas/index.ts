@@ -5,31 +5,31 @@ export const GenerateGraphSchema = z.object({
 		.string()
 		.min(1, "Text is required for analysis")
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Use [[wikilinks]] to mark entities (if required for social / knowledge graphs, ontology, or entity detection)."
 		),
 	includeStatements: z
 		.boolean()
 		.default(false)
 		.describe(
-			"Include processed statements in response (add only if explicitly needed)"
+			"Include processed statements in response (true only if explicitly needed or requested)"
 		),
 	includeGraph: z
 		.boolean()
 		.default(false)
 		.describe(
-			"Include full graph structure in response (add only if explicitly needed)"
+			"Include full graph structure in response (true only if explicitly needed or requested)"
 		),
 	addNodesAndEdges: z
 		.boolean()
 		.default(false)
 		.describe(
-			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
+			"Include nodes and edges in response (true only if explicitly needed, not recommended for longer texts)"
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
+			"Text processing setting to use: none (for text, gap, and topical analysis), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph generation and entity extraction)"
 		),
 });
 
@@ -66,7 +66,47 @@ export const CreateGraphSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
+		),
+});
+
+export const AddMemorySchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "Graph name is required")
+		.max(28, "Graph name must be less than 28 characters")
+		.describe(
+			"Name of the graph to add the memory to in InfraNodus - lowercase, dashes for spaces, no special characters. Auto-generate from the context of the conversation (if previously available) or use the nanme of the LLM client or project, or use the name the user explicitly provided or requested."
+		),
+	text: z
+		.string()
+		.min(1, "Text is required for analysis")
+		.describe(
+			"Text that you'd like to analyze. Use new lines to separate separate statements, relations, and paragraphs in each text (but not the sentences). Detect the entities in every statement and use [[wikilinks]] syntax to mark them, unless the user explicitly requests automatic entity detection. Every statement should have at least two entities marked."
+		),
+	includeStatements: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include processed statements in response (add only if needed for further analysis)"
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include full graph structure in response (add only if needed for further analysis)"
+		),
+	addNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in response (add only if needed for further analysis, not recommended for longer texts)"
+		),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal, by default), extractEntitiesOnly (automatic entity extraction - use if explicitly requested by the user)"
 		),
 });
 
@@ -103,7 +143,7 @@ export const AnalyzeExistingGraphSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
 		),
 });
 
@@ -117,6 +157,21 @@ export const SearchExistingGraphsSchema = z.object({
 		.default([])
 		.describe(
 			"Names of the existing InfraNodus graphs to search in (comma-separated list, empty for all)"
+		),
+});
+
+export const getMemorySchema = z.object({
+	entityName: z
+		.string()
+		.default("")
+		.describe(
+			"Name of the entity to get relations for from the InfraNodus memory, use [[wikilinks]] syntax to mark the entity, replace spaces with underscores. Leave if contextMemoryName is provided."
+		),
+	memoryContextName: z
+		.string()
+		.default("")
+		.describe(
+			"Name of the existing InfraNodus memory graph to search in if requested or needed from the context (can be left empty to search in all memory graphs)"
 		),
 });
 
@@ -351,7 +406,7 @@ export const GenerateGeneralGraphSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
 		),
 });
 
@@ -369,7 +424,7 @@ export const GenerateOverlapGraphFromTextsSchema = z.object({
 					.enum(["none", "detectEntities", "extractEntitiesOnly"])
 					.default("none")
 					.describe(
-						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
+						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
 					),
 			})
 		)
@@ -411,7 +466,7 @@ export const GenerateDifferenceGraphFromTextsSchema = z.object({
 					.enum(["none", "detectEntities", "extractEntitiesOnly"])
 					.default("none")
 					.describe(
-						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology creation and entity extraction)"
+						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
 					),
 			})
 		)

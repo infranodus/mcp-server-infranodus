@@ -16,6 +16,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 - Identify the main topical clusters in discourse without missing the important nuances (works better than standard LLM workflows)
 - Identify the content gaps in any discourse (helpful for content creation and research)
 - Generate new knowledge graphs from any text and use them to augment your LLM responses
+- Save and retrieve entities and relations from memory using the knowledge graphs
 
 ### Available Tools
 
@@ -46,61 +47,61 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Make sure to beyond genetic insights and detect smaller topics
    - Use the topical clusters to establish topical authority for SEO
 
-5. **generate_research_questions**
+5. **generate_text_overview**
+
+- Generate a topical overview of a text and provide insights for LLMs to generate better responses
+- Use it to get a high-level understanding of a text
+- Use it to augment prompts in your LLM workflows and AI assistants
+
+6. **generate_research_questions**
 
    - Generate research questions that bridge content gaps
    - Use them as prompts in your LLM models and AI workflows
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-6. **generate_research_ideas**
+7. **generate_research_ideas**
 
    - Generate innovative research ideas based on content gaps identified in the text
    - Get actionable ideas to improve the text and develop the discourse
    - Use any AI model (included in InfraNodus API)
    - Ideas are generated from gaps between topical clusters
 
-7. **research_questions_from_graph**
+8. **research_questions_from_graph**
 
    - Generate research questions based on an existing InfraNodus graph
    - Use them as prompts in your LLM models
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-8. **generate_responses_from_graph**
+9. **generate_responses_from_graph**
 
    - Generate responses based on an existing InfraNodus graph
    - Integrate them into your LLM workflows and AI assistants
    - Use any AI model (included in InfraNodus API)
    - Use any prompt
 
-9. **develop_conceptual_bridges**
+10. **develop_conceptual_bridges**
 
-   - Analyze text and develop latent ideas based on concepts that connect this text to a broader discourse
-   - Discover hidden themes and patterns that link your text to wider contexts
-   - Use any AI model (included in InfraNodus API)
-   - Generate insights that help develop the discourse
+- Analyze text and develop latent ideas based on concepts that connect this text to a broader discourse
+- Discover hidden themes and patterns that link your text to wider contexts
+- Use any AI model (included in InfraNodus API)
+- Generate insights that help develop the discourse
 
-10. **develop_latent_topics**
+11. **develop_latent_topics**
 
 - Analyze text and extract underdeveloped topics with ideas on how to develop them
 - Identify topics that need more attention and elaboration
 - Use any AI model (included in InfraNodus API)
 - Get actionable suggestions for content expansion
 
-11. **develop_text_tool**
+12. **develop_text_tool**
 
 - Comprehensive text analysis combining content gap ideas, latent topics, and conceptual bridges
 - Executes multiple analyses in sequence with progress tracking
 - Generates research ideas based on content gaps
 - Identifies latent topics and conceptual bridges to develop
 - Finds content gaps for deeper exploration
-
-12. **generate_text_overview**
-
-- Generate a topical overview of a text and provide insights for LLMs to generate better responses
-- Use it to get a high-level understanding of a text
-- Use it to augment prompts in your LLM workflows and AI assistants
 
 13. **create_knowledge_graph**
 
@@ -139,13 +140,29 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 - Get comprehensive analysis of what's in search results but not in your text
 - Discover what people search for but don't find in current results
 
-20. **search**
+20. **memory_add_relations**
+
+- Add relations to the InfraNodus memory from text
+- Automatically detect entities or use [[wikilinks]] syntax to mark them
+- Save memory to a specified graph name for future retrieval
+- Support automatic entity extraction or manual entity marking
+- Provide links to created memory graphs for easy access
+
+21. **memory_get_relations**
+
+- Retrieve relations from InfraNodus memory for specific entities
+- Search for entity relations using [[wikilinks]] syntax
+- Query specific memory contexts or search across all memory graphs
+- Extract statements and relationships from stored knowledge graphs
+- Support both entity-specific searches and full context retrieval
+
+22. **search**
 
 - Search through existing InfraNodus graphs
 - Also use it to search through the public graphs of a specific user
 - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-21. **fetch**
+23. **fetch**
 
 - Fetch a specific search result for a graph
 - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
@@ -160,6 +177,25 @@ _More capabilites coming soon!_
 - **AI Enhancement**: Optional AI-powered topic naming and analysis
 - **Structural Analysis**: Identify influential nodes and community structures
 - **Network Structure Statistics**: Modularity, centrality, betweenness, and other graph metrics
+- **Knowledge Graph Memory**: Save and retrieve knowledge graph memories and analyze them to retrieve key nodes, clusters, and connectors
+
+## Knowledge Graph Memory Use Advice
+
+InfraNodus represents any text as a network graph in order to identify the main clusters of ideas and gaps between them. This helps generate advanced insights based on the text's structure. The network is effectively a knowledge graph that can also be used to retrieve complex ontological relations between different entities and concepts. This process is automated in InfraNodus using the `search` and `fetch` tools along with the other tools that analyze the underlying network.
+
+However, you can also easily use InfraNodus as a more traditional memory server to save and retrieve relations. We use [[wikilinks]] to highlight entities in your text to make your content and graphs compatible with markup syntax and PKM tools such as Obsidian. By default, InfraNodus will generate the name of the memory graph for you based on the context of the conversation. However, you can modify this default behavior by adding a **system prompt** or **project instruction** into your LLM client.
+
+Specifically you can specify to always use a speciic knowlege graph for memories to store everything in one place:
+
+```
+Save all memories in the `my-memories` graph in InfraNodus.
+```
+
+Or you can ask InfraNodus to only save certain entities, e.g. for building social networks:
+
+```
+When generating entities, only extract people, companies, and organizations. Ignore everything else.
+```
 
 ## Installation
 
@@ -169,7 +205,7 @@ You can also install the server locally, so you have more control over it. In th
 
 Below we describe the two different ways to set up your InfraNodus MCP server.
 
-### Easiest Setup: Smithery InfraNodus MCP Server (via HTTP/SSE)
+### 1. Easiest Setup: Smithery InfraNodus MCP Server (via HTTP/SSE)
 
 0. **Prerequisites**
 
@@ -226,13 +262,33 @@ Below we describe the two different ways to set up your InfraNodus MCP server.
 
 **Note**, in both cases, you'll automatically get the `YOUR_SMITHERY_KEY` and `YOUR_SMITHERY_PROFILE` values from Smithery when you copy the URL with credentials. These are not your InfraNodus API keys. You can use the InfraNodus API server without the API for the first 70 calls. Then you can add it to your Smithery profile and it will automatically connect to your account using the link above.
 
-4. **Use InfraNodus Tools in Your Calls**
+4. **Using InfraNodus Tools in Your Calls**
 
 - To use InfraNodus, see the tools available and simply call them through the chat interface (e.g. "show me the graphs where I talk about this topic" or "get the content gaps from the document I uploaded")
 
 - If your client is not using InfraNodus for some actions, add the instruction to use InfraNodus explicitly.
 
-### Manual Setup: Local Server
+### 2. Manual Setup: via NPX
+
+You can deploy the InfraNodus server manually via `npx` — a package that allows to execute local and remote Node.Js packages on your computer.
+
+The InfraNodus MCP server is also available as an npm package at [https://www.npmjs.com/package/infranodus-mcp-server](https://www.npmjs.com/package/infranodus-mcp-server) from where you can launch it remotely on your local computer with npx. It will expose its tools to the MCP client that will be using this command to launch the server
+
+#### For Claude Desktop:
+
+Just add this in your Claude's configuration file (Settings > Developer > Edit Config), inside the `"mcpServers"` object where the different servers are listed:
+
+```json
+   "infranodus": {
+			"command": "npx",
+			"args": ["-y", "infranodus-mcp-server"],
+			"env": {
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
+			}
+   },
+```
+
+### 3. Manual Setup: Launching MCP as a Local Server (for inspection & development)
 
 0. **Prerequisites**
 
@@ -274,19 +330,33 @@ Note that `build:inspect` will generate the `dist/index.js` file which you will 
 
 2. Add the InfraNodus server configuration:
 
-   ```json
-   {
-   	"mcpServers": {
-   		"infranodus": {
-   			"command": "node",
-   			"args": ["/absolute/path/to/mcp-server-infranodus/dist/index.js"],
-   			"env": {
-   				"INFRANODUS_API_KEY": "your-api-key-here"
-   			}
-   		}
-   	}
-   }
-   ```
+a. remote launch via `npx`:
+
+```json
+ "infranodus": {
+			"command": "npx",
+			"args": ["-y", "infranodus-mcp-server"],
+			"env": {
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
+			}
+   },
+```
+
+b. launch this repo with `node`:
+
+```json
+{
+	"mcpServers": {
+		"infranodus": {
+			"command": "node",
+			"args": ["/absolute/path/to/mcp-server-infranodus/dist/index.js"],
+			"env": {
+				"INFRANODUS_API_KEY": "your-api-key-here"
+			}
+		}
+	}
+}
+```
 
 **Note:** you can leave the `INFRANODUS_API_KEY` empty in which case you can make 70 free requests after which you will hit quota and will need to add your API key.
 
@@ -302,19 +372,33 @@ Note that `build:inspect` will generate the `dist/index.js` file which you will 
 
 2. Add the InfraNodus server configuration:
 
-   ```json
-   {
-   	"mcpServers": {
-   		"infranodus": {
-   			"command": "node",
-   			"args": ["C:\\path\\to\\mcp-server-infranodus\\dist\\index.js"],
-   			"env": {
-   				"INFRANODUS_API_KEY": "your-api-key-here"
-   			}
-   		}
-   	}
-   }
-   ```
+a. remote launch via `npx`:
+
+```json
+ "infranodus": {
+			"command": "npx",
+			"args": ["-y", "infranodus-mcp-server"],
+			"env": {
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
+			}
+   },
+```
+
+b. launch this repo with `node`:
+
+```json
+{
+	"mcpServers": {
+		"infranodus": {
+			"command": "node",
+			"args": ["C:\\path\\to\\mcp-server-infranodus\\dist\\index.js"],
+			"env": {
+				"INFRANODUS_API_KEY": "your-api-key-here"
+			}
+		}
+	}
+}
+```
 
 3. Restart Claude Desktop.
 
@@ -322,7 +406,13 @@ Note that `build:inspect` will generate the `dist/index.js` file which you will 
 
 ### Other MCP-Compatible Applications
 
-For other applications supporting MCP, use the following command to start the server:
+For other applications supporting MCP, use the following command to start the server via npx:
+
+```bash
+INFRANODUS_API_KEY=your-api-key npx -y infranodus-mcp-server
+```
+
+or locally
 
 ```bash
 INFRANODUS_API_KEY=your-api-key node /path/to/mcp-server-infranodus/dist/index.js
@@ -354,6 +444,8 @@ npm run dev
 Test the server with the MCP Inspector:
 
 ```bash
+
+npm run build:inspect
 npm run inspect
 ```
 

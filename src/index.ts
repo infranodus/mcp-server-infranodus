@@ -4,6 +4,8 @@ import { z } from "zod";
 import { configSchema, serverInfo } from "./config/index.js";
 import {
 	generateKnowledgeGraphTool,
+	addMemoryTool,
+	getMemoryTool,
 	createKnowledgeGraphTool,
 	analyzeExistingGraphTool,
 	generateContentGapsTool,
@@ -64,6 +66,18 @@ export default function createServer({
 		createKnowledgeGraphTool.name,
 		createKnowledgeGraphTool.definition,
 		wrapHandler(createKnowledgeGraphTool.handler)
+	);
+
+	mcpServer.registerTool(
+		addMemoryTool.name,
+		addMemoryTool.definition,
+		wrapHandler(addMemoryTool.handler)
+	);
+
+	mcpServer.registerTool(
+		getMemoryTool.name,
+		getMemoryTool.definition,
+		wrapHandler(getMemoryTool.handler)
 	);
 
 	mcpServer.registerTool(

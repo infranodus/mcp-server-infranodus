@@ -53,6 +53,15 @@ export interface StatementsOutput {
 	statements?: Statement[];
 }
 
+export interface StatementsSearchOutput {
+	statements?: string[];
+	dotGraphByCluster?: any;
+	userName?: string;
+	graphNames?: string[];
+	graphUrls?: string[];
+	error?: string;
+}
+
 export interface StatementStringsOutput {
 	statements?: string[];
 }
