@@ -10,6 +10,11 @@ export const generateGoogleResultsVsQueriesGraphTool = {
 		description:
 			"Find the combinations of keywords and topics people search for that don't appear in the search results for the same queries",
 		inputSchema: GenerateGoogleResultsVsQueriesGraphSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateGoogleResultsVsQueriesGraphSchema>

@@ -8,8 +8,13 @@ export const generateKnowledgeGraphTool = {
 	definition: {
 		title: "Generate Knowledge Graph from Text",
 		description:
-			"Analyze text and generate a knowledge graph with main topics, topical clusters, concepts, concepts relations and structural gaps.",
+			"Analyze text and generate a knowledge graph with main topics, topical clusters, concepts, concepts relations and structural gaps. Only use when explicitly asked to analyze a text or generate a knowledge graph. Do not use for short clarifying questions that you already have an answer to from the context of the conversation.",
 		inputSchema: GenerateGraphSchema.shape,
+		annotations: {
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
+		},
 	},
 	handler: async (params: z.infer<typeof GenerateGraphSchema>) => {
 		try {
@@ -24,7 +29,10 @@ export const generateKnowledgeGraphTool = {
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
-				includeGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
+				includeGraph:
+					includeGraph || buildingEntitiesGraph || includeNodesAndEdges
+						? "true"
+						: "false",
 				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
 				compactStatements: params.includeStatements ? "true" : "false",
 				aiTopics: "true",

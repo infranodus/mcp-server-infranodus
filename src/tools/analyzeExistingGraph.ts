@@ -10,6 +10,11 @@ export const analyzeExistingGraphTool = {
 		description:
 			"Extract and analyze an existing graph from your InfraNodus account",
 		inputSchema: AnalyzeExistingGraphSchema.shape,
+		annotations: {
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
+		},
 	},
 	handler: async (params: z.infer<typeof AnalyzeExistingGraphSchema>) => {
 		try {

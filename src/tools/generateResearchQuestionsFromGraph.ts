@@ -10,6 +10,11 @@ export const generateResearchQuestionsFromGraphTool = {
 		description:
 			"Retrieve an existing InfraNodus knowledge graph and generate research questions based on the content gaps identified between the topical clusters inside the graph that can be used to improve the text and the discourse it relates to",
 		inputSchema: GenerateResearchQuestionsFromGraphSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateResearchQuestionsFromGraphSchema>

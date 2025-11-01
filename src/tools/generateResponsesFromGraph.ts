@@ -10,6 +10,11 @@ export const generateResponsesFromGraphTool = {
 		description:
 			"Retrieve an existing InfraNodus knowledge graph and use the relations extracted to generate responses and expert advice based on a prompt provided",
 		inputSchema: GenerateResponsesFromGraphSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof GenerateResponsesFromGraphSchema>) => {
 		try {

@@ -10,6 +10,11 @@ export const addMemoryTool = {
 		description:
 			"Add relations to the InfraNodus memory from text, save it, and provide its name and a link to it for future use. ",
 		inputSchema: AddMemorySchema.shape,
+		annotations: {
+			readOnlyHint: false,
+			idempotentHint: false,
+			destructiveHint: false,
+		},
 	},
 	handler: async (params: z.infer<typeof AddMemorySchema>) => {
 		try {

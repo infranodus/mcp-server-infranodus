@@ -25,6 +25,11 @@ export const generateSEOGraphTool = {
 		description:
 			"Analyze content for SEO optimization by comparing its knowledge graph with the graphs of Google search results and search queries to identify content gaps and opportunities based on the differences",
 		inputSchema: GenerateSEOGraphSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateSEOGraphSchema>,

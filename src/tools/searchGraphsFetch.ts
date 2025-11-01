@@ -10,6 +10,11 @@ export const searchExistingGraphsFetchTool = {
 		description:
 			"Fetch a specific search result for an InfraNodus knowledge graph",
 		inputSchema: SearchExistingGraphsFetchSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof SearchExistingGraphsFetchSchema>) => {
 		try {

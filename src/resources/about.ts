@@ -22,7 +22,7 @@ Available Tools:
 2. analyze_existing_graph_by_name - Retrieve and analyze graphs from your InfraNodus account
 3. generate_content_gaps - Generate content gaps from text
 4. generate_topical_clusters - Generate topics and clusters of keywords from text using knowledge graph analysis
-5. generate_text_overview - Generate a topical overview of a text and provide insights for LLMs to generate better responses
+5. generate_contextual_hint - Generate a topical overview of a text and provide insights for LLMs to generate better responses
 6. generate_research_questions - Generate research questions based on content gaps
 7. generate_research_ideas - Generate innovative research ideas based on content gaps that can be used to improve the text and discourse
 8. research_questions_from_graph - Generate research questions based on an existing InfraNodus graph

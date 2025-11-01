@@ -13,6 +13,11 @@ export const getMemoryTool = {
 		description:
 			"Provide a list of relations from the InfraNodus memory for a given concept or entity",
 		inputSchema: getMemorySchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof getMemorySchema>) => {
 		try {

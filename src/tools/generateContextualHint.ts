@@ -1,17 +1,22 @@
 import { z } from "zod";
-import { GenerateTextOverviewSchema } from "../schemas/index.js";
+import { generateContextualHintSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { generateTextOverview } from "../utils/transformers.js";
+import { generateContextualHint } from "../utils/transformers.js";
 
-export const generateTextOverviewTool = {
-	name: "generate_text_overview",
+export const generateContextualHintTool = {
+	name: "generate_contextual_hint",
 	definition: {
-		title: "Generate an Overview of a Text",
+		title: "Generate Contextual Hint for a Text",
 		description:
-			"Generate a topical overview of a text based on its knowledge base and topical structure and provide insights for LLMs to generate better responses",
-		inputSchema: GenerateTextOverviewSchema.shape,
+			"Generate information about the main topics and concepts in a text to augment RAG retrieval and text analysis",
+		inputSchema: generateContextualHintSchema.shape,
+		annotations: {
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
+		},
 	},
-	handler: async (params: z.infer<typeof GenerateTextOverviewSchema>) => {
+	handler: async (params: z.infer<typeof generateContextualHintSchema>) => {
 		try {
 			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
@@ -42,7 +47,7 @@ export const generateTextOverviewTool = {
 				};
 			}
 
-			const textOverview = generateTextOverview(response);
+			const textOverview = generateContextualHint(response);
 
 			return {
 				content: [

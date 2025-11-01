@@ -10,6 +10,11 @@ export const generateGoogleSearchQueriesGraphTool = {
 		description:
 			"Generate a knowledge graph and identifymain topical clusters in the search requests related to the search queries provided",
 		inputSchema: GenerateGoogleSearchQueriesGraphSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateGoogleSearchQueriesGraphSchema>

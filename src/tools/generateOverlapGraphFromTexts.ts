@@ -10,6 +10,11 @@ export const generateOverlapGraphFromTextsTool = {
 		description:
 			"Extract the common relationships and similarities between texts and generate an overlap graph",
 		inputSchema: GenerateOverlapGraphFromTextsSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateOverlapGraphFromTextsSchema>

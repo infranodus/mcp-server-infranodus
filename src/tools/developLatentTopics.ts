@@ -10,6 +10,11 @@ export const developLatentTopicsTool = {
 		description:
 			"Analyze text, extract underdeveloped topics and get an idea on how to develop them",
 		inputSchema: DevelopLatentConceptsSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof DevelopLatentConceptsSchema>) => {
 		try {

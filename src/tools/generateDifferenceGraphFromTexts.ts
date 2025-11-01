@@ -10,6 +10,11 @@ export const generateDifferenceGraphFromTextsTool = {
 		description:
 			"Extract the conceptial relations that are not present in the first text but are in the other texts",
 		inputSchema: GenerateDifferenceGraphFromTextsSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateDifferenceGraphFromTextsSchema>

@@ -193,7 +193,7 @@ export const GenerateContentGapsSchema = z.object({
 		),
 });
 
-export const GenerateTextOverviewSchema = z.object({
+export const generateContextualHintSchema = z.object({
 	text: z
 		.string()
 		.min(1, "Text is required for analysis")

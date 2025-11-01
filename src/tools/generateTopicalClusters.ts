@@ -10,6 +10,11 @@ export const generateTopicalClustersTool = {
 		description:
 			"Generate topics and clusters of keywords from text using knowledge graph analysis",
 		inputSchema: GenerateTopicalClustersSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof GenerateTopicalClustersSchema>) => {
 		try {

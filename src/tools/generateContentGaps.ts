@@ -10,6 +10,11 @@ export const generateContentGapsTool = {
 		description:
 			"Generate content gaps from text using knowledge graph analysis",
 		inputSchema: GenerateContentGapsSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof GenerateContentGapsSchema>) => {
 		try {

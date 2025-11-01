@@ -10,6 +10,11 @@ export const developConceptualBridgesTool = {
 		description:
 			"Analyze text and get ideas on how to develop conceptual bridges in this text to link it to a broader discourse",
 		inputSchema: DevelopLatentConceptsSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof DevelopLatentConceptsSchema>) => {
 		try {

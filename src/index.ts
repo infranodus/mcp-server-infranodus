@@ -14,7 +14,7 @@ import {
 	generateResearchIdeasTool,
 	generateResearchQuestionsFromGraphTool,
 	generateResponsesFromGraphTool,
-	generateTextOverviewTool,
+	generateContextualHintTool,
 	searchExistingGraphsTool,
 	searchExistingGraphsFetchTool,
 	generateOverlapGraphFromTextsTool,
@@ -28,6 +28,7 @@ import {
 	developTextTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
+import { prompts } from "./prompts/index.js";
 import * as dotenv from "dotenv";
 
 // Export the config schema for Smithery
@@ -141,9 +142,9 @@ export default function createServer({
 	);
 
 	mcpServer.registerTool(
-		generateTextOverviewTool.name,
-		generateTextOverviewTool.definition,
-		wrapHandler(generateTextOverviewTool.handler)
+		generateContextualHintTool.name,
+		generateContextualHintTool.definition,
+		wrapHandler(generateContextualHintTool.handler)
 	);
 
 	mcpServer.registerTool(
@@ -201,6 +202,11 @@ export default function createServer({
 		aboutResource.definition,
 		aboutResource.handler
 	);
+
+	// Register prompts
+	prompts.forEach((prompt) => {
+		mcpServer.registerPrompt(prompt.name, prompt.definition, prompt.handler);
+	});
 
 	// Return the server instance
 	return mcpServer.server;

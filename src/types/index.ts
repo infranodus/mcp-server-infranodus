@@ -142,9 +142,9 @@ export interface SearchResponse {
 export interface KnowledgeGraphOutput {
 	statistics: {
 		modularity: number;
-		nodeCount: number;
-		edgeCount: number;
-		clusterCount: number;
+		nodeCount?: number;
+		edgeCount?: number;
+		clusterCount?: number;
 	};
 	graphSummary?: string;
 	contentGaps?: string[];

@@ -9,6 +9,11 @@ export const searchExistingGraphsTool = {
 		title: "Search through Existing InfraNodus Graphs",
 		description: "Find the concepts and terms in existing InfraNodus graphs",
 		inputSchema: SearchExistingGraphsSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (params: z.infer<typeof SearchExistingGraphsSchema>) => {
 		try {

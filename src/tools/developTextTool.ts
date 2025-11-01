@@ -15,6 +15,11 @@ export const developTextTool = {
 		description:
 			"Analyze text to extract research questions, develop latent topics, and identify content gaps in a single workflow with progress tracking",
 		inputSchema: DevelopTextToolSchema.shape,
+		annotations: {
+		   "readOnlyHint": true,
+		   "idempotentHint": true,
+		   "destructiveHint": false
+		},
 	},
 	handler: async (
 		params: z.infer<typeof DevelopTextToolSchema>,

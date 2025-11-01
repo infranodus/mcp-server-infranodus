@@ -29,8 +29,6 @@ export function transformToStructuredOutput(
 	const output: KnowledgeGraphOutput = {
 		statistics: {
 			modularity: 0,
-			nodeCount: 0,
-			edgeCount: 0,
 			clusterCount: 0,
 		},
 	};
@@ -54,32 +52,39 @@ export function transformToStructuredOutput(
 		// Statistics
 		output.statistics = {
 			modularity: graph.attributes?.modularity || 0,
-			nodeCount: graph.nodes?.length || 0,
-			edgeCount: graph.edges?.length || 0,
 			clusterCount: graph.attributes?.top_clusters?.length || 0,
 		};
+
+		if (graph.nodes?.length > 0) {
+			output.statistics.nodeCount = graph.nodes?.length;
+		}
+		if (graph.edges?.length > 0) {
+			output.statistics.edgeCount = graph.edges?.length;
+		}
 
 		if (graph.attributes?.dotGraphByCluster) {
 			output.knowledgeGraphByCluster = graph.attributes.dotGraphByCluster;
 			delete graph.attributes.dotGraphByCluster;
 		}
 
-		if (graph.attributes?.top_clusters) {
+		if (
+			graph.attributes?.top_clusters &&
+			!data.extendedGraphSummary?.mainTopics
+		) {
 			if (!buildingEntitiesGraph) {
 				output.topClusters = graph.attributes.top_clusters;
 			}
-			delete graph.attributes.top_clusters;
 		}
 
 		// Include raw graph if requested
-		if (includeGraph) {
+		if (includeGraph || includeNodesAndEdges) {
 			output.knowledgeGraph = graph;
 		}
 
 		// Include nodes and edges if requested
 		if (includeGraph && !includeNodesAndEdges) {
-			delete output.knowledgeGraph.nodes;
-			delete output.knowledgeGraph.edges;
+			delete output.knowledgeGraph?.nodes;
+			delete output.knowledgeGraph?.edges;
 		}
 	}
 
@@ -113,7 +118,7 @@ export function generateGaps(data: GraphResponse): GapsOutput {
 	return gaps;
 }
 
-export function generateTextOverview(data: GraphResponse): GraphOverview {
+export function generateContextualHint(data: GraphResponse): GraphOverview {
 	const graphOverview: GraphOverview = {};
 
 	if (data.graphSummary) {
