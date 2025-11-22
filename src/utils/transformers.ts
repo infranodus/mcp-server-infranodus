@@ -29,6 +29,7 @@ export function transformToStructuredOutput(
 	const output: KnowledgeGraphOutput = {
 		statistics: {
 			modularity: 0,
+			diversity_stats: {},
 			clusterCount: 0,
 		},
 	};
@@ -52,7 +53,10 @@ export function transformToStructuredOutput(
 		// Statistics
 		output.statistics = {
 			modularity: graph.attributes?.modularity || 0,
-			clusterCount: graph.attributes?.top_clusters?.length || 0,
+			clusterCount:
+				graph.attributes?.diversity_stats?.total_clusters ||
+				graph.attributes?.top_clusters?.length ||
+				0,
 		};
 
 		if (graph.nodes?.length > 0) {
@@ -60,6 +64,10 @@ export function transformToStructuredOutput(
 		}
 		if (graph.edges?.length > 0) {
 			output.statistics.edgeCount = graph.edges?.length;
+		}
+
+		if (graph.attributes?.diversity_stats) {
+			output.statistics.diversity_stats = graph.attributes.diversity_stats;
 		}
 
 		if (graph.attributes?.dotGraphByCluster) {
