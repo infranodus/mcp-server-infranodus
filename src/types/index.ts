@@ -76,6 +76,7 @@ export interface GraphResponse {
 				top_clusters?: TopCluster[];
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
+				diversity_stats?: any;
 			};
 			nodes: GraphNode[];
 			edges: GraphEdge[];
@@ -127,6 +128,7 @@ export interface SearchResponse {
 				top_clusters?: TopCluster[];
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
+				diversity_stats?: any;
 			};
 			nodes: GraphNode[];
 			edges: GraphEdge[];
@@ -142,6 +144,7 @@ export interface SearchResponse {
 export interface KnowledgeGraphOutput {
 	statistics: {
 		modularity: number;
+		diversity_stats?: any;
 		nodeCount?: number;
 		edgeCount?: number;
 		clusterCount?: number;
