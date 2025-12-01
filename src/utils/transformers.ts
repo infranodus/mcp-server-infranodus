@@ -70,6 +70,10 @@ export function transformToStructuredOutput(
 			output.statistics.diversity_stats = graph.attributes.diversity_stats;
 		}
 
+		if (graph.attributes?.top_influential_nodes) {
+			output.topInfluentialNodes = graph.attributes.top_influential_nodes;
+		}
+
 		if (graph.attributes?.dotGraphByCluster) {
 			output.knowledgeGraphByCluster = graph.attributes.dotGraphByCluster;
 			delete graph.attributes.dotGraphByCluster;

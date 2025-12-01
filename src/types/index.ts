@@ -77,6 +77,11 @@ export interface GraphResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
+				top_influential_nodes?: Array<{
+					node: string;
+					degree: number;
+					bc: number;
+				}>;
 			};
 			nodes: GraphNode[];
 			edges: GraphEdge[];
@@ -129,6 +134,11 @@ export interface SearchResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
+				top_influential_nodes?: Array<{
+					node: string;
+					degree: number;
+					bc: number;
+				}>;
 			};
 			nodes: GraphNode[];
 			edges: GraphEdge[];
@@ -153,6 +163,11 @@ export interface KnowledgeGraphOutput {
 	contentGaps?: string[];
 	mainTopicalClusters?: string[];
 	mainConcepts?: string[];
+	topInfluentialNodes?: Array<{
+		node: string;
+		degree: number;
+		bc: number;
+	}>;
 	conceptualGateways?: string[];
 	topRelations?: string[];
 	topBigrams?: string[];
