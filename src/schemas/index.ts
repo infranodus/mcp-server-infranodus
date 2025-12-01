@@ -119,7 +119,7 @@ export const AnalyzeExistingGraphSchema = z.object({
 		),
 	includeStatements: z
 		.boolean()
-		.default(true)
+		.default(false)
 		.describe(
 			"Include processed statements in response (add only if explicitly needed)"
 		),
