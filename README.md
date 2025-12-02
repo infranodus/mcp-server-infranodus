@@ -156,13 +156,21 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Extract statements and relationships from stored knowledge graphs
     - Support both entity-specific searches and full context retrieval
 
-22. **search**
+22. **retrieve_from_knowledge_base**
+
+    - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG
+    - Query your knowledge base with a natural language prompt to get relevant statements
+    - Include graph summaries for quick overviews of the knowledge structure
+    - Optionally retrieve the full graph, statements, or extended analysis
+    - Ideal for augmenting LLM responses with domain-specific knowledge
+
+23. **search**
 
     - Search through existing InfraNodus graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-23. **fetch**
+24. **fetch**
 
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors

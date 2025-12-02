@@ -23,6 +23,7 @@ import {
 	generateGoogleSearchQueriesGraphTool,
 	generateGoogleResultsVsQueriesGraphTool,
 	generateSEOGraphTool,
+	retrieveContextForPromptFromGraphTool,
 	developConceptualBridgesTool,
 	developLatentTopicsTool,
 	developTextTool,
@@ -181,6 +182,12 @@ export default function createServer({
 		generateSEOGraphTool.name,
 		generateSEOGraphTool.definition,
 		wrapHandler(generateSEOGraphTool.handler)
+	);
+
+	mcpServer.registerTool(
+		retrieveContextForPromptFromGraphTool.name,
+		retrieveContextForPromptFromGraphTool.definition,
+		wrapHandler(retrieveContextForPromptFromGraphTool.handler)
 	);
 
 	mcpServer.registerTool(

@@ -39,8 +39,9 @@ Available Tools:
 19. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
 20. memory_add_relations - Add relations to InfraNodus memory from text with entity detection and save for future retrieval
 21. memory_get_relations - Retrieve relations from InfraNodus memory for specific entities or contexts
-22. search - Search through existing InfraNodus graphs
-23. fetch - Fetch a specific search result for a graph
+22. retrieve_from_knowledge_base - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG for prompt augmentation
+23. search - Search through existing InfraNodus graphs
+24. fetch - Fetch a specific search result for a graph
 
 Key Features:
 - Topic modeling and clustering

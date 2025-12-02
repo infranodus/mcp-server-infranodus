@@ -331,6 +331,43 @@ export const GenerateResearchQuestionsFromGraphSchema = z.object({
 		),
 });
 
+export const RetrieveContextForPromptFromGraphSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "Graph name is required")
+		.describe(
+			"Name of the existing InfraNodus graph in your account to retrieve"
+		),
+	prompt: z
+		.string()
+		.min(1, "Prompt is required")
+		.describe("Prompt to retrieve context for from the graph"),
+	compactStatements: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Make statements compact by removing categories and other metadata"
+		),
+	includeGraphSummary: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include graph summary string in the response to provide additional context"
+		),
+	extendedGraphSummary: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include extended graph summary object in the response for additional detailed context"
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include graph in the response to provide underlying knowledge graph structure"
+		),
+});
+
 export const GenerateResponsesFromGraphSchema = z.object({
 	graphName: z
 		.string()

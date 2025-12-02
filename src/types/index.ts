@@ -96,9 +96,26 @@ export interface GraphResponse {
 		mainConcepts?: string[];
 		topRelations?: string[];
 		topBigrams?: string[];
+		topInfluentialNodes?: Array<{
+			node: string;
+			degree: number;
+			bc: number;
+		}>;
 		topicsToDevelop?: string[];
 		conceptualGateways?: string[];
 		conceptualGatewaysGraph?: string[];
+		diversityStatistics?: {
+			modularity: string;
+			diversity_score: string;
+			modularity_score: string;
+			too_focused_on_top_nodes: boolean;
+			too_focused_on_top_clusters: boolean;
+			ratio_of_top_nodes_influence_by_betweenness: number;
+			top_nodes_entropy: number;
+			ratio_of_top_cluster_influence_by_betweenness: number;
+			total_clusters: number;
+			fair_influence_by_cluster: number;
+		};
 	};
 	userName?: string;
 	graphName?: string;
@@ -203,6 +220,36 @@ export interface GraphOverview {
 
 export interface ResearchQuestionsOutput {
 	questions?: string[];
+}
+
+export interface GraphRagOutput {
+	retrievedStatements?: Array<{
+		content: string;
+		categories?: string[];
+		topStatementCommunity?: string;
+		topStatementOfCommunity?: string;
+		confidenceScore?: number;
+	}>;
+	graphSummary?: string;
+	contentGaps?: string[];
+	mainTopicalClusters?: string[];
+	mainTopicNames?: string[];
+	mainConcepts?: string[];
+	topRelations?: string[];
+	topInfluentialNodes?: Array<{
+		node: string;
+		degree: number;
+		bc: number;
+	}>;
+	topBigrams?: string[];
+	topicsToDevelop?: string[];
+	conceptualGateways?: string[];
+	conceptualGatewaysGraph?: string[];
+	graph?: any;
+	userName?: string;
+	graphName?: string;
+	graphUrl?: string;
+	isPublic?: boolean;
 }
 
 export interface ResearchIdeasOutput {

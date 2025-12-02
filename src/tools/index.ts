@@ -21,3 +21,4 @@ export { developConceptualBridgesTool } from "./developConceptualBridges.js";
 export { developLatentTopicsTool } from "./developLatentTopics.js";
 export { developTextTool } from "./developTextTool.js";
 export { generateResearchIdeasTool } from "./generateResearchIdeas.js";
+export { retrieveContextForPromptFromGraphTool } from "./retrieveContextForPromptFromGraph.js";

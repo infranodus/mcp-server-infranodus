@@ -4,6 +4,7 @@ import {
 	KnowledgeGraphOutput,
 	GapsOutput,
 	GraphOverview,
+	GraphRagOutput,
 	TopicsOutput,
 	InsightsOutput,
 	ResearchQuestionsOutput,
@@ -103,6 +104,75 @@ export function transformToStructuredOutput(
 	// Statements
 	if (data.statements) {
 		output.statements = data.statements;
+	}
+
+	if (data.userName) {
+		output.userName = data.userName;
+	}
+
+	if (data.graphName) {
+		output.graphName = data.graphName;
+	}
+
+	if (data.graphUrl) {
+		output.graphUrl = data.graphUrl;
+	}
+
+	return output;
+}
+
+export function transformToGraphRagOutput(params: {
+	data: GraphResponse;
+	includeGraph: boolean;
+	compactStatements: boolean;
+	includeGraphSummary: boolean;
+	extendedGraphSummary: boolean;
+}): GraphRagOutput {
+	const {
+		data,
+		includeGraph,
+		compactStatements,
+		includeGraphSummary,
+		extendedGraphSummary,
+	} = params;
+	const output: GraphRagOutput = {};
+
+	// if (data.aiAdvice) {
+	// 	output.relatedStatements = data.aiAdvice.map((advice) => advice.text);
+	// }
+
+	// Statements
+	if (data.statements) {
+		output.retrievedStatements = compactStatements
+			? data.statements
+					.filter((statement) => statement.content !== undefined)
+					.map((statement) => ({ content: statement.content! }))
+			: data.statements
+					.filter((statement) => statement.content !== undefined)
+					.map((statement) => ({
+						content: statement.content!,
+						categories: statement.categories,
+						topStatementCommunity: statement.topStatementCommunity,
+						topStatementOfCommunity: statement.topStatementOfCommunity,
+					}));
+	}
+
+	if (data.graphSummary && includeGraphSummary == true) {
+		output.graphSummary = data.graphSummary;
+	}
+
+	if (data.extendedGraphSummary && extendedGraphSummary == true) {
+		output.contentGaps = data.extendedGraphSummary.contentGaps;
+		output.mainTopicalClusters = data.extendedGraphSummary.mainTopics;
+		output.mainConcepts = data.extendedGraphSummary.mainConcepts;
+		output.conceptualGateways = data.extendedGraphSummary.conceptualGateways;
+		output.topRelations = data.extendedGraphSummary.topRelations;
+		output.topBigrams = data.extendedGraphSummary.topBigrams;
+	}
+
+	if (data.graph && data.graph.graphologyGraph && includeGraph == true) {
+		const graph = data.graph.graphologyGraph;
+		output.graph = graph;
 	}
 
 	if (data.userName) {
