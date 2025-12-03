@@ -47,6 +47,7 @@ export interface Statement {
 	statementCommunities?: string[];
 	topStatementCommunity?: string;
 	topStatementOfCommunity?: string;
+	similarityScore?: number;
 }
 
 export interface StatementsOutput {
@@ -228,7 +229,7 @@ export interface GraphRagOutput {
 		categories?: string[];
 		topStatementCommunity?: string;
 		topStatementOfCommunity?: string;
-		confidenceScore?: number;
+		similarityScore?: number;
 	}>;
 	graphSummary?: string;
 	contentGaps?: string[];

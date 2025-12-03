@@ -154,6 +154,7 @@ export function transformToGraphRagOutput(params: {
 						categories: statement.categories,
 						topStatementCommunity: statement.topStatementCommunity,
 						topStatementOfCommunity: statement.topStatementOfCommunity,
+						similarityScore: statement.similarityScore || 0,
 					}));
 	}
 
