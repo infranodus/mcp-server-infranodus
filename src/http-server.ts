@@ -14,8 +14,15 @@ import {
 	verifyAccessToken,
 	revokeSession,
 	getSessionCount,
+	registerClient,
+	getClient,
+	validateClient,
+	validateRedirectUri,
+	createAuthorizationCode,
+	exchangeAuthorizationCode,
+	validateApiKey,
 } from "./auth/oauth-provider.js";
-import { TokenRequest, ErrorResponse, AuthenticatedRequest } from "./auth/types.js";
+import { TokenRequest, ErrorResponse, AuthenticatedRequest, ClientRegistrationRequest } from "./auth/types.js";
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +41,9 @@ interface AuthenticatedExpressRequest extends Request {
 
 // Create Express app
 const app = express();
+
+// Trust proxy for correct protocol detection behind reverse proxies (Fly.io, etc.)
+app.set("trust proxy", true);
 
 // Middleware
 app.use(helmet({
@@ -91,40 +101,226 @@ function getAuth(req: Request): AuthenticatedRequest | undefined {
 // ============================================================================
 
 /**
- * POST /oauth/token - Exchange InfraNodus API key for access token
+ * POST /oauth/register - Dynamic Client Registration (RFC 7591)
  */
-app.post("/oauth/token", async (req: Request, res: Response) => {
+app.post("/oauth/register", (req: Request, res: Response) => {
 	try {
-		const body = req.body as TokenRequest;
+		const body = req.body as ClientRegistrationRequest;
 
-		if (!body.api_key) {
-			const error: ErrorResponse = {
+		if (!body.redirect_uris || !Array.isArray(body.redirect_uris) || body.redirect_uris.length === 0) {
+			res.status(400).json({
 				error: "invalid_request",
-				error_description: "Missing api_key parameter",
-			};
-			res.status(400).json(error);
+				error_description: "redirect_uris is required and must be a non-empty array",
+			});
 			return;
 		}
 
-		const tokenResponse = await exchangeApiKeyForToken(body.api_key);
-
-		if (!tokenResponse) {
-			const error: ErrorResponse = {
-				error: "invalid_grant",
-				error_description: "Invalid InfraNodus API key",
-			};
-			res.status(401).json(error);
-			return;
-		}
-
-		res.json(tokenResponse);
+		const clientResponse = registerClient(body);
+		res.status(201).json(clientResponse);
 	} catch (error) {
-		console.error("Token exchange error:", error);
-		const errorResponse: ErrorResponse = {
+		console.error("Client registration error:", error);
+		res.status(500).json({
 			error: "server_error",
 			error_description: "Internal server error",
-		};
-		res.status(500).json(errorResponse);
+		});
+	}
+});
+
+/**
+ * GET /oauth/authorize - Authorization endpoint (shows form)
+ */
+app.get("/oauth/authorize", (req: Request, res: Response) => {
+	const { response_type, client_id, redirect_uri, scope, state, code_challenge, code_challenge_method } = req.query;
+
+	// Validate required parameters
+	if (response_type !== "code") {
+		res.status(400).json({ error: "unsupported_response_type" });
+		return;
+	}
+
+	if (!client_id || typeof client_id !== "string") {
+		res.status(400).json({ error: "invalid_request", error_description: "client_id is required" });
+		return;
+	}
+
+	const client = getClient(client_id);
+	if (!client) {
+		res.status(400).json({ error: "invalid_client", error_description: "Unknown client_id" });
+		return;
+	}
+
+	if (!redirect_uri || typeof redirect_uri !== "string") {
+		res.status(400).json({ error: "invalid_request", error_description: "redirect_uri is required" });
+		return;
+	}
+
+	if (!validateRedirectUri(client_id, redirect_uri)) {
+		res.status(400).json({ error: "invalid_request", error_description: "Invalid redirect_uri" });
+		return;
+	}
+
+	// Render a simple HTML authorization form
+	const html = `
+<!DOCTYPE html>
+<html>
+<head>
+	<title>InfraNodus MCP - Authorize</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
+		h1 { color: #333; font-size: 24px; }
+		.client-name { color: #666; margin-bottom: 20px; }
+		label { display: block; margin: 15px 0 5px; font-weight: 500; }
+		input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+		button { width: 100%; padding: 12px; background: #4F46E5; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+		button:hover { background: #4338CA; }
+		.info { background: #F3F4F6; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; color: #666; }
+	</style>
+</head>
+<body>
+	<h1>Authorize Access</h1>
+	<p class="client-name">Application: <strong>${client.client_name || client_id}</strong></p>
+	<div class="info">
+		Enter your InfraNodus API key to authorize this application to access your InfraNodus data.
+	</div>
+	<form method="POST" action="/oauth/authorize">
+		<input type="hidden" name="client_id" value="${client_id}">
+		<input type="hidden" name="redirect_uri" value="${redirect_uri}">
+		<input type="hidden" name="response_type" value="code">
+		<input type="hidden" name="state" value="${state || ''}">
+		<input type="hidden" name="scope" value="${scope || ''}">
+		<input type="hidden" name="code_challenge" value="${code_challenge || ''}">
+		<input type="hidden" name="code_challenge_method" value="${code_challenge_method || ''}">
+		<label for="api_key">InfraNodus API Key</label>
+		<input type="password" id="api_key" name="api_key" required placeholder="Enter your API key">
+		<button type="submit">Authorize</button>
+	</form>
+</body>
+</html>`;
+
+	res.type("html").send(html);
+});
+
+/**
+ * POST /oauth/authorize - Process authorization (form submission)
+ */
+app.post("/oauth/authorize", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+	const { client_id, redirect_uri, response_type, state, scope, code_challenge, code_challenge_method, api_key } = req.body;
+
+	// Validate client
+	if (!client_id || !validateClient(client_id)) {
+		res.status(400).json({ error: "invalid_client" });
+		return;
+	}
+
+	if (!redirect_uri || !validateRedirectUri(client_id, redirect_uri)) {
+		res.status(400).json({ error: "invalid_request", error_description: "Invalid redirect_uri" });
+		return;
+	}
+
+	// Validate API key
+	if (!api_key) {
+		const redirectUrl = new URL(redirect_uri);
+		redirectUrl.searchParams.set("error", "access_denied");
+		redirectUrl.searchParams.set("error_description", "API key is required");
+		if (state) redirectUrl.searchParams.set("state", state);
+		res.redirect(redirectUrl.toString());
+		return;
+	}
+
+	const userInfo = await validateApiKey(api_key);
+	if (!userInfo) {
+		const redirectUrl = new URL(redirect_uri);
+		redirectUrl.searchParams.set("error", "access_denied");
+		redirectUrl.searchParams.set("error_description", "Invalid API key");
+		if (state) redirectUrl.searchParams.set("state", state);
+		res.redirect(redirectUrl.toString());
+		return;
+	}
+
+	// Create authorization code
+	const code = createAuthorizationCode(
+		client_id,
+		redirect_uri,
+		api_key,
+		scope,
+		code_challenge,
+		code_challenge_method
+	);
+
+	// Redirect with code
+	const redirectUrl = new URL(redirect_uri);
+	redirectUrl.searchParams.set("code", code);
+	if (state) redirectUrl.searchParams.set("state", state);
+	res.redirect(redirectUrl.toString());
+});
+
+/**
+ * POST /oauth/token - Exchange authorization code or API key for access token
+ */
+app.post("/oauth/token", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
+	try {
+		const { grant_type, code, redirect_uri, client_id, client_secret, code_verifier, api_key } = req.body;
+
+		// Handle authorization_code grant
+		if (grant_type === "authorization_code") {
+			if (!code || !redirect_uri || !client_id) {
+				res.status(400).json({
+					error: "invalid_request",
+					error_description: "Missing required parameters for authorization_code grant",
+				});
+				return;
+			}
+
+			// Validate client
+			if (!validateClient(client_id, client_secret)) {
+				res.status(401).json({
+					error: "invalid_client",
+					error_description: "Invalid client credentials",
+				});
+				return;
+			}
+
+			const tokenResponse = await exchangeAuthorizationCode(code, client_id, redirect_uri, code_verifier);
+			if (!tokenResponse) {
+				res.status(400).json({
+					error: "invalid_grant",
+					error_description: "Invalid or expired authorization code",
+				});
+				return;
+			}
+
+			res.json(tokenResponse);
+			return;
+		}
+
+		// Handle direct API key exchange (for backward compatibility)
+		if (api_key || (!grant_type && req.body.api_key)) {
+			const key = api_key || req.body.api_key;
+			const tokenResponse = await exchangeApiKeyForToken(key);
+
+			if (!tokenResponse) {
+				res.status(401).json({
+					error: "invalid_grant",
+					error_description: "Invalid InfraNodus API key",
+				});
+				return;
+			}
+
+			res.json(tokenResponse);
+			return;
+		}
+
+		res.status(400).json({
+			error: "unsupported_grant_type",
+			error_description: "Supported grant types: authorization_code, api_key",
+		});
+	} catch (error) {
+		console.error("Token exchange error:", error);
+		res.status(500).json({
+			error: "server_error",
+			error_description: "Internal server error",
+		});
 	}
 });
 
@@ -140,17 +336,22 @@ app.post("/oauth/revoke", authMiddleware, (req: Request, res: Response) => {
 });
 
 /**
- * GET /.well-known/oauth-authorization-server - OAuth2 metadata
+ * GET /.well-known/oauth-authorization-server - OAuth2 Authorization Server Metadata (RFC 8414)
  */
 app.get("/.well-known/oauth-authorization-server", (req: Request, res: Response) => {
 	const baseUrl = `${req.protocol}://${req.get("host")}`;
 	res.json({
 		issuer: baseUrl,
+		authorization_endpoint: `${baseUrl}/oauth/authorize`,
 		token_endpoint: `${baseUrl}/oauth/token`,
+		registration_endpoint: `${baseUrl}/oauth/register`,
 		revocation_endpoint: `${baseUrl}/oauth/revoke`,
-		token_endpoint_auth_methods_supported: ["none"],
-		grant_types_supported: ["api_key"],
-		response_types_supported: ["token"],
+		token_endpoint_auth_methods_supported: ["client_secret_post", "none"],
+		grant_types_supported: ["authorization_code"],
+		response_types_supported: ["code"],
+		code_challenge_methods_supported: ["S256", "plain"],
+		scopes_supported: ["mcp"],
+		service_documentation: `${baseUrl}/`,
 	});
 });
 

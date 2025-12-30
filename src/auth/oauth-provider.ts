@@ -11,10 +11,16 @@ import {
 	TokenResponse,
 	SessionData,
 	AuthenticatedRequest,
+	RegisteredClient,
+	ClientRegistrationRequest,
+	ClientRegistrationResponse,
+	AuthorizationCode,
 } from "./types.js";
 
-// In-memory session store (maps session ID to session data)
+// In-memory stores
 const sessions = new Map<string, SessionData>();
+const clients = new Map<string, RegisteredClient>();
+const authorizationCodes = new Map<string, AuthorizationCode>();
 
 // Configuration
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
@@ -175,4 +181,161 @@ export function cleanupExpiredSessions(): number {
 // Start periodic cleanup every 10 minutes
 setInterval(() => {
 	cleanupExpiredSessions();
+	cleanupExpiredAuthCodes();
 }, 10 * 60 * 1000);
+
+// ============================================================================
+// OAuth2 Dynamic Client Registration (RFC 7591)
+// ============================================================================
+
+/**
+ * Register a new OAuth2 client
+ */
+export function registerClient(request: ClientRegistrationRequest): ClientRegistrationResponse {
+	const clientId = crypto.randomUUID();
+	const clientSecret = crypto.randomBytes(32).toString("hex");
+
+	const client: RegisteredClient = {
+		client_id: clientId,
+		client_secret: clientSecret,
+		redirect_uris: request.redirect_uris,
+		client_name: request.client_name,
+		created_at: Date.now(),
+	};
+
+	clients.set(clientId, client);
+
+	return {
+		client_id: clientId,
+		client_secret: clientSecret,
+		client_id_issued_at: Math.floor(Date.now() / 1000),
+		client_secret_expires_at: 0, // Never expires
+		redirect_uris: request.redirect_uris,
+		client_name: request.client_name,
+		token_endpoint_auth_method: request.token_endpoint_auth_method || "client_secret_post",
+		grant_types: request.grant_types || ["authorization_code"],
+		response_types: request.response_types || ["code"],
+		scope: request.scope,
+	};
+}
+
+/**
+ * Get a registered client by ID
+ */
+export function getClient(clientId: string): RegisteredClient | null {
+	return clients.get(clientId) || null;
+}
+
+/**
+ * Validate client credentials
+ */
+export function validateClient(clientId: string, clientSecret?: string): boolean {
+	const client = clients.get(clientId);
+	if (!client) return false;
+	if (clientSecret && client.client_secret !== clientSecret) return false;
+	return true;
+}
+
+/**
+ * Validate redirect URI for a client
+ */
+export function validateRedirectUri(clientId: string, redirectUri: string): boolean {
+	const client = clients.get(clientId);
+	if (!client) return false;
+	return client.redirect_uris.includes(redirectUri);
+}
+
+// ============================================================================
+// OAuth2 Authorization Code Flow
+// ============================================================================
+
+const AUTH_CODE_EXPIRY_SECONDS = 600; // 10 minutes
+
+/**
+ * Create an authorization code
+ */
+export function createAuthorizationCode(
+	clientId: string,
+	redirectUri: string,
+	apiKey: string,
+	scope?: string,
+	codeChallenge?: string,
+	codeChallengeMethod?: string
+): string {
+	const code = crypto.randomBytes(32).toString("hex");
+
+	const authCode: AuthorizationCode = {
+		code,
+		client_id: clientId,
+		redirect_uri: redirectUri,
+		api_key: apiKey,
+		scope,
+		code_challenge: codeChallenge,
+		code_challenge_method: codeChallengeMethod,
+		expires_at: Date.now() + AUTH_CODE_EXPIRY_SECONDS * 1000,
+	};
+
+	authorizationCodes.set(code, authCode);
+	return code;
+}
+
+/**
+ * Exchange authorization code for token
+ */
+export async function exchangeAuthorizationCode(
+	code: string,
+	clientId: string,
+	redirectUri: string,
+	codeVerifier?: string
+): Promise<TokenResponse | null> {
+	const authCode = authorizationCodes.get(code);
+
+	// Validate authorization code
+	if (!authCode) return null;
+	if (authCode.client_id !== clientId) return null;
+	if (authCode.redirect_uri !== redirectUri) return null;
+	if (authCode.expires_at < Date.now()) {
+		authorizationCodes.delete(code);
+		return null;
+	}
+
+	// Validate PKCE if used
+	if (authCode.code_challenge) {
+		if (!codeVerifier) return null;
+
+		let computedChallenge: string;
+		if (authCode.code_challenge_method === "S256") {
+			computedChallenge = crypto
+				.createHash("sha256")
+				.update(codeVerifier)
+				.digest("base64url");
+		} else {
+			computedChallenge = codeVerifier; // plain method
+		}
+
+		if (computedChallenge !== authCode.code_challenge) return null;
+	}
+
+	// Delete the used code (single use)
+	authorizationCodes.delete(code);
+
+	// Exchange the API key for a token
+	return exchangeApiKeyForToken(authCode.api_key);
+}
+
+/**
+ * Clean up expired authorization codes
+ */
+function cleanupExpiredAuthCodes(): number {
+	const now = Date.now();
+	let cleaned = 0;
+
+	for (const [code, authCode] of authorizationCodes.entries()) {
+		if (authCode.expires_at < now) {
+			authorizationCodes.delete(code);
+			cleaned++;
+		}
+	}
+
+	return cleaned;
+}
