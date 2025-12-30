@@ -24,7 +24,7 @@ const authorizationCodes = new Map<string, AuthorizationCode>();
 
 // Configuration
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
-const TOKEN_EXPIRY_SECONDS = 3600; // 1 hour
+const TOKEN_EXPIRY_SECONDS = 86400 * 365 * 100; // 100 years - effectively never expires
 const INFRANODUS_API_BASE = process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1";
 
 /**
