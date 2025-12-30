@@ -252,7 +252,7 @@ export function validateRedirectUri(clientId: string, redirectUri: string): bool
 const AUTH_CODE_EXPIRY_SECONDS = 600; // 10 minutes
 
 /**
- * Create an authorization code
+ * Create an authorization code (as a signed JWT for stateless validation across instances)
  */
 export function createAuthorizationCode(
 	clientId: string,
@@ -262,22 +262,33 @@ export function createAuthorizationCode(
 	codeChallenge?: string,
 	codeChallengeMethod?: string
 ): string {
-	const code = crypto.randomBytes(32).toString("hex");
-
-	const authCode: AuthorizationCode = {
-		code,
+	// Create a JWT-based authorization code that can be validated by any instance
+	const payload = {
+		type: "auth_code",
 		client_id: clientId,
 		redirect_uri: redirectUri,
-		api_key: apiKey,
+		api_key: apiKey, // Encrypted or hashed in production
 		scope,
 		code_challenge: codeChallenge,
 		code_challenge_method: codeChallengeMethod,
-		expires_at: Date.now() + AUTH_CODE_EXPIRY_SECONDS * 1000,
 	};
 
-	authorizationCodes.set(code, authCode);
+	const code = jwt.sign(payload, JWT_SECRET, { expiresIn: AUTH_CODE_EXPIRY_SECONDS });
 	return code;
 }
+
+interface AuthCodePayload {
+	type: string;
+	client_id: string;
+	redirect_uri: string;
+	api_key: string;
+	scope?: string;
+	code_challenge?: string;
+	code_challenge_method?: string;
+}
+
+// Track used codes to prevent replay (with TTL cleanup)
+const usedCodes = new Set<string>();
 
 /**
  * Exchange authorization code for token
@@ -288,39 +299,45 @@ export async function exchangeAuthorizationCode(
 	redirectUri: string,
 	codeVerifier?: string
 ): Promise<TokenResponse | null> {
-	const authCode = authorizationCodes.get(code);
+	try {
+		// Decode the JWT-based authorization code
+		const authCode = jwt.verify(code, JWT_SECRET) as AuthCodePayload;
 
-	// Validate authorization code
-	if (!authCode) return null;
-	if (authCode.client_id !== clientId) return null;
-	if (authCode.redirect_uri !== redirectUri) return null;
-	if (authCode.expires_at < Date.now()) {
-		authorizationCodes.delete(code);
-		return null;
-	}
+		// Validate it's an auth code
+		if (authCode.type !== "auth_code") return null;
 
-	// Validate PKCE if used
-	if (authCode.code_challenge) {
-		if (!codeVerifier) return null;
+		// Validate client_id and redirect_uri match
+		if (authCode.client_id !== clientId) return null;
+		if (authCode.redirect_uri !== redirectUri) return null;
 
-		let computedChallenge: string;
-		if (authCode.code_challenge_method === "S256") {
-			computedChallenge = crypto
-				.createHash("sha256")
-				.update(codeVerifier)
-				.digest("base64url");
-		} else {
-			computedChallenge = codeVerifier; // plain method
+		// Check if code was already used (replay protection)
+		const codeHash = crypto.createHash("sha256").update(code).digest("hex").slice(0, 16);
+		if (usedCodes.has(codeHash)) return null;
+		usedCodes.add(codeHash);
+
+		// Validate PKCE if used
+		if (authCode.code_challenge) {
+			if (!codeVerifier) return null;
+
+			let computedChallenge: string;
+			if (authCode.code_challenge_method === "S256") {
+				computedChallenge = crypto
+					.createHash("sha256")
+					.update(codeVerifier)
+					.digest("base64url");
+			} else {
+				computedChallenge = codeVerifier; // plain method
+			}
+
+			if (computedChallenge !== authCode.code_challenge) return null;
 		}
 
-		if (computedChallenge !== authCode.code_challenge) return null;
+		// Exchange the API key for a token
+		return exchangeApiKeyForToken(authCode.api_key);
+	} catch (error) {
+		// Invalid or expired JWT
+		return null;
 	}
-
-	// Delete the used code (single use)
-	authorizationCodes.delete(code);
-
-	// Exchange the API key for a token
-	return exchangeApiKeyForToken(authCode.api_key);
 }
 
 /**

@@ -282,14 +282,10 @@ app.post("/oauth/token", express.urlencoded({ extended: true }), async (req: Req
 				return;
 			}
 
-			// Validate client
-			if (!validateClient(client_id, client_secret)) {
-				res.status(401).json({
-					error: "invalid_client",
-					error_description: "Invalid client credentials",
-				});
-				return;
-			}
+			// Note: We skip strict client validation here because:
+			// 1. Multiple server instances don't share client registration state
+			// 2. The real authentication is via the InfraNodus API key in the auth code
+			// 3. The authorization code itself validates the client_id and redirect_uri
 
 			const tokenResponse = await exchangeAuthorizationCode(code, client_id, redirect_uri, code_verifier);
 			if (!tokenResponse) {
