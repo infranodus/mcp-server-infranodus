@@ -260,7 +260,17 @@ app.post("/oauth/authorize", express.urlencoded({ extended: true }), async (req:
  */
 app.post("/oauth/token", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
 	try {
-		const { grant_type, code, redirect_uri, client_id, client_secret, code_verifier, api_key } = req.body;
+		let { grant_type, code, redirect_uri, client_id, client_secret, code_verifier, api_key } = req.body;
+
+		// Support client_secret_basic authentication (credentials in Authorization header)
+		const authHeader = req.headers.authorization;
+		if (authHeader && authHeader.startsWith("Basic ")) {
+			const base64Credentials = authHeader.slice(6);
+			const credentials = Buffer.from(base64Credentials, "base64").toString("utf-8");
+			const [headerClientId, headerClientSecret] = credentials.split(":");
+			if (headerClientId) client_id = headerClientId;
+			if (headerClientSecret) client_secret = headerClientSecret;
+		}
 
 		// Handle authorization_code grant
 		if (grant_type === "authorization_code") {
@@ -346,12 +356,31 @@ app.get("/.well-known/oauth-authorization-server", (req: Request, res: Response)
 		token_endpoint: `${baseUrl}/oauth/token`,
 		registration_endpoint: `${baseUrl}/oauth/register`,
 		revocation_endpoint: `${baseUrl}/oauth/revoke`,
-		token_endpoint_auth_methods_supported: ["client_secret_post", "none"],
-		grant_types_supported: ["authorization_code"],
+		token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "none"],
+		grant_types_supported: ["authorization_code", "refresh_token"],
 		response_types_supported: ["code"],
 		code_challenge_methods_supported: ["S256", "plain"],
-		scopes_supported: ["mcp"],
+		scopes_supported: ["mcp", "read", "write"],
 		service_documentation: `${baseUrl}/`,
+	});
+});
+
+/**
+ * GET /.well-known/openid-configuration - OpenID Connect Discovery (some clients check this)
+ */
+app.get("/.well-known/openid-configuration", (req: Request, res: Response) => {
+	const baseUrl = `${req.protocol}://${req.get("host")}`;
+	res.json({
+		issuer: baseUrl,
+		authorization_endpoint: `${baseUrl}/oauth/authorize`,
+		token_endpoint: `${baseUrl}/oauth/token`,
+		registration_endpoint: `${baseUrl}/oauth/register`,
+		revocation_endpoint: `${baseUrl}/oauth/revoke`,
+		token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post", "none"],
+		grant_types_supported: ["authorization_code", "refresh_token"],
+		response_types_supported: ["code"],
+		code_challenge_methods_supported: ["S256", "plain"],
+		scopes_supported: ["mcp", "read", "write"],
 	});
 });
 
