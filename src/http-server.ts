@@ -55,6 +55,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Log ALL incoming requests
+app.use((req: Request, res: Response, next: NextFunction) => {
+	console.log(`[HTTP] ${req.method} ${req.path} from ${req.ip}`);
+	console.log(`[HTTP] Headers: ${JSON.stringify({
+		authorization: req.headers.authorization ? '[present]' : '[missing]',
+		'content-type': req.headers['content-type'],
+		accept: req.headers.accept,
+	})}`);
+	next();
+});
+
 // Store transports per session for MCP
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
@@ -62,9 +73,11 @@ const transports = new Map<string, StreamableHTTPServerTransport>();
  * Auth middleware - validates Bearer token and attaches auth info to request
  */
 function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+	console.log(`[AUTH] Checking auth for ${req.method} ${req.path}`);
 	const authHeader = req.headers.authorization;
 
 	if (!authHeader || !authHeader.startsWith("Bearer ")) {
+		console.log(`[AUTH] Missing or invalid Authorization header`);
 		const error: ErrorResponse = {
 			error: "unauthorized",
 			error_description: "Missing or invalid Authorization header",
@@ -74,9 +87,11 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
 	}
 
 	const token = authHeader.slice(7); // Remove "Bearer " prefix
+	console.log(`[AUTH] Token present, verifying...`);
 	const authInfo = verifyAccessToken(token);
 
 	if (!authInfo) {
+		console.log(`[AUTH] Token verification failed`);
 		const error: ErrorResponse = {
 			error: "invalid_token",
 			error_description: "Access token is invalid or expired",
@@ -85,6 +100,7 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
 		return;
 	}
 
+	console.log(`[AUTH] Authenticated as ${authInfo.userName} (${authInfo.userId})`);
 	(req as AuthenticatedExpressRequest)[AUTH_KEY] = authInfo;
 	next();
 }
@@ -143,9 +159,11 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		return;
 	}
 
-	const client = getClient(client_id);
-	if (!client) {
-		res.status(400).json({ error: "invalid_client", error_description: "Unknown client_id" });
+	// Accept any UUID-formatted client_id (stateless - no need for pre-registration)
+	// This is necessary because client registrations don't persist across instances/restarts
+	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	if (!uuidRegex.test(client_id)) {
+		res.status(400).json({ error: "invalid_client", error_description: "Invalid client_id format" });
 		return;
 	}
 
@@ -154,10 +172,16 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		return;
 	}
 
-	if (!validateRedirectUri(client_id, redirect_uri)) {
-		res.status(400).json({ error: "invalid_request", error_description: "Invalid redirect_uri" });
+	// Accept any HTTPS redirect_uri (stateless validation)
+	// The real security is in the API key validation
+	if (!redirect_uri.startsWith("https://")) {
+		res.status(400).json({ error: "invalid_request", error_description: "redirect_uri must use HTTPS" });
 		return;
 	}
+
+	// Get client name from registration if available, otherwise use client_id
+	const client = getClient(client_id);
+	const clientName = client?.client_name || client_id;
 
 	// Render a simple HTML authorization form
 	const html = `
@@ -179,7 +203,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 </head>
 <body>
 	<h1>Authorize Access</h1>
-	<p class="client-name">Application: <strong>${client.client_name || client_id}</strong></p>
+	<p class="client-name">Application: <strong>${clientName}</strong></p>
 	<div class="info">
 		Enter your InfraNodus API key to authorize this application to access your InfraNodus data.
 	</div>
@@ -207,13 +231,15 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 app.post("/oauth/authorize", express.urlencoded({ extended: true }), async (req: Request, res: Response) => {
 	const { client_id, redirect_uri, response_type, state, scope, code_challenge, code_challenge_method, api_key } = req.body;
 
-	// Validate client
-	if (!client_id || !validateClient(client_id)) {
+	// Validate client_id format (stateless - accept any valid UUID)
+	const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	if (!client_id || !uuidRegex.test(client_id)) {
 		res.status(400).json({ error: "invalid_client" });
 		return;
 	}
 
-	if (!redirect_uri || !validateRedirectUri(client_id, redirect_uri)) {
+	// Validate redirect_uri (stateless - accept any HTTPS URL)
+	if (!redirect_uri || !redirect_uri.startsWith("https://")) {
 		res.status(400).json({ error: "invalid_request", error_description: "Invalid redirect_uri" });
 		return;
 	}
@@ -390,9 +416,18 @@ app.get("/.well-known/openid-configuration", (req: Request, res: Response) => {
 async function handleMcpRequest(req: Request, res: Response) {
 	const auth = getAuth(req);
 	if (!auth) {
+		console.log("[MCP] Request rejected: no auth");
 		res.status(401).json({ error: "unauthorized" });
 		return;
 	}
+
+	console.log(`[MCP] ${req.method} request from user ${auth.userName} (${auth.userId})`);
+	console.log(`[MCP] Headers:`, JSON.stringify({
+		"content-type": req.headers["content-type"],
+		"mcp-session-id": req.headers["mcp-session-id"],
+		"accept": req.headers["accept"],
+	}));
+	console.log(`[MCP] Body:`, JSON.stringify(req.body));
 
 	// Use session ID as the transport key
 	const sessionId = auth.sessionId;
@@ -400,13 +435,17 @@ async function handleMcpRequest(req: Request, res: Response) {
 
 	// Check for existing session ID in request (for session reuse)
 	const existingSessionId = req.headers["mcp-session-id"] as string | undefined;
+	if (existingSessionId) {
+		console.log(`[MCP] Existing MCP session ID in header: ${existingSessionId}`);
+	}
 
 	if (!transport) {
+		console.log(`[MCP] Creating new transport for session ${sessionId}`);
 		// Create new transport for this session
 		transport = new StreamableHTTPServerTransport({
 			sessionIdGenerator: () => sessionId,
 			onsessioninitialized: (newSessionId) => {
-				// Session initialized
+				console.log(`[MCP] Session initialized: ${newSessionId}`);
 			},
 		});
 
@@ -419,22 +458,57 @@ async function handleMcpRequest(req: Request, res: Response) {
 
 		// Connect transport to server
 		await server.connect(transport);
+		console.log(`[MCP] Server connected to transport`);
 
 		// Store transport
 		transports.set(sessionId, transport);
 
 		// Clean up on close
 		transport.onclose = () => {
+			console.log(`[MCP] Transport closed for session ${sessionId}`);
 			transports.delete(sessionId);
 		};
+	} else {
+		console.log(`[MCP] Reusing existing transport for session ${sessionId}`);
 	}
 
-	// Handle the request (cast to IncomingMessage for MCP SDK compatibility)
-	await transport.handleRequest(
-		req as unknown as import("http").IncomingMessage,
-		res as unknown as import("http").ServerResponse,
-		req.body
-	);
+	try {
+		// Capture ALL response data for logging (including raw writes)
+		const originalWrite = res.write.bind(res);
+		const originalEnd = res.end.bind(res);
+		const originalSetHeader = res.setHeader.bind(res);
+
+		res.setHeader = (name: string, value: any) => {
+			console.log(`[MCP] Response header: ${name} = ${value}`);
+			return originalSetHeader(name, value);
+		};
+
+		res.write = (chunk: any, ...args: any[]) => {
+			const data = typeof chunk === 'string' ? chunk : chunk?.toString?.();
+			console.log(`[MCP] Response write:`, data?.slice(0, 500));
+			return (originalWrite as any)(chunk, ...args);
+		};
+
+		res.end = (chunk?: any, ...args: any[]) => {
+			if (chunk) {
+				const data = typeof chunk === 'string' ? chunk : chunk?.toString?.();
+				console.log(`[MCP] Response end with data:`, data?.slice(0, 500));
+			}
+			console.log(`[MCP] Response ended, status: ${res.statusCode}`);
+			return (originalEnd as any)(chunk, ...args);
+		};
+
+		// Handle the request (cast to IncomingMessage for MCP SDK compatibility)
+		await transport.handleRequest(
+			req as unknown as import("http").IncomingMessage,
+			res as unknown as import("http").ServerResponse,
+			req.body
+		);
+		console.log(`[MCP] handleRequest completed`);
+	} catch (error) {
+		console.error(`[MCP] Error handling request:`, error);
+		throw error;
+	}
 }
 
 /**
@@ -496,9 +570,13 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 /**
- * GET / - Server info
+ * GET / - Server info (only when no auth header - otherwise it's MCP)
  */
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (req: Request, res: Response, next: NextFunction) => {
+	// If auth header is present, treat as MCP request
+	if (req.headers.authorization) {
+		return next();
+	}
 	res.json({
 		name: "InfraNodus MCP Server",
 		version: "1.0.0",
@@ -510,14 +588,57 @@ app.get("/", (req: Request, res: Response) => {
 				metadata: "GET /.well-known/oauth-authorization-server",
 			},
 			mcp: {
-				messages: "POST /mcp",
-				notifications: "GET /mcp",
-				disconnect: "DELETE /mcp",
+				messages: "POST / or POST /mcp",
+				notifications: "GET / or GET /mcp",
+				disconnect: "DELETE / or DELETE /mcp",
 			},
 			health: "GET /health",
 		},
 		authentication: "Bearer token (obtain via /oauth/token with api_key)",
 	});
+});
+
+/**
+ * POST / - Handle MCP messages at root (for clients that POST to base URL)
+ */
+app.post("/", authMiddleware, async (req: Request, res: Response) => {
+	try {
+		console.log(`[MCP] Handling POST / as MCP request`);
+		await handleMcpRequest(req, res);
+	} catch (error) {
+		console.error("MCP POST / error:", error);
+		if (!res.headersSent) {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+});
+
+/**
+ * GET / with auth - SSE endpoint for MCP at root
+ */
+app.get("/", authMiddleware, async (req: Request, res: Response) => {
+	try {
+		await handleMcpRequest(req, res);
+	} catch (error) {
+		console.error("MCP GET / error:", error);
+		if (!res.headersSent) {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+});
+
+/**
+ * DELETE / - End MCP session at root
+ */
+app.delete("/", authMiddleware, async (req: Request, res: Response) => {
+	try {
+		await handleMcpRequest(req, res);
+	} catch (error) {
+		console.error("MCP DELETE / error:", error);
+		if (!res.headersSent) {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
 });
 
 // ============================================================================

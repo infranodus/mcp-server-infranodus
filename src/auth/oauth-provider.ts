@@ -85,29 +85,21 @@ export async function exchangeApiKeyForToken(apiKey: string): Promise<TokenRespo
 		return null;
 	}
 
-	// Create session
+	// Create a stateless session ID (just for tracking, not stored in memory)
 	const sessionId = crypto.randomUUID();
-	const sessionData: SessionData = {
-		userId: userInfo.userId,
-		userName: userInfo.userName,
-		apiKey: apiKey,
-		createdAt: Date.now(),
-	};
-	sessions.set(sessionId, sessionData);
 
-	// Create JWT payload
-	const payload: Omit<TokenPayload, "iat" | "exp"> = {
+	// Create JWT payload - include API key directly for stateless verification
+	// The JWT is signed so it can't be tampered with
+	const payload = {
+		type: "access_token",
 		userId: userInfo.userId,
 		userName: userInfo.userName,
-		apiKeyHash: hashApiKey(apiKey),
+		apiKey: apiKey, // Include API key for stateless verification
+		sessionId: sessionId,
 	};
 
 	// Sign JWT
-	const accessToken = jwt.sign(
-		{ ...payload, sessionId },
-		JWT_SECRET,
-		{ expiresIn: TOKEN_EXPIRY_SECONDS }
-	);
+	const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY_SECONDS });
 
 	return {
 		access_token: accessToken,
@@ -118,30 +110,41 @@ export async function exchangeApiKeyForToken(apiKey: string): Promise<TokenRespo
 
 /**
  * Verify a JWT access token and return the authenticated request context
+ * This is now stateless - all info is in the JWT itself
  */
 export function verifyAccessToken(token: string): AuthenticatedRequest | null {
 	try {
-		const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload & { sessionId: string };
+		const decoded = jwt.verify(token, JWT_SECRET) as {
+			type?: string;
+			userId: number;
+			userName: string;
+			apiKey?: string;
+			apiKeyHash?: string;  // Old format
+			sessionId: string;
+		};
 
-		// Get session data
-		const sessionData = sessions.get(decoded.sessionId);
-		if (!sessionData) {
+		// Check if this is an auth_code being used as access token (wrong!)
+		if (decoded.type === "auth_code") {
+			console.log(`[AUTH] Received auth_code instead of access_token`);
 			return null;
 		}
 
-		// Verify the API key hash matches
-		if (hashApiKey(sessionData.apiKey) !== decoded.apiKeyHash) {
+		// Need API key in the token for stateless verification
+		if (!decoded.apiKey) {
+			console.log(`[AUTH] Token missing apiKey - old format token, needs re-auth`);
 			return null;
 		}
 
+		// All info is in the JWT - no need to look up session
 		return {
 			userId: decoded.userId,
 			userName: decoded.userName,
-			apiKey: sessionData.apiKey,
+			apiKey: decoded.apiKey,
 			sessionId: decoded.sessionId,
 		};
-	} catch (error) {
+	} catch (error: any) {
 		// Invalid or expired token
+		console.log(`[AUTH] JWT verification error: ${error.message}`);
 		return null;
 	}
 }
