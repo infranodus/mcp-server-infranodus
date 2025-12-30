@@ -439,6 +439,19 @@ async function handleMcpRequest(req: Request, res: Response) {
 		console.log(`[MCP] Existing MCP session ID in header: ${existingSessionId}`);
 	}
 
+	// Check if this is an initialize request - if so, close old transport and create fresh one
+	const isInitializeRequest = req.body?.method === "initialize";
+	if (isInitializeRequest && transport) {
+		console.log(`[MCP] Received initialize on existing session, closing old transport`);
+		try {
+			await transport.close();
+		} catch (e) {
+			// Ignore close errors
+		}
+		transports.delete(sessionId);
+		transport = undefined;
+	}
+
 	if (!transport) {
 		console.log(`[MCP] Creating new transport for session ${sessionId}`);
 		// Create new transport for this session
