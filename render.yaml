@@ -1,0 +1,20 @@
+# Render.com Blueprint
+# Deploy by connecting your GitHub repo to Render
+
+services:
+  - type: web
+    name: infranodus-mcp-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: frankfurt  # or oregon, singapore, ohio
+    plan: starter  # or standard, pro
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: INFRANODUS_API_BASE
+        value: https://infranodus.com/api/v1
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: JWT_SECRET
+        generateValue: true  # Render generates a random value

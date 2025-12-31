@@ -1,0 +1,5 @@
+registry=https://registry.npmjs.org/
+
+@infranodus:registry=https://registry.npmjs.org/
+
+//registry.npmjs.org/:_authToken=YOUR_NEW_NPM_TOKEN
