@@ -15,6 +15,7 @@ import {
 	generateResearchQuestionsFromGraphTool,
 	generateResponsesFromGraphTool,
 	generateContextualHintTool,
+	listGraphsTool,
 	searchExistingGraphsTool,
 	searchExistingGraphsFetchTool,
 	generateOverlapGraphFromTextsTool,
@@ -188,6 +189,12 @@ export default function createServer({
 		retrieveContextForPromptFromGraphTool.name,
 		retrieveContextForPromptFromGraphTool.definition,
 		wrapHandler(retrieveContextForPromptFromGraphTool.handler)
+	);
+
+	mcpServer.registerTool(
+		listGraphsTool.name,
+		listGraphsTool.definition,
+		wrapHandler(listGraphsTool.handler)
 	);
 
 	mcpServer.registerTool(

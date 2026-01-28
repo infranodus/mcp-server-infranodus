@@ -42,6 +42,7 @@ export const addMemoryTool = {
 				name: params.graphName,
 				text: params.text,
 				aiTopics: "true",
+				contextType: "memory",
 			};
 
 			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {
@@ -66,7 +67,7 @@ export const addMemoryTool = {
 				response,
 				includeGraph,
 				includeNodesAndEdges,
-				buildingEntitiesGraph
+				buildingEntitiesGraph,
 			);
 
 			return {

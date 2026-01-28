@@ -9,6 +9,7 @@ export { generateResearchQuestionsTool } from "./generateResearchQuestions.js";
 export { generateResearchQuestionsFromGraphTool } from "./generateResearchQuestionsFromGraph.js";
 export { generateResponsesFromGraphTool } from "./generateResponsesFromGraph.js";
 export { generateContextualHintTool } from "./generateContextualHint.js";
+export { listGraphsTool } from "./listGraphs.js";
 export { searchExistingGraphsTool } from "./searchGraphs.js";
 export { searchExistingGraphsFetchTool } from "./searchGraphsFetch.js";
 export { generateOverlapGraphFromTextsTool } from "./generateOverlapGraphFromTexts.js";

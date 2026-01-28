@@ -329,7 +329,7 @@ a. remote launch via `npx`:
 }
 ```
 
-b. launch this repo with `node`:
+b. launch this repo with `node`, specify the absolute path to the repo + `/dist/index.js`:
 
 ```json
 {
