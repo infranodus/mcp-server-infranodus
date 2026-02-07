@@ -26,9 +26,9 @@ export const generateSEOGraphTool = {
 			"Analyze content for SEO optimization by comparing its knowledge graph with the graphs of Google search results and search queries to identify content gaps and opportunities based on the differences",
 		inputSchema: GenerateSEOGraphSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (
@@ -40,15 +40,74 @@ export const generateSEOGraphTool = {
 			const progress = new ProgressReporter(context);
 
 			// Step 1: Generate topical clusters from the original text
+			await progress.report(5, "🔍 Extracting content from URL or text...");
+
+			// Resolve content: from URL (urlToText) if provided, otherwise use text
+			let contentText: string;
+			if (params.url) {
+				const urlToTextResponse = await makeInfraNodusRequest(
+					`/convert/urlToText?url=${encodeURIComponent(params.url)}`,
+					{}
+				);
+				if (urlToTextResponse.error) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify({
+									error:
+										urlToTextResponse.error ||
+										"Failed to fetch content from URL",
+								}),
+							},
+						],
+						isError: true,
+					};
+				}
+				contentText =
+					(urlToTextResponse as { text?: string }).text ??
+					(typeof urlToTextResponse === "string" ? urlToTextResponse : "");
+				if (!contentText) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify({
+									error: "URL did not return any text content",
+								}),
+							},
+						],
+						isError: true,
+					};
+				}
+			} else {
+				contentText = params.text ?? "";
+			}
+
+			if (!contentText.trim()) {
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: JSON.stringify({
+								error: "Provide either url or text for SEO analysis",
+							}),
+						},
+					],
+					isError: true,
+				};
+			}
+
+			// Step 2: Generate topical clusters from the original text
 			await progress.report(
-				5,
+				10,
 				"🔍 Analyzing your text to identify main topics and keywords..."
 			);
 
 			const topicalClustersResponse = await makeInfraNodusRequest(
 				"/graphAndStatements?doNotSave=true&addStats=true&includeGraphSummary=false&extendedGraphSummary=true&includeGraph=false&includeStatements=false&aiTopics=true",
 				{
-					text: params.text,
+					text: contentText,
 				}
 			);
 
@@ -171,7 +230,7 @@ export const generateSEOGraphTool = {
 				{
 					contexts: [
 						{
-							text: params.text,
+							text: contentText,
 							modifyAnalyzedText: "none",
 						},
 						{
@@ -197,7 +256,7 @@ export const generateSEOGraphTool = {
 				{
 					contexts: [
 						{
-							text: params.text,
+							text: contentText,
 							modifyAnalyzedText: "none",
 						},
 						{
