@@ -566,7 +566,22 @@ export const GenerateGoogleSearchResultsGraphSchema = z.object({
 			"Include extended graph information in the response (add only if explicitly needed)"
 		),
 	importLanguage: z
-		.enum(["EN", "DE", "FR", "ES", "IT", "PT", "RU", "CN", "JP", "NL", "TW"])
+		.enum([
+			"EN",
+			"DE",
+			"FR",
+			"ES",
+			"IT",
+			"PT",
+			"RU",
+			"CN",
+			"JP",
+			"NL",
+			"TW",
+			"KO",
+			"AR",
+			"HE",
+		])
 		.default("EN")
 		.describe(
 			"Language of the search queries, default is English (EN), use the language of the conversation or requested by user."
@@ -596,6 +611,13 @@ export const GenerateGoogleSearchResultsGraphSchema = z.object({
 			"SV",
 			"TW",
 			"US",
+			"SG",
+			"SA",
+			"AE",
+			"EG",
+			"IR",
+			"IL",
+			"KR",
 		])
 		.default("US")
 		.describe(
@@ -635,7 +657,22 @@ export const GenerateGoogleSearchQueriesGraphSchema = z.object({
 			"Include extended graph information in the response (add only if explicitly needed)"
 		),
 	importLanguage: z
-		.enum(["EN", "DE", "FR", "ES", "IT", "PT", "RU", "CN", "JP", "NL", "TW"])
+		.enum([
+			"EN",
+			"DE",
+			"FR",
+			"ES",
+			"IT",
+			"PT",
+			"RU",
+			"CN",
+			"JP",
+			"NL",
+			"TW",
+			"KO",
+			"AR",
+			"HE",
+		])
 		.default("EN")
 		.describe(
 			"Language of the search queries, default is English (EN), use the language of the conversation or requested by user."
@@ -665,6 +702,13 @@ export const GenerateGoogleSearchQueriesGraphSchema = z.object({
 			"SV",
 			"TW",
 			"US",
+			"SG",
+			"SA",
+			"AE",
+			"EG",
+			"IR",
+			"IL",
+			"KR",
 		])
 		.default("US")
 		.describe(
@@ -692,7 +736,22 @@ export const GenerateGoogleResultsVsQueriesGraphSchema = z.object({
 			"Include extended graph information in the response (add only if explicitly needed)"
 		),
 	importLanguage: z
-		.enum(["EN", "DE", "FR", "ES", "IT", "PT", "RU", "CN", "JP", "NL", "TW"])
+		.enum([
+			"EN",
+			"DE",
+			"FR",
+			"ES",
+			"IT",
+			"PT",
+			"RU",
+			"CN",
+			"JP",
+			"NL",
+			"TW",
+			"KO",
+			"AR",
+			"HE",
+		])
 		.default("EN")
 		.describe(
 			"Language of the search queries, default is English (EN), use the language of the conversation or requested by user."
@@ -722,6 +781,13 @@ export const GenerateGoogleResultsVsQueriesGraphSchema = z.object({
 			"SV",
 			"TW",
 			"US",
+			"SG",
+			"SA",
+			"AE",
+			"EG",
+			"IR",
+			"IL",
+			"KR",
 		])
 		.default("US")
 		.describe(
@@ -751,7 +817,22 @@ export const GenerateSEOGraphSchema = z.object({
 			"What to extract from URL: 'all' (default), 'header tags', or 'link tags'."
 		),
 	importLanguage: z
-		.enum(["EN", "DE", "FR", "ES", "IT", "PT", "RU", "CN", "JP", "NL", "TW"])
+		.enum([
+			"EN",
+			"DE",
+			"FR",
+			"ES",
+			"IT",
+			"PT",
+			"RU",
+			"CN",
+			"JP",
+			"NL",
+			"TW",
+			"KO",
+			"AR",
+			"HE",
+		])
 		.default("EN")
 		.describe(
 			"Language of the content and search queries, default is English (EN), use the language of the conversation or requested by user."
@@ -781,6 +862,13 @@ export const GenerateSEOGraphSchema = z.object({
 			"SV",
 			"TW",
 			"US",
+			"SG",
+			"SA",
+			"AE",
+			"EG",
+			"IR",
+			"IL",
+			"KR",
 		])
 		.default("US")
 		.describe(
