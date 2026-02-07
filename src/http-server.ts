@@ -55,13 +55,13 @@ app.set("trust proxy", true);
 app.use(
 	helmet({
 		contentSecurityPolicy: false, // Disable for SSE compatibility
-	}),
+	})
 );
 app.use(
 	cors({
 		origin: CORS_ORIGIN,
 		credentials: true,
-	}),
+	})
 );
 app.use(express.json());
 
@@ -73,7 +73,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 			authorization: req.headers.authorization ? "[present]" : "[missing]",
 			"content-type": req.headers["content-type"],
 			accept: req.headers.accept,
-		})}`,
+		})}`
 	);
 	next();
 });
@@ -113,7 +113,7 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
 	}
 
 	console.log(
-		`[AUTH] Authenticated as ${authInfo.userName} (${authInfo.userId})`,
+		`[AUTH] Authenticated as ${authInfo.userName} (${authInfo.userId})`
 	);
 	(req as AuthenticatedExpressRequest)[AUTH_KEY] = authInfo;
 	next();
@@ -182,12 +182,10 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 	}
 
 	if (!client_id || typeof client_id !== "string") {
-		res
-			.status(400)
-			.json({
-				error: "invalid_request",
-				error_description: "client_id is required",
-			});
+		res.status(400).json({
+			error: "invalid_request",
+			error_description: "client_id is required",
+		});
 		return;
 	}
 
@@ -196,34 +194,28 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 	const uuidRegex =
 		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 	if (!uuidRegex.test(client_id)) {
-		res
-			.status(400)
-			.json({
-				error: "invalid_client",
-				error_description: "Invalid client_id format",
-			});
+		res.status(400).json({
+			error: "invalid_client",
+			error_description: "Invalid client_id format",
+		});
 		return;
 	}
 
 	if (!redirect_uri || typeof redirect_uri !== "string") {
-		res
-			.status(400)
-			.json({
-				error: "invalid_request",
-				error_description: "redirect_uri is required",
-			});
+		res.status(400).json({
+			error: "invalid_request",
+			error_description: "redirect_uri is required",
+		});
 		return;
 	}
 
 	// Accept any HTTPS redirect_uri (stateless validation)
 	// The real security is in the API key validation
 	if (!redirect_uri.startsWith("https://")) {
-		res
-			.status(400)
-			.json({
-				error: "invalid_request",
-				error_description: "redirect_uri must use HTTPS",
-			});
+		res.status(400).json({
+			error: "invalid_request",
+			error_description: "redirect_uri must use HTTPS",
+		});
 		return;
 	}
 
@@ -262,7 +254,9 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		<input type="hidden" name="state" value="${state || ""}">
 		<input type="hidden" name="scope" value="${scope || ""}">
 		<input type="hidden" name="code_challenge" value="${code_challenge || ""}">
-		<input type="hidden" name="code_challenge_method" value="${code_challenge_method || ""}">
+		<input type="hidden" name="code_challenge_method" value="${
+			code_challenge_method || ""
+		}">
 		<label for="api_key">InfraNodus API Key</label>
 		<input type="password" id="api_key" name="api_key" required placeholder="Enter your API key">
 		<button type="submit">Authorize</button>
@@ -301,12 +295,10 @@ app.post(
 
 		// Validate redirect_uri (stateless - accept any HTTPS URL)
 		if (!redirect_uri || !redirect_uri.startsWith("https://")) {
-			res
-				.status(400)
-				.json({
-					error: "invalid_request",
-					error_description: "Invalid redirect_uri",
-				});
+			res.status(400).json({
+				error: "invalid_request",
+				error_description: "Invalid redirect_uri",
+			});
 			return;
 		}
 
@@ -337,7 +329,7 @@ app.post(
 			api_key,
 			scope,
 			code_challenge,
-			code_challenge_method,
+			code_challenge_method
 		);
 
 		// Redirect with code
@@ -345,7 +337,7 @@ app.post(
 		redirectUrl.searchParams.set("code", code);
 		if (state) redirectUrl.searchParams.set("state", state);
 		res.redirect(redirectUrl.toString());
-	},
+	}
 );
 
 /**
@@ -371,7 +363,7 @@ app.post(
 			if (authHeader && authHeader.startsWith("Basic ")) {
 				const base64Credentials = authHeader.slice(6);
 				const credentials = Buffer.from(base64Credentials, "base64").toString(
-					"utf-8",
+					"utf-8"
 				);
 				const [headerClientId, headerClientSecret] = credentials.split(":");
 				if (headerClientId) client_id = headerClientId;
@@ -398,7 +390,7 @@ app.post(
 					code,
 					client_id,
 					redirect_uri,
-					code_verifier,
+					code_verifier
 				);
 				if (!tokenResponse) {
 					res.status(400).json({
@@ -440,7 +432,7 @@ app.post(
 				error_description: "Internal server error",
 			});
 		}
-	},
+	}
 );
 
 /**
@@ -478,7 +470,7 @@ app.get(
 			scopes_supported: ["mcp", "read", "write"],
 			service_documentation: `${baseUrl}/`,
 		});
-	},
+	}
 );
 
 /**
@@ -520,7 +512,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	}
 
 	console.log(
-		`[MCP] ${req.method} request from user ${auth.userName} (${auth.userId})`,
+		`[MCP] ${req.method} request from user ${auth.userName} (${auth.userId})`
 	);
 	console.log(
 		`[MCP] Headers:`,
@@ -528,7 +520,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 			"content-type": req.headers["content-type"],
 			"mcp-session-id": req.headers["mcp-session-id"],
 			accept: req.headers["accept"],
-		}),
+		})
 	);
 	console.log(`[MCP] Body:`, JSON.stringify(req.body));
 
@@ -540,7 +532,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	const existingSessionId = req.headers["mcp-session-id"] as string | undefined;
 	if (existingSessionId) {
 		console.log(
-			`[MCP] Existing MCP session ID in header: ${existingSessionId}`,
+			`[MCP] Existing MCP session ID in header: ${existingSessionId}`
 		);
 	}
 
@@ -548,7 +540,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	const isInitializeRequest = req.body?.method === "initialize";
 	if (isInitializeRequest && transport) {
 		console.log(
-			`[MCP] Received initialize on existing session, closing old transport`,
+			`[MCP] Received initialize on existing session, closing old transport`
 		);
 		try {
 			await transport.close();
@@ -622,7 +614,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 		await transport.handleRequest(
 			req as unknown as import("http").IncomingMessage,
 			res as unknown as import("http").ServerResponse,
-			req.body,
+			req.body
 		);
 		console.log(`[MCP] handleRequest completed`);
 	} catch (error) {
@@ -699,7 +691,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: "InfraNodus MCP Server",
-		version: "1.1.9",
+		version: "1.2.0",
 		description: "MCP server for InfraNodus knowledge graph analysis",
 		endpoints: {
 			oauth: {
@@ -794,6 +786,6 @@ app.listen(PORT, () => {
 	console.log(`  - CORS_ORIGIN: ${CORS_ORIGIN}`);
 	console.log(`  - INFRANODUS_API_BASE: ${INFRANODUS_API_BASE}`);
 	console.log(
-		`  - JWT_SECRET: ${process.env.JWT_SECRET ? "[set]" : "[generated]"}`,
+		`  - JWT_SECRET: ${process.env.JWT_SECRET ? "[set]" : "[generated]"}`
 	);
 });
