@@ -267,7 +267,7 @@ export function extractStatementStrings(
 			const statementContent = statement.content;
 			const statementCategories =
 				statement.categories?.map((category) => category) || [];
-			return `${statementContent} ${statementCategories.join(", ")}`;
+			return `${statementContent} | ${statementCategories.join(", ")}`;
 		});
 	}
 

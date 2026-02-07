@@ -744,6 +744,12 @@ export const GenerateSEOGraphSchema = z.object({
 		.describe(
 			"URL to fetch content from for SEO analysis. Provide either this or text, not both."
 		),
+	contentToExtract: z
+		.enum(["all", "header tags", "link tags"])
+		.default("all")
+		.describe(
+			"What to extract from URL: 'all' (default), 'header tags', or 'link tags'."
+		),
 	importLanguage: z
 		.enum(["EN", "DE", "FR", "ES", "IT", "PT", "RU", "CN", "JP", "NL", "TW"])
 		.default("EN")
@@ -779,6 +785,12 @@ export const GenerateSEOGraphSchema = z.object({
 		.default("US")
 		.describe(
 			"Country for the search analysis, default is United States (US). Use the country most suitable for the language selected."
+		),
+	useProxy: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Use proxy to fetch content from URL (true only if the first request fails, returns javascript only,or is requested by user)"
 		),
 });
 

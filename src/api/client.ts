@@ -2,7 +2,8 @@ import { GraphResponse } from "../types/index.js";
 
 export async function makeInfraNodusRequest(
 	endpoint: string,
-	body: any
+	body: any,
+	method: string = "POST"
 ): Promise<GraphResponse> {
 	try {
 		// Get config from global scope (set by Smithery)
@@ -11,12 +12,12 @@ export async function makeInfraNodusRequest(
 		const requestBody = { ...body, modal: "mcp_server" };
 
 		const response = await fetch(`${config.apiBase}${endpoint}`, {
-			method: "POST",
+			method,
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${config.apiKey}`,
 			},
-			body: JSON.stringify(requestBody),
+			...(method !== "GET" && { body: JSON.stringify(requestBody) }),
 		});
 
 		if (!response.ok) {
