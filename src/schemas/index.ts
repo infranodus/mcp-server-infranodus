@@ -235,9 +235,14 @@ export const GenerateResearchQuestionsSchema = z.object({
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
+			"claude-opus-4.5",
 			"claude-sonnet-4",
+			"claude-sonnet-4.5",
+			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
 			"gpt-5",
@@ -265,12 +270,22 @@ export const GenerateResearchIdeasSchema = z.object({
 		.default(0)
 		.describe("Depth of content gaps to generate ideas for"),
 	shouldTranscend: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Generate ideas that transcend the text and relate to a broader discourse. Only run if explicitly requested by the user to go beyond the text and relate to a broader discourse"
+		),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
+			"claude-opus-4.5",
 			"claude-sonnet-4",
+			"claude-sonnet-4.5",
+			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
 			"gpt-5",
@@ -289,12 +304,23 @@ export const DevelopLatentConceptsSchema = z.object({
 		.describe(
 			"Text that you'd like to develop based on the latent concepts that connect this text to a broader discourse. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
 		),
+	responseMode: z
+		.enum(["question", "transcend"])
+		.default("transcend")
+		.describe(
+			"Response mode: 'question' — generate questions that focus on this context; 'transcend' — generate responses that transcend the text and relate to a broader discourse."
+		),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
+			"claude-opus-4.5",
 			"claude-sonnet-4",
+			"claude-sonnet-4.5",
+			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
 			"gpt-5",
@@ -324,9 +350,14 @@ export const GenerateResearchQuestionsFromGraphSchema = z.object({
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
+			"claude-opus-4.5",
 			"claude-sonnet-4",
+			"claude-sonnet-4.5",
+			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
 			"gpt-5",
@@ -389,9 +420,14 @@ export const GenerateResponsesFromGraphSchema = z.object({
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
+			"claude-opus-4.5",
 			"claude-sonnet-4",
+			"claude-sonnet-4.5",
+			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
 			"gpt-5",
@@ -898,20 +934,23 @@ export const DevelopTextToolSchema = z.object({
 		.number()
 		.default(0)
 		.describe("Depth of content gaps to generate questions for"),
-	extendedIdeationMode: z
 	transcendDiscourse: z
 		.boolean()
 		.default(false)
 		.describe(
-			"Use extended ideation mode to generate ideas instead of questions. Only run if explicitly requested or if the previous run with of this tool did not provide sufficient results"
 			"Shall we transcend this text and attempt to relate to a broader discourse? If false, the focus is on this text only."
 		),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
+			"claude-opus-4.5",
 			"claude-sonnet-4",
+			"claude-sonnet-4.5",
+			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
 			"gpt-5",
