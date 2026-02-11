@@ -264,6 +264,7 @@ export const GenerateResearchIdeasSchema = z.object({
 		.number()
 		.default(0)
 		.describe("Depth of content gaps to generate ideas for"),
+	shouldTranscend: z
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
@@ -898,10 +899,12 @@ export const DevelopTextToolSchema = z.object({
 		.default(0)
 		.describe("Depth of content gaps to generate questions for"),
 	extendedIdeationMode: z
+	transcendDiscourse: z
 		.boolean()
 		.default(false)
 		.describe(
 			"Use extended ideation mode to generate ideas instead of questions. Only run if explicitly requested or if the previous run with of this tool did not provide sufficient results"
+			"Shall we transcend this text and attempt to relate to a broader discourse? If false, the focus is on this text only."
 		),
 	modelToUse: z
 		.enum([

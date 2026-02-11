@@ -11,9 +11,9 @@ export const developLatentTopicsTool = {
 			"Analyze text, extract underdeveloped topics and get an idea on how to develop them",
 		inputSchema: DevelopLatentConceptsSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof DevelopLatentConceptsSchema>) => {
@@ -35,7 +35,7 @@ export const developLatentTopicsTool = {
 			const requestBody: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: "question",
+				requestMode: params.responseMode ? params.responseMode : "transcend",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 

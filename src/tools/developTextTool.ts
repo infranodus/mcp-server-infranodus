@@ -16,9 +16,9 @@ export const developTextTool = {
 			"Analyze text to extract research questions, develop latent topics, and identify content gaps in a single workflow with progress tracking",
 		inputSchema: DevelopTextToolSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (
@@ -70,7 +70,7 @@ export const developTextTool = {
 			const requestBodyResearch: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: params.extendedIdeationMode ? "response" : "question",
+				requestMode: params.transcendDiscourse ? "transcend" : "question",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 
@@ -110,7 +110,7 @@ export const developTextTool = {
 			const requestBodyLatent: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: params.extendedIdeationMode ? "response" : "question",
+				requestMode: params.transcendDiscourse ? "transcend" : "question",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 
@@ -151,7 +151,7 @@ export const developTextTool = {
 				endpointBridges,
 				{
 					text: params.text,
-					requestMode: params.extendedIdeationMode ? "response" : "question",
+					requestMode: params.transcendDiscourse ? "transcend" : "question",
 					modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 				}
 			);

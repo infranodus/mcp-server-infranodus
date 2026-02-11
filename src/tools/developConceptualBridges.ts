@@ -11,9 +11,9 @@ export const developConceptualBridgesTool = {
 			"Analyze text and get ideas on how to develop conceptual bridges in this text to link it to a broader discourse",
 		inputSchema: DevelopLatentConceptsSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof DevelopLatentConceptsSchema>) => {
@@ -35,7 +35,7 @@ export const developConceptualBridgesTool = {
 			const requestBody: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: "question",
+				requestMode: params.responseMode ? params.responseMode : "transcend",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 
