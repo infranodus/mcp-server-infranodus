@@ -273,7 +273,7 @@ export const GenerateResearchIdeasSchema = z.object({
 		.boolean()
 		.default(false)
 		.describe(
-			"Generate ideas that transcend the text and relate to a broader discourse. Only run if explicitly requested by the user to go beyond the text and relate to a broader discourse"
+			"Generate ideas that transcend and go beyond the content of the text and relate to a broader discourse. Only run if explicitly requested by the user to go beyond the text and relate to a broader discourse"
 		),
 	modelToUse: z
 		.enum([
@@ -308,7 +308,7 @@ export const DevelopLatentConceptsSchema = z.object({
 		.enum(["question", "transcend"])
 		.default("transcend")
 		.describe(
-			"Response mode: 'question' — generate questions that focus on this context; 'transcend' — generate responses that transcend the text and relate to a broader discourse."
+			"Response mode: 'question' — generate questions that focus on this context; 'transcend' — generate responses that transcend and go beyond the content of the text and relate to a broader discourse."
 		),
 	modelToUse: z
 		.enum([
@@ -938,7 +938,7 @@ export const DevelopTextToolSchema = z.object({
 		.boolean()
 		.default(false)
 		.describe(
-			"Shall we transcend this text and attempt to relate to a broader discourse? If false, the focus is on this text only."
+			"Shall we transcend and go beyond this text to relate to a broader discourse? If false, the focus is on this text only."
 		),
 	modelToUse: z
 		.enum([

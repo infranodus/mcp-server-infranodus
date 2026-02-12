@@ -11,9 +11,9 @@ export const generateResearchIdeasTool = {
 			"Analyze text and generate innovative research ideas based on the content gaps identified between the topical clusters inside the text that can be used to improve the text and the discourse it relates to",
 		inputSchema: GenerateResearchIdeasSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof GenerateResearchIdeasSchema>) => {
@@ -37,7 +37,7 @@ export const generateResearchIdeasTool = {
 			const requestBody: any = {
 				text: params.text,
 				aiTopics: "true",
-				requestMode: "response",
+				requestMode: params.shouldTranscend ? "transcend" : "response",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
 			};
 
