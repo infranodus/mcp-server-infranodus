@@ -8,6 +8,7 @@ import {
 	extractInsightsFromExtendedGraphSummary,
 	extractStatementStrings,
 } from "../utils/transformers.js";
+import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { ToolHandlerContext } from "../types/index.js";
 import { ProgressReporter } from "../utils/progress.js";
 
@@ -16,93 +17,6 @@ interface SEOResults {
 	inSearchQueriesNotInText: any;
 	inSearchQueriesNotInResults: any;
 	topMissingQueries: any;
-}
-
-/** Parsed result from /convert/url */
-interface UrlConvertResult {
-	url: string;
-	title: string;
-	tags: string[];
-	headers: string[];
-	selectedElementsText: string[];
-	language: string;
-	canonicalLink: string;
-	linksText: string[];
-	text: string;
-}
-
-const HEADER_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"];
-
-function parseUrlConvertResponse(
-	url: string,
-	raw: Record<string, unknown>
-): UrlConvertResult {
-	const firstPage = (raw.firstPage ?? raw) as {
-		title?: string;
-		statements?: Array<{ tag?: string; content?: string }>;
-		text?: string;
-	};
-	const statements = firstPage?.statements ?? [];
-	const headers = statements
-		.filter((s) => HEADER_TAGS.includes((s.tag ?? "").toLowerCase()))
-		.map((s) => s.content ?? "")
-		.filter(Boolean);
-	const linksText = statements
-		.filter((s) => (s.tag ?? "").toLowerCase().includes("a"))
-		.map((s) => s.content ?? "")
-		.filter(Boolean);
-	const text = typeof firstPage?.text === "string" ? firstPage.text : "";
-	return {
-		url,
-		title: typeof firstPage?.title === "string" ? firstPage.title : "",
-		tags: [],
-		headers,
-		selectedElementsText: [],
-		language: "",
-		canonicalLink: url,
-		linksText,
-		text,
-	};
-}
-
-function extractContentByType(
-	result: UrlConvertResult,
-	contentToExtract: string
-): string {
-	const mode = (contentToExtract ?? "all").toLowerCase();
-	if (mode === "header tags") return result.headers.join("\n");
-	if (mode === "link tags") return result.linksText.join("\n");
-	return result.text;
-}
-
-/** Heuristic: true if content looks like no usable plain text (e.g. JS only) */
-function isNoUsableText(content: string): boolean {
-	if (!content || !content.trim()) return true;
-	const trimmed = content.trim();
-	// Very short and no space → likely code/minified
-	if (trimmed.length < 100 && !trimmed.includes(" ")) return true;
-	// Almost no letters → likely not readable text
-	const letters = (trimmed.match(/\p{L}/gu) ?? []).length;
-	return letters < 20;
-}
-
-async function fetchUrlContent(
-	url: string,
-	proxy: boolean
-): Promise<Record<string, unknown>> {
-	const query = new URLSearchParams({ url });
-	if (proxy) query.set("proxy", "true");
-	const response = await makeInfraNodusRequest(
-		`/convert/url?${query.toString()}`,
-		{},
-		"GET"
-	);
-	if (response && typeof response === "object" && "error" in response) {
-		throw new Error(
-			(response as { error?: string }).error ?? "Failed to fetch URL"
-		);
-	}
-	return (response ?? {}) as Record<string, unknown>;
 }
 
 export const generateSEOGraphTool = {
@@ -132,32 +46,22 @@ export const generateSEOGraphTool = {
 			// Resolve content: from URL (convert/url) if provided, otherwise use text
 			let contentText: string;
 			if (params.url) {
-				const url = params.url;
-				const contentToExtract = params.contentToExtract ?? "all";
-				const useProxy = params.useProxy === true;
-				let parsed: UrlConvertResult;
-				try {
-					let raw = await fetchUrlContent(url, useProxy);
-					parsed = parseUrlConvertResponse(url, raw);
-					contentText = extractContentByType(parsed, contentToExtract);
-					if (!useProxy && isNoUsableText(contentText)) {
-						raw = await fetchUrlContent(url, true);
-						parsed = parseUrlConvertResponse(url, raw);
-						contentText = extractContentByType(parsed, contentToExtract);
-					}
-				} catch (err) {
+				const result = await fetchUrlContentAsText(params.url, {
+					contentToExtract: params.contentToExtract ?? "all",
+					useProxy: params.useProxy === true,
+				});
+				if (!result.ok) {
 					return {
 						content: [
 							{
 								type: "text" as const,
-								text: JSON.stringify({
-									error: err instanceof Error ? err.message : String(err),
-								}),
+								text: JSON.stringify({ error: result.error }),
 							},
 						],
 						isError: true,
 					};
 				}
+				contentText = result.contentText;
 				if (!contentText?.trim()) {
 					return {
 						content: [
