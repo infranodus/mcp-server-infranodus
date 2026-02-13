@@ -546,27 +546,31 @@ export const GenerateGeneralGraphSchema = z.object({
 		),
 });
 
-export const GenerateOverlapGraphFromTextsSchema = z.object({
+const GenerateOverlapGraphFromTextsSchemaBase = z.object({
 	contexts: z
 		.array(
-			z.object({
-				text: z
-					.string()
-					.min(1, "Text is required for analysis")
-					.describe(
-						"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
-					),
-				modifyAnalyzedText: z
-					.enum(["none", "detectEntities", "extractEntitiesOnly"])
-					.default("none")
-					.describe(
-						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
-					),
-			})
+			z
+				.string()
+				.min(1, "Text is required for analysis")
+				.describe(
+					"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+				)
 		)
-		.min(2, "At least two contexts are required")
+		.optional()
 		.describe(
-			"Array of the texts to analyze and find overlaps for. Example: [text1, text2, ...]"
+			"Array of the texts to analyze and find content overlaps for (at least two). Example: [text1, text2, ...]. Provide either this or urls."
+		),
+	urls: z
+		.array(z.string().min(1, "URL is required").url("Must be a valid URL"))
+		.optional()
+		.describe(
+			"Array of URLs to fetch and analyze for content overlap (at least two). Content is extracted from each URL first, then overlap is computed. Example: [url1, url2, ...]. Provide either this or contexts."
+		),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
 		),
 	includeStatements: z
 		.boolean()
@@ -588,30 +592,39 @@ export const GenerateOverlapGraphFromTextsSchema = z.object({
 		),
 });
 
-export const GenerateDifferenceGraphFromTextsSchema = z.object({
+export { GenerateOverlapGraphFromTextsSchemaBase };
+export const GenerateOverlapGraphFromTextsSchema =
+	GenerateOverlapGraphFromTextsSchemaBase.refine(
+		(data) =>
+			(data.contexts?.length ?? 0) >= 2 || (data.urls?.length ?? 0) >= 2,
+		{ message: "Provide either contexts or urls (at least two items)." }
+	);
+
+const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 	contexts: z
 		.array(
-			z.object({
-				text: z
-					.string()
-					.min(1, "Text is required for analysis")
-					.describe(
-						"Text content - First element is the target text to analyze for missing parts, subsequent elements are reference texts to identify what's missing. Use new lines to separate separate statements in each text (but not the sentences)."
-					),
-				modifyAnalyzedText: z
-					.enum(["none", "detectEntities", "extractEntitiesOnly"])
-					.default("none")
-					.describe(
-						"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
-					),
-			})
+			z
+				.string()
+				.min(1, "Text is required for analysis")
+				.describe(
+					"Text content - First element is the target text to analyze for missing parts, subsequent elements are reference texts to identify what's missing. Use new lines to separate separate statements in each text (but not the sentences)."
+				)
 		)
-		.min(
-			2,
-			"At least two contexts are required - one target text and one reference text"
-		)
+		.optional()
 		.describe(
-			"Array of texts where the FIRST text is analyzed for missing parts compared to the REMAINING reference texts. Example: [targetText, referenceText1, referenceText2, ...]"
+			"Array of texts where the FIRST (targetText) text is what we analyze for the missing parts that exist in the REMAINING reference texts (referenceText). At least one targetText and one referenceText should be provided. Example: [targetText, referenceText1, referenceText2, ...]. Provide either this or urls."
+		),
+	urls: z
+		.array(z.string().min(1, "URL is required").url("Must be a valid URL"))
+		.optional()
+		.describe(
+			"Array of URLs where the FIRST URL (targetUrl) is what we analyze for the missing parts that exist in the REMAINING URLs (referenceUrl). At least one targetUrl and one referenceUrl should be provided. Content is extracted from each URL first, then difference is computed. Example: [targetUrl, referenceUrl1, referenceUrl2, ...]. Provide either this or texts."
+		),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
 		),
 	includeStatements: z
 		.boolean()
@@ -632,6 +645,17 @@ export const GenerateDifferenceGraphFromTextsSchema = z.object({
 			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
 		),
 });
+
+export { GenerateDifferenceGraphFromTextsSchemaBase };
+export const GenerateDifferenceGraphFromTextsSchema =
+	GenerateDifferenceGraphFromTextsSchemaBase.refine(
+		(data) =>
+			(data.contexts?.length ?? 0) >= 2 || (data.urls?.length ?? 0) >= 2,
+		{
+			message:
+				"Provide either contexts or urls (at least two items - one target and one reference).",
+		}
+	);
 
 export const GenerateGoogleSearchResultsGraphSchema = z.object({
 	queries: z
