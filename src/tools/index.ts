@@ -6,7 +6,7 @@ export { analyzeExistingGraphTool } from "./analyzeExistingGraph.js";
 export { generateContentGapsTool } from "./generateContentGaps.js";
 export { generateTopicalClustersTool } from "./generateTopicalClusters.js";
 export { generateResearchQuestionsTool } from "./generateResearchQuestions.js";
-export { generateResponsesFromGraphTool } from "./generateResponsesFromGraph.js";
+export { generateResponsesFromGraphTool } from "./generateResponses.js";
 export { generateContextualHintTool } from "./generateContextualHint.js";
 export { listGraphsTool } from "./listGraphs.js";
 export { searchExistingGraphsTool } from "./searchGraphs.js";
