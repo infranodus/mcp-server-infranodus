@@ -34,61 +34,67 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Access previously saved analyses
    - Export graph data with full statistics
 
-3. **generate_content_gaps**
+3. **analyze_text**
+
+   - Analyze a text, URL, or YouTube transcript
+   - Extract and analyze a graph from text or URL; provide either text or url
+   - Get topics, clusters, statements, graph structure, and AI summary as requested
+
+4. **generate_content_gaps**
 
    - Detect missing connections in discourse
    - Identify underexplored topics
    - Generate research questions
    - Suggest content development opportunities
 
-4. **generate_topical_clusters**
+5. **generate_topical_clusters**
 
    - Generate topics and clusters of keywords from text using knowledge graph analysis
    - Make sure to beyond genetic insights and detect smaller topics
    - Use the topical clusters to establish topical authority for SEO
 
-5. **generate_contextual_hint**
+6. **generate_contextual_hint**
 
    - Generate a topical overview of a text and provide insights for LLMs to generate better responses
    - Use it to get a high-level understanding of a text
    - Use it to augment prompts in your LLM workflows and AI assistants
 
-6. **generate_research_questions**
+7. **generate_research_questions**
 
    - Generate research questions that bridge content gaps from text, URL, or an existing InfraNodus graph
    - Use them as prompts in your LLM models and AI workflows
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-7. **generate_research_ideas**
+8. **generate_research_ideas**
 
    - Generate innovative research ideas based on content gaps identified in the text
    - Get actionable ideas to improve the text and develop the discourse
    - Use any AI model (included in InfraNodus API)
    - Ideas are generated from gaps between topical clusters
 
-8. **generate_responses_from_graph**
+9. **generate_responses_from_graph**
 
    - Generate responses based on an existing InfraNodus graph
    - Integrate them into your LLM workflows and AI assistants
    - Use any AI model (included in InfraNodus API)
    - Use any prompt
 
-9. **develop_conceptual_bridges**
+10. **develop_conceptual_bridges**
 
     - Analyze text and develop latent ideas based on concepts that connect this text to a broader discourse
     - Discover hidden themes and patterns that link your text to wider contexts
     - Use any AI model (included in InfraNodus API)
     - Generate insights that help develop the discourse
 
-10. **develop_latent_topics**
+11. **develop_latent_topics**
 
     - Analyze text and extract underdeveloped topics with ideas on how to develop them
     - Identify topics that need more attention and elaboration
     - Use any AI model (included in InfraNodus API)
     - Get actionable suggestions for content expansion
 
-11. **develop_text_tool**
+12. **develop_text_tool**
 
     - Comprehensive text analysis combining content gap ideas, latent topics, and conceptual bridges
     - Executes multiple analyses in sequence with progress tracking
@@ -96,44 +102,44 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Identifies latent topics and conceptual bridges to develop
     - Finds content gaps for deeper exploration
 
-12. **create_knowledge_graph**
+13. **create_knowledge_graph**
 
     - Create a knowledge graph in InfraNodus from text and provide a link to it
     - Use it to create a knowledge graph in InfraNodus from text
 
-13. **overlap_between_texts**
+14. **overlap_between_texts**
 
     - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
     - Use it to find similar topics and keywords across different texts
 
-14. **difference_between_texts**
+15. **difference_between_texts**
 
     - Compare knowledge graphs from two or more texts and find what's not present in the first graph that's present in the others
     - Use it to find how one text can be enriched with the others
 
-15. **analyze_google_search_results**
+16. **analyze_google_search_results**
 
     - Generate a graph with keywords and topics for Google search results for a certain query
     - Use it to understand the current informational supply (what people find)
 
-16. **analyze_related_search_queries**
+17. **analyze_related_search_queries**
 
     - Generate a graph from the search queries suggested by Google for a certain query
     - Use it to understand the current informational demand (what people are looking for)
 
-17. **search_queries_vs_search_results**
+18. **search_queries_vs_search_results**
 
     - Generate a graph of keyword combinations and topics people tend to search for that do not readily appear in the search results for the same queries
     - Use it to understand what people search for but don't yet find
 
-18. **generate_seo_report**
+19. **generate_seo_report**
 
     - Analyze content for SEO optimization by comparing it with Google search results and search queries
     - Identify content gaps and opportunities for better search visibility
     - Get comprehensive analysis of what's in search results but not in your text
     - Discover what people search for but don't find in current results
 
-19. **memory_add_relations**
+20. **memory_add_relations**
 
     - Add relations to the InfraNodus memory from text
     - Automatically detect entities or use [[wikilinks]] syntax to mark them
@@ -141,7 +147,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Support automatic entity extraction or manual entity marking
     - Provide links to created memory graphs for easy access
 
-20. **memory_get_relations**
+21. **memory_get_relations**
 
     - Retrieve relations from InfraNodus memory for specific entities
     - Search for entity relations using [[wikilinks]] syntax
@@ -149,7 +155,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Extract statements and relationships from stored knowledge graphs
     - Support both entity-specific searches and full context retrieval
 
-21. **retrieve_from_knowledge_base**
+22. **retrieve_from_knowledge_base**
 
     - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG
     - Query your knowledge base with a natural language prompt to get relevant statements
@@ -157,13 +163,13 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Optionally retrieve the full graph, statements, or extended analysis
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
-22. **search**
+23. **search**
 
     - Search through existing InfraNodus graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-23. **fetch**
+24. **fetch**
 
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
@@ -515,6 +521,20 @@ Retrieves and analyzes an existing graph from your InfraNodus account.
 - `graphName` (string, required): Name of the existing graph
 - `includeStatements` (boolean): Include statements in response
 - `includeGraphSummary` (boolean): Include graph summary
+
+### analyze_text
+
+Analyze a text, URL, or YouTube transcript. Extract and analyze a graph from text or URL; provide either text or url.
+
+**Parameters:**
+
+- `text` (string, optional): Text to analyze. Provide either this or url.
+- `url` (string, optional): URL to fetch content from (e.g. webpage or YouTube transcript). Provide either this or text.
+- `includeStatements` (boolean): Include processed statements in response
+- `includeGraph` (boolean): Include full graph structure in response
+- `addNodesAndEdges` (boolean): Include nodes and edges in response
+- `includeGraphSummary` (boolean): Include AI-generated graph summary for RAG prompt augmentation
+- `modifyAnalyzedText` (string): Entity detection — "none", "detectEntities", or "extractEntitiesOnly"
 
 ### generate_content_gaps
 

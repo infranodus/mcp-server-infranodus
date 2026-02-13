@@ -3,6 +3,7 @@ export { createKnowledgeGraphTool } from "./createKnowledgeGraph.js";
 export { addMemoryTool } from "./addMemory.js";
 export { getMemoryTool } from "./getMemory.js";
 export { analyzeExistingGraphTool } from "./analyzeExistingGraph.js";
+export { analyzeTextTool } from "./analyzeText.js";
 export { generateContentGapsTool } from "./generateContentGaps.js";
 export { generateTopicalClustersTool } from "./generateTopicalClusters.js";
 export { generateResearchQuestionsTool } from "./generateResearchQuestions.js";

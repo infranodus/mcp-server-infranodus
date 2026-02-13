@@ -8,6 +8,7 @@ import {
 	getMemoryTool,
 	createKnowledgeGraphTool,
 	analyzeExistingGraphTool,
+	analyzeTextTool,
 	generateContentGapsTool,
 	generateTopicalClustersTool,
 	generateResearchQuestionsTool,
@@ -86,6 +87,12 @@ export default function createServer({
 		analyzeExistingGraphTool.name,
 		analyzeExistingGraphTool.definition,
 		wrapHandler(analyzeExistingGraphTool.handler)
+	);
+
+	mcpServer.registerTool(
+		analyzeTextTool.name,
+		analyzeTextTool.definition,
+		wrapHandler(analyzeTextTool.handler)
 	);
 
 	mcpServer.registerTool(

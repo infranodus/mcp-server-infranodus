@@ -1,9 +1,7 @@
 import { z } from "zod";
-import {
-	AnalyzeExistingGraphSchema,
-	AnalyzeExistingGraphSchemaBase,
-} from "../schemas/index.js";
+import { AnalyzeTextSchema, AnalyzeTextSchemaBase } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 function errorContent(message: string) {
@@ -15,20 +13,20 @@ function errorContent(message: string) {
 	};
 }
 
-export const analyzeExistingGraphTool = {
-	name: "analyze_existing_graph_by_name",
+export const analyzeTextTool = {
+	name: "analyze_text",
 	definition: {
-		title: "Analyze the Content ofan Existing InfraNodus Graph by Name",
+		title: "Analyze a Text, URL, or YouTube transcript",
 		description:
-			"Extract and analyze the content of an existing InfraNodus graph from your account. Provide the graph name.",
-		inputSchema: AnalyzeExistingGraphSchemaBase.shape,
+			"Extract and analyze a graph from text, URL, or an existing InfraNodus graph. Provide either text or url.",
+		inputSchema: AnalyzeTextSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
 		},
 	},
-	handler: async (params: z.infer<typeof AnalyzeExistingGraphSchema>) => {
+	handler: async (params: z.infer<typeof AnalyzeTextSchema>) => {
 		try {
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
@@ -48,7 +46,21 @@ export const analyzeExistingGraphTool = {
 			});
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
-			const requestBody = { name: params.graphName, aiTopics: "true" };
+
+			let contentText: string;
+			if (params.url) {
+				const result = await fetchUrlContentAsText(params.url);
+				if (!result.ok) return errorContent(result.error);
+				contentText = result.contentText;
+				if (!contentText?.trim())
+					return errorContent("URL did not return any text content");
+			} else if (params.text?.trim()) {
+				contentText = params.text;
+			} else {
+				return errorContent("Provide either text or url for analysis");
+			}
+
+			const requestBody = { text: contentText, aiTopics: "true" };
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {
