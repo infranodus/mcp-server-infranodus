@@ -3,9 +3,16 @@ import { z } from "zod";
 export const GenerateGraphSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Use [[wikilinks]] to mark entities (if required for social / knowledge graphs, ontology, or entity detection)."
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Use [[wikilinks]] to mark entities (if required for social / knowledge graphs, ontology, or entity detection). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 	includeStatements: z
 		.boolean()
@@ -40,9 +47,16 @@ export const CreateGraphSchema = z.object({
 		.describe("Name of the graph to create in InfraNodus"),
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 	includeStatements: z
 		.boolean()
@@ -193,36 +207,64 @@ export const SearchExistingGraphsFetchSchema = z.object({
 export const GenerateContentGapsSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to retrieve content gaps from. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to retrieve content gaps from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 });
 
 export const generateContextualHintSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to get an overview of. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to get an overview of. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 });
 
 export const GenerateTopicalClustersSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to retrieve topics and topical clusters from. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to retrieve topics and topical clusters from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 });
 
 export const GenerateResearchQuestionsSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to generate research questions from. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to generate research questions from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 	useSeveralGaps: z
 		.boolean()
@@ -257,9 +299,16 @@ export const GenerateResearchQuestionsSchema = z.object({
 export const GenerateResearchIdeasSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to generate research ideas from. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to generate research ideas from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 	useSeveralGaps: z
 		.boolean()
@@ -300,9 +349,16 @@ export const GenerateResearchIdeasSchema = z.object({
 export const DevelopLatentConceptsSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to develop based on the latent concepts that connect this text to a broader discourse. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to develop based on the latent concepts that connect this text to a broader discourse. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 	responseMode: z
 		.enum(["question", "transcend"])
@@ -922,9 +978,16 @@ export const GenerateSEOGraphSchema = z.object({
 export const DevelopTextToolSchema = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to think about and analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
+			"Text that you'd like to think about and analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from. Provide either this or text, not both."
 		),
 	useSeveralGaps: z
 		.boolean()

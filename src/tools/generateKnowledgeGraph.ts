@@ -1,7 +1,17 @@
 import { z } from "zod";
 import { GenerateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const generateKnowledgeGraphTool = {
 	name: "generate_knowledge_graph",
@@ -18,6 +28,19 @@ export const generateKnowledgeGraphTool = {
 	},
 	handler: async (params: z.infer<typeof GenerateGraphSchema>) => {
 		try {
+			let contentText: string;
+			if (params.url) {
+				const result = await fetchUrlContentAsText(params.url);
+				if (!result.ok) return errorContent(result.error);
+				contentText = result.contentText;
+				if (!contentText?.trim())
+					return errorContent("URL did not return any text content");
+			} else if (params.text?.trim()) {
+				contentText = params.text;
+			} else {
+				return errorContent("Provide either url or text for analysis");
+			}
+
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
 			const buildingEntitiesGraph =
@@ -42,7 +65,7 @@ export const generateKnowledgeGraphTool = {
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
 			const requestBody: any = {
-				text: params.text,
+				text: contentText,
 				aiTopics: "true",
 			};
 

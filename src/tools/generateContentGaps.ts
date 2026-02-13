@@ -1,7 +1,17 @@
 import { z } from "zod";
 import { GenerateContentGapsSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { generateGaps } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const generateContentGapsTool = {
 	name: "generate_content_gaps",
@@ -18,6 +28,19 @@ export const generateContentGapsTool = {
 	},
 	handler: async (params: z.infer<typeof GenerateContentGapsSchema>) => {
 		try {
+			let contentText: string;
+			if (params.url) {
+				const result = await fetchUrlContentAsText(params.url);
+				if (!result.ok) return errorContent(result.error);
+				contentText = result.contentText;
+				if (!contentText?.trim())
+					return errorContent("URL did not return any text content");
+			} else if (params.text?.trim()) {
+				contentText = params.text;
+			} else {
+				return errorContent("Provide either url or text for analysis");
+			}
+
 			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
@@ -32,7 +55,7 @@ export const generateContentGapsTool = {
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
 			const response = await makeInfraNodusRequest(endpoint, {
-				text: params.text,
+				text: contentText,
 			});
 
 			if (response.error) {

@@ -1,7 +1,17 @@
 import { z } from "zod";
 import { DevelopLatentConceptsSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { extractLatentTopicsIdeas } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const developLatentTopicsTool = {
 	name: "develop_latent_topics",
@@ -18,6 +28,19 @@ export const developLatentTopicsTool = {
 	},
 	handler: async (params: z.infer<typeof DevelopLatentConceptsSchema>) => {
 		try {
+			let contentText: string;
+			if (params.url) {
+				const result = await fetchUrlContentAsText(params.url);
+				if (!result.ok) return errorContent(result.error);
+				contentText = result.contentText;
+				if (!contentText?.trim())
+					return errorContent("URL did not return any text content");
+			} else if (params.text?.trim()) {
+				contentText = params.text;
+			} else {
+				return errorContent("Provide either url or text for analysis");
+			}
+
 			// Build query parameters
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
@@ -33,7 +56,7 @@ export const developLatentTopicsTool = {
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
 			const requestBody: any = {
-				text: params.text,
+				text: contentText,
 				aiTopics: "true",
 				requestMode: params.responseMode ? params.responseMode : "transcend",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",

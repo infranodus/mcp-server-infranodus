@@ -1,7 +1,17 @@
 import { z } from "zod";
 import { GenerateResearchIdeasSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { generateResearchIdeas } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const generateResearchIdeasTool = {
 	name: "generate_research_ideas",
@@ -18,6 +28,19 @@ export const generateResearchIdeasTool = {
 	},
 	handler: async (params: z.infer<typeof GenerateResearchIdeasSchema>) => {
 		try {
+			let contentText: string;
+			if (params.url) {
+				const result = await fetchUrlContentAsText(params.url);
+				if (!result.ok) return errorContent(result.error);
+				contentText = result.contentText;
+				if (!contentText?.trim())
+					return errorContent("URL did not return any text content");
+			} else if (params.text?.trim()) {
+				contentText = params.text;
+			} else {
+				return errorContent("Provide either url or text for analysis");
+			}
+
 			// Build query parameters
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
@@ -35,7 +58,7 @@ export const generateResearchIdeasTool = {
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
 			const requestBody: any = {
-				text: params.text,
+				text: contentText,
 				aiTopics: "true",
 				requestMode: params.shouldTranscend ? "transcend" : "response",
 				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",

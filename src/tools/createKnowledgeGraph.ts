@@ -1,14 +1,24 @@
 import { z } from "zod";
 import { CreateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const createKnowledgeGraphTool = {
 	name: "create_knowledge_graph",
 	definition: {
 		title: "Create a Knowledge Graph in InfraNodus from Text",
 		description:
-			"Create a knowledge graph in InfraNodus from text, save it, and provide its name and a link to it for future use. ",
+			"Create a knowledge graph in InfraNodus from text or from a URL, save it, and provide its name and a link to it for future use. ",
 		inputSchema: CreateGraphSchema.shape,
 		annotations: {
 			readOnlyHint: false,
@@ -18,6 +28,19 @@ export const createKnowledgeGraphTool = {
 	},
 	handler: async (params: z.infer<typeof CreateGraphSchema>) => {
 		try {
+			let contentText: string;
+			if (params.url) {
+				const result = await fetchUrlContentAsText(params.url);
+				if (!result.ok) return errorContent(result.error);
+				contentText = result.contentText;
+				if (!contentText?.trim())
+					return errorContent("URL did not return any text content");
+			} else if (params.text?.trim()) {
+				contentText = params.text;
+			} else {
+				return errorContent("Provide either url or text for analysis");
+			}
+
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
 			const buildingEntitiesGraph =
@@ -40,7 +63,7 @@ export const createKnowledgeGraphTool = {
 
 			const requestBody: any = {
 				name: params.graphName,
-				text: params.text,
+				text: contentText,
 				aiTopics: "true",
 			};
 
