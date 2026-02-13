@@ -252,21 +252,28 @@ export const GenerateTopicalClustersSchema = z.object({
 		),
 });
 
-export const GenerateResearchQuestionsSchema = z.object({
-	text: z
-		.string()
-		.optional()
-		.describe(
-			"Text that you'd like to generate research questions from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
-		),
-	url: z
-		.string()
-		.url()
-		.optional()
-		.describe(
-			"URL to fetch content from. Provide either this or text, not both."
-		),
-	useSeveralGaps: z
+export const GenerateResearchQuestionsSchemaBase = z.object({
+		text: z
+			.string()
+			.optional()
+			.describe(
+				"Text that you'd like to generate research questions from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
+			),
+		url: z
+			.string()
+			.url()
+			.optional()
+			.describe(
+				"URL to fetch content from. Provide one of: text, url, or graphName."
+			),
+		graphName: z
+			.string()
+			.min(1, "Graph name must be non-empty when provided")
+			.optional()
+			.describe(
+				"Name of an existing InfraNodus graph in your account to generate research questions from. Provide one of: text, url, or graphName."
+			),
+		useSeveralGaps: z
 		.boolean()
 		.default(false)
 		.describe("Generate questions for several content gaps found in text"),
@@ -295,6 +302,15 @@ export const GenerateResearchQuestionsSchema = z.object({
 			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
 		),
 });
+
+export const GenerateResearchQuestionsSchema =
+	GenerateResearchQuestionsSchemaBase.refine(
+		(data) =>
+			(data.text !== undefined && data.text.trim().length > 0) ||
+			(data.url !== undefined && data.url.length > 0) ||
+			(data.graphName !== undefined && data.graphName.trim().length > 0),
+		{ message: "Provide either text, url, or graphName for analysis." }
+	);
 
 export const GenerateResearchIdeasSchema = z.object({
 	text: z
@@ -366,43 +382,6 @@ export const DevelopLatentConceptsSchema = z.object({
 		.describe(
 			"Response mode: 'question' — generate questions that focus on this context; 'transcend' — generate responses that transcend and go beyond the content of the text and relate to a broader discourse."
 		),
-	modelToUse: z
-		.enum([
-			"claude-opus-4.1",
-			"claude-opus-4.5",
-			"claude-sonnet-4",
-			"claude-sonnet-4.5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5",
-			"gpt-5-mini",
-		])
-		.default("gpt-4o")
-		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
-		),
-});
-
-export const GenerateResearchQuestionsFromGraphSchema = z.object({
-	graphName: z
-		.string()
-		.min(1, "Graph name is required")
-		.describe(
-			"Name of the existing InfraNodus graph in your account to retrieve"
-		),
-	useSeveralGaps: z
-		.boolean()
-		.default(false)
-		.describe("Generate questions for several content gaps found in text"),
-	gapDepth: z
-		.number()
-		.default(0)
-		.describe("Depth of content gaps to generate questions for"),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
