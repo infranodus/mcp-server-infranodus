@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { generateContextualHintSchema } from "../schemas/index.js";
+import {
+	generateContextualHintSchema,
+	generateContextualHintSchemaBase,
+} from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { generateContextualHint } from "../utils/transformers.js";
@@ -16,10 +19,10 @@ function errorContent(message: string) {
 export const generateContextualHintTool = {
 	name: "generate_contextual_hint",
 	definition: {
-		title: "Generate Contextual Hint for a Text",
+		title: "Generate Contextual Hint for Text or Graph",
 		description:
-			"Generate information about the main topics and concepts in a text to augment RAG retrieval and text analysis",
-		inputSchema: generateContextualHintSchema.shape,
+			"Generate information about the main topics and concepts in a text to augment RAG retrieval and text analysis. Provide either text, url, or graphName.",
+		inputSchema: generateContextualHintSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
@@ -28,20 +31,6 @@ export const generateContextualHintTool = {
 	},
 	handler: async (params: z.infer<typeof generateContextualHintSchema>) => {
 		try {
-			let contentText: string;
-			if (params.url) {
-				const result = await fetchUrlContentAsText(params.url);
-				if (!result.ok) return errorContent(result.error);
-				contentText = result.contentText;
-				if (!contentText?.trim())
-					return errorContent("URL did not return any text content");
-			} else if (params.text?.trim()) {
-				contentText = params.text;
-			} else {
-				return errorContent("Provide either url or text for analysis");
-			}
-
-			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -54,9 +43,26 @@ export const generateContextualHintTool = {
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
-			const response = await makeInfraNodusRequest(endpoint, {
-				text: contentText,
-			});
+			let requestBody: { text?: string; name?: string };
+			if (params.graphName?.trim()) {
+				requestBody = { name: params.graphName };
+			} else {
+				let contentText: string;
+				if (params.url) {
+					const result = await fetchUrlContentAsText(params.url);
+					if (!result.ok) return errorContent(result.error);
+					contentText = result.contentText;
+					if (!contentText?.trim())
+						return errorContent("URL did not return any text content");
+				} else if (params.text?.trim()) {
+					contentText = params.text;
+				} else {
+					return errorContent("Provide either text, url, or graphName for analysis");
+				}
+				requestBody = { text: contentText };
+			}
+
+			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {
 				return {

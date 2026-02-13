@@ -204,53 +204,91 @@ export const SearchExistingGraphsFetchSchema = z.object({
 		),
 });
 
-export const GenerateContentGapsSchema = z.object({
+export const GenerateContentGapsSchemaBase = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to retrieve content gaps from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+			"Text that you'd like to retrieve content gaps from using knowledge graph analysis. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
 		),
 	url: z
 		.string()
 		.url()
 		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
+	graphName: z
+		.string()
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"URL to fetch content from. Provide either this or text, not both."
+			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
 		),
 });
+export const GenerateContentGapsSchema = GenerateContentGapsSchemaBase.refine(
+	(data) =>
+		(data.text !== undefined && data.text.trim().length > 0) ||
+		(data.url !== undefined && data.url.length > 0) ||
+		(data.graphName !== undefined && data.graphName.trim().length > 0),
+	{ message: "Provide either text, url, or graphName for analysis." }
+);
 
-export const generateContextualHintSchema = z.object({
+export const generateContextualHintSchemaBase = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to get an overview of. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+			"Text that you'd like to get an overview of to augment RAG retrieval and text analysis. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
 		),
 	url: z
 		.string()
 		.url()
 		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
+	graphName: z
+		.string()
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"URL to fetch content from. Provide either this or text, not both."
+			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
 		),
 });
+export const generateContextualHintSchema =
+	generateContextualHintSchemaBase.refine(
+		(data) =>
+			(data.text !== undefined && data.text.trim().length > 0) ||
+			(data.url !== undefined && data.url.length > 0) ||
+			(data.graphName !== undefined && data.graphName.trim().length > 0),
+		{ message: "Provide either text, url, or graphName for analysis." }
+	);
 
-export const GenerateTopicalClustersSchema = z.object({
+export const GenerateTopicalClustersSchemaBase = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to retrieve topics and topical clusters from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+			"Text that you'd like to retrieve topics and topical clusters from using knowledge graph analysis. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
 		),
 	url: z
 		.string()
 		.url()
 		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
+	graphName: z
+		.string()
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"URL to fetch content from. Provide either this or text, not both."
+			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
 		),
 });
+export const GenerateTopicalClustersSchema =
+	GenerateTopicalClustersSchemaBase.refine(
+		(data) =>
+			(data.text !== undefined && data.text.trim().length > 0) ||
+			(data.url !== undefined && data.url.length > 0) ||
+			(data.graphName !== undefined && data.graphName.trim().length > 0),
+		{ message: "Provide either text, url, or graphName for analysis." }
+	);
 
 export const GenerateResearchQuestionsSchemaBase = z.object({
 		text: z
@@ -312,19 +350,24 @@ export const GenerateResearchQuestionsSchema =
 		{ message: "Provide either text, url, or graphName for analysis." }
 	);
 
-export const GenerateResearchIdeasSchema = z.object({
+export const GenerateResearchIdeasSchemaBase = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to generate research ideas from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+			"Text that you'd like to generate research ideas from based on the content gaps identified between the topical clusters inside the text. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
 		),
 	url: z
 		.string()
 		.url()
 		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
+	graphName: z
+		.string()
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"URL to fetch content from. Provide either this or text, not both."
+			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
 		),
 	useSeveralGaps: z
 		.boolean()
@@ -361,20 +404,32 @@ export const GenerateResearchIdeasSchema = z.object({
 			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
 		),
 });
+export const GenerateResearchIdeasSchema = GenerateResearchIdeasSchemaBase.refine(
+	(data) =>
+		(data.text !== undefined && data.text.trim().length > 0) ||
+		(data.url !== undefined && data.url.length > 0) ||
+		(data.graphName !== undefined && data.graphName.trim().length > 0),
+	{ message: "Provide either text, url, or graphName for analysis." }
+);
 
-export const DevelopLatentConceptsSchema = z.object({
+export const DevelopLatentConceptsSchemaBase = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to develop based on the latent concepts that connect this text to a broader discourse. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+			"Text that you'd like to develop based on the latent concepts that connect this text to a broader discourse. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
 		),
 	url: z
 		.string()
 		.url()
 		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
+	graphName: z
+		.string()
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"URL to fetch content from. Provide either this or text, not both."
+			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
 		),
 	responseMode: z
 		.enum(["question", "transcend"])
@@ -403,6 +458,14 @@ export const DevelopLatentConceptsSchema = z.object({
 			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
 		),
 });
+export const DevelopLatentConceptsSchema =
+	DevelopLatentConceptsSchemaBase.refine(
+		(data) =>
+			(data.text !== undefined && data.text.trim().length > 0) ||
+			(data.url !== undefined && data.url.length > 0) ||
+			(data.graphName !== undefined && data.graphName.trim().length > 0),
+		{ message: "Provide either text, url, or graphName for analysis." }
+	);
 
 export const RetrieveContextForPromptFromGraphSchema = z.object({
 	graphName: z
@@ -978,19 +1041,24 @@ export const GenerateSEOGraphSchema = z.object({
 		),
 });
 
-export const DevelopTextToolSchema = z.object({
+export const DevelopTextToolSchemaBase = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to think about and analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url."
+			"Text that you'd like to think about and analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
 		),
 	url: z
 		.string()
 		.url()
 		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
+	graphName: z
+		.string()
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"URL to fetch content from. Provide either this or text, not both."
+			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
 		),
 	useSeveralGaps: z
 		.boolean()
@@ -1027,6 +1095,13 @@ export const DevelopTextToolSchema = z.object({
 			"AI model to use for generating insights: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
 		),
 });
+export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
+	(data) =>
+		(data.text !== undefined && data.text.trim().length > 0) ||
+		(data.url !== undefined && data.url.length > 0) ||
+		(data.graphName !== undefined && data.graphName.trim().length > 0),
+	{ message: "Provide either text, url, or graphName for analysis." }
+);
 
 export const ListGraphsSchema = z.object({
 	query: z
