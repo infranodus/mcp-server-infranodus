@@ -124,13 +124,25 @@ export const AddMemorySchema = z.object({
 		),
 });
 
-export const AnalyzeExistingGraphSchema = z.object({
+export const AnalyzeExistingGraphSchemaBase = z.object({
 	graphName: z
 		.string()
-		.min(1, "Graph name is required")
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"Name of the existing InfraNodus graph in your account to retrieve"
+			"Name of an existing InfraNodus graph in your account to retrieve. Provide one of: text, url, or graphName."
 		),
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -160,6 +172,13 @@ export const AnalyzeExistingGraphSchema = z.object({
 			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
 		),
 });
+export const AnalyzeExistingGraphSchema = AnalyzeExistingGraphSchemaBase.refine(
+	(data) =>
+		(data.text !== undefined && data.text.trim().length > 0) ||
+		(data.url !== undefined && data.url.length > 0) ||
+		(data.graphName !== undefined && data.graphName.trim().length > 0),
+	{ message: "Provide either text, url, or graphName for analysis." }
+);
 
 export const SearchExistingGraphsSchema = z.object({
 	query: z
@@ -504,13 +523,25 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		),
 });
 
-export const GenerateResponsesFromGraphSchema = z.object({
+export const GenerateResponsesFromGraphSchemaBase = z.object({
 	graphName: z
 		.string()
-		.min(1, "Graph name is required")
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
 		.describe(
-			"Name of the existing InfraNodus graph in your account to retrieve"
+			"Name of an existing InfraNodus graph in your account to retrieve. Provide one of: text, url, or graphName."
 		),
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"Text that you'd like to generate responses from. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe("URL to fetch content from. Provide one of: text, url, or graphName."),
 	prompt: z
 		.string()
 		.min(1, "Prompt is required")
@@ -536,6 +567,14 @@ export const GenerateResponsesFromGraphSchema = z.object({
 			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
 		),
 });
+export const GenerateResponsesFromGraphSchema =
+	GenerateResponsesFromGraphSchemaBase.refine(
+		(data) =>
+			(data.text !== undefined && data.text.trim().length > 0) ||
+			(data.url !== undefined && data.url.length > 0) ||
+			(data.graphName !== undefined && data.graphName.trim().length > 0),
+		{ message: "Provide either text, url, or graphName for analysis." }
+	);
 
 // This is used for adding options later to each tool
 export const GenerateGeneralGraphSchema = z.object({
