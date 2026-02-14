@@ -18,7 +18,7 @@ export const analyzeTextTool = {
 	definition: {
 		title: "Analyze a Text, URL, or YouTube transcript",
 		description:
-			"Extract and analyze a graph from text, URL, YouTube video transcript, or an existing InfraNodus graph. Provide either text or url.",
+			"Extract and analyze a graph from text, URL, YouTube video transcript, or an existing InfraNodus graph.",
 		inputSchema: AnalyzeTextSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

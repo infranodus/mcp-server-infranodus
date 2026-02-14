@@ -20,7 +20,7 @@ export const analyzeExistingGraphTool = {
 	definition: {
 		title: "Analyze the Content ofan Existing InfraNodus Graph by Name",
 		description:
-			"Extract and analyze the content of an existing InfraNodus graph from your account. Provide the graph name.",
+			"Extract and analyze the content of an existing InfraNodus graph from your account.",
 		inputSchema: AnalyzeExistingGraphSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

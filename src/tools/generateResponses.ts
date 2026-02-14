@@ -21,12 +21,12 @@ export const generateResponsesFromGraphTool = {
 	definition: {
 		title: "Generate Responses and Expert Advice from Text or Graph",
 		description:
-			"Use text, URL, or an existing InfraNodus knowledge graph and generate responses and expert advice based on a prompt provided. Provide either text, url, or graphName.",
+			"Use text, URL, or an existing InfraNodus knowledge graph and generate responses and expert advice based on a prompt provided.",
 		inputSchema: GenerateResponsesFromGraphSchemaBase.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof GenerateResponsesFromGraphSchema>) => {
@@ -72,7 +72,9 @@ export const generateResponsesFromGraphTool = {
 				} else if (params.text?.trim()) {
 					contentText = params.text;
 				} else {
-					return errorContent("Provide either text, url, or graphName for analysis");
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
 				}
 				requestBody = {
 					text: contentText,

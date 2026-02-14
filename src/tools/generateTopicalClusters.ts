@@ -21,12 +21,12 @@ export const generateTopicalClustersTool = {
 	definition: {
 		title: "Generate Topical Clusters",
 		description:
-			"Generate topics and clusters of keywords from text, URL, or an existing graph using knowledge graph analysis. Provide either text, url, or graphName.",
+			"Generate topics and clusters of keywords from text, URL, or an existing graph using knowledge graph analysis. ",
 		inputSchema: GenerateTopicalClustersSchemaBase.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof GenerateTopicalClustersSchema>) => {
@@ -57,7 +57,9 @@ export const generateTopicalClustersTool = {
 				} else if (params.text?.trim()) {
 					contentText = params.text;
 				} else {
-					return errorContent("Provide either text, url, or graphName for analysis");
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
 				}
 				requestBody = { text: contentText };
 			}

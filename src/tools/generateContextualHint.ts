@@ -21,7 +21,7 @@ export const generateContextualHintTool = {
 	definition: {
 		title: "Generate Contextual Hint for Text or Graph",
 		description:
-			"Generate information about the main topics and concepts in a text to augment RAG retrieval and text analysis. Provide either text, url, or graphName.",
+			"Generate information about the main topics and concepts in a text to augment RAG retrieval and text analysis.",
 		inputSchema: generateContextualHintSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
@@ -57,7 +57,9 @@ export const generateContextualHintTool = {
 				} else if (params.text?.trim()) {
 					contentText = params.text;
 				} else {
-					return errorContent("Provide either text, url, or graphName for analysis");
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
 				}
 				requestBody = { text: contentText };
 			}

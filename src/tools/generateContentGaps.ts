@@ -21,12 +21,12 @@ export const generateContentGapsTool = {
 	definition: {
 		title: "Generate Content Gaps",
 		description:
-			"Generate content gaps from text, URL, or an existing graph using knowledge graph analysis. Provide either text, url, or graphName.",
+			"Generate content gaps from text, URL, or an existing graph using knowledge graph analysis.",
 		inputSchema: GenerateContentGapsSchemaBase.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof GenerateContentGapsSchema>) => {
@@ -57,7 +57,9 @@ export const generateContentGapsTool = {
 				} else if (params.text?.trim()) {
 					contentText = params.text;
 				} else {
-					return errorContent("Provide either text, url, or graphName for analysis");
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
 				}
 				requestBody = { text: contentText };
 			}
