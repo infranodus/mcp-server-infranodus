@@ -118,9 +118,9 @@ export const AddMemorySchema = z.object({
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
-		.default("none")
+		.default("extractEntitiesOnly")
 		.describe(
-			"Entity detection: none (normal, by default), extractEntitiesOnly (automatic entity extraction - use if explicitly requested by the user)"
+			"Entity detection: none (normal, graph is build from the words,), extractEntitiesOnly (automatic entity extraction — default setting), detectEntities (mix entities and words - use if explicitly requested by the user or needed for further analysis)"
 		),
 });
 
@@ -1190,7 +1190,7 @@ export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
 );
 
 export const ListGraphsSchema = z.object({
-	query: z
+	nameContains: z
 		.string()
 		.optional()
 		.describe(

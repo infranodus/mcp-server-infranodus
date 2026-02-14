@@ -1,6 +1,8 @@
 # InfraNodus MCP Tools — Examples
 
-This file demonstrates how each tool is used for a particular purpose. The same **example text** is used throughout so you can compare how different tools analyze it.
+This file demonstrates how each tool is used for a particular purpose. The same **example text** is used throughout so you can compare how different tools analyze it and the results they produce.
+
+You can also use the tools with URL links (including YouTube videos which will be automatically transcribed) as well as exisitng InfraNodus graphs.
 
 ---
 
@@ -14,7 +16,9 @@ This file demonstrates how each tool is used for a particular purpose. The same 
 
 ## Analysis examples (per tool)
 
-_Add below the example output or usage for each tool when you run it on the text above._
+Below you will find descriptions of every tool that is available in the InfraNodus MCP, its typical use case, the data it receives, and the structure of the response generated.
+
+Note, that exact schemas may change, so it's better to avoid hard-coding the tool names or fields and to instead rely on your LLM reading through all available tool descriptions and request parameters. In this case, even if the server is updated, you'll always get the best possible results.
 
 ### generate_knowledge_graph
 
@@ -292,6 +296,35 @@ Additional structure insights provided in the compact DOT graph format provide a
 }
 ```
 
+### create_knowledge_graph
+
+Create a knowledge graph from text or URL (including YouTube videos) and save it in InfraNodus.
+
+Useful for saving the text in InfraNodus for future reference or using it as a knowledge base.
+
+- **Parameters (JSON):**
+
+```json
+{
+	"graphName": "bible_genesis",
+	"text": "<Genesis 3: The Fall — full text from the Example text section above>",
+	"includeGraph": true
+}
+```
+
+**Result:**
+
+Same JSON object as in `generate_knowledge_graph` with additional parameters:
+
+```json
+{
+    ...,
+	"userName": "deemeetree",
+	"graphName": "test_bible",
+	"graphUrl": "https://infranodus.com/deemeetree/test_bible/edit"
+}
+```
+
 ### generate_topical_clusters
 
 Extracts topical clusters from a text, URL, YouTube video, or an existing InfraNodus graph. Compact delivery of the most important topics identified in a text. Can be used to generate compact topical summaries of text and improve the structure of LLM output and reasoning workflows.
@@ -419,7 +452,7 @@ Can be generated from text, URL (including YouTube videos), or an existing Infra
 
 **Result:**
 
-````json
+```json
 {
   "textOverview": "<Main Concepts (concept_degree | concept_betweenness_centrality | concept_topic_id)>: \n god (11 | 0.5897 | ), eat (8 | 0.2692 | ), serpent (6 | 0.1282 | 1), knowing (5 | 0.0769 | 2), tree (6 | 0.0641 | 1), good (4 | 0.0641 | 2), fruit (5 | 0.0449 | 1), woman (6 | 0.0449 | 1), midst (6 | 0.0256 | 1), garden (6 | 0.0256 | 1), touch (6 | 0.0256 | 1), eye (5 | 0.0000 | ), open (5 | 0.0000 | ), evil (3 | 0.0000 | 2) \n </MainConcepts> \n\n
 
@@ -443,6 +476,8 @@ Additionally provides information about the latent topical clusters used for gen
 
 Useful for finding latent topics in text and focusing on developing them further.
 
+Can be used for text, URLs (including YouTube videos), existing InfraNodus graphs.
+
 **Parameters (JSON):**
 
 ```json
@@ -450,7 +485,7 @@ Useful for finding latent topics in text and focusing on developing them further
 	"text": "<Genesis 3: The Fall — full text from the Example text section above>",
 	"requestMode": "transcend"
 }
-````
+```
 
 **Result:**
 
@@ -473,27 +508,574 @@ Useful for finding latent topics in text and focusing on developing them further
 
 ### develop_conceptual_bridges
 
-Similar to the `develop_latent_topics` tool, however, in this case, it focuses on the nodes (concepts in text) that
+Similar to the `develop_latent_topics` tool. However, in this case, instead of focusing on developing the text itself, the tool focuses on the nodes (concepts in text) that have high ratio of influence to degree (they link different topical clusters together but are not excessively overwhelmed by the informational flow). These concepts will usually be optimal for connecting this discourse to another context.
+
+Can be used to nudge the model to think "outside of the box" and link a discourse to a different context or expand its perspective.
+
+Can be used for text, URLs (including YouTube videos), existing InfraNodus graphs.
+
+**Parameters (JSON):**
+
+```json
+{
+	"text": "<Genesis 3: The Fall — full text from the Example text section above>",
+	"requestMode": "transcend"
+}
+```
+
+**Result:**
+
+```json
+{
+	"ideas": [
+		"In the realm where God restrains and serpents entice, consider this: The true transformation lies not in forbidden knowledge or divine consumption, but in transcending both by recognizing that the fruit is merely a mirror to our inner landscape. It reflects our capacity for choice—not just between good and evil—but towards understanding existence as a garden of infinite possibilities. Herein lies potential beyond duality: embracing curiosity without surrendering autonomy."
+	],
+	"latentConceptsToDevelop": [
+		"god",
+		"eat",
+		"serpent",
+		"good",
+		"knowing",
+		"tree",
+		"fruit",
+		"woman"
+	],
+	"latentConceptsRelations": [
+		"god <-> eat [label=\"woman, fruit, serpent, tree\"]",
+		"god <-> knowing [label=\"good\"]"
+	]
+}
+```
+
+### analyze_existing_graph_by_name
+
+Extract an existing graph from InfraNodus and provide full graph analysis: main topical clusters, concepts, gaps, as well as the structure of the discourse and its diversity.
+
+**Parameters (JSON):**
+
+```json
+{
+	"text": "<Genesis 3: The Fall — full text from the Example text section above>"
+}
+```
+
+**Result:**
+
+```json
+{
+	"statistics": {
+		"modularity": 0.2951913988657845,
+		"clusterCount": 3,
+		"diversity_stats": {
+			"diversity_score": "focused",
+			"modularity_score": "medium",
+			"too_focused_on_top_nodes": true,
+			"too_focused_on_top_clusters": true,
+			"ratio_of_top_nodes_influence_by_betweenness": 0.63,
+			"top_nodes_entropy": 0,
+			"ratio_of_top_cluster_influence_by_betweenness": 0.63,
+			"total_clusters": 3,
+			"fair_influence_by_cluster": 0.33
+		}
+	},
+	"contentGaps": [
+		"Gap 1: 2. Forbidden Knowledge (serpent tree fruit woman midst garden touch) -> 3. Moral Duality (knowing good evil)",
+		"Gap 2: 1. Divine Consumption (god eat eye open) -> 2. Forbidden Knowledge (serpent tree fruit woman midst garden touch)",
+		"Gap 3: 1. Divine Consumption (god eat eye open) -> 3. Moral Duality (knowing good evil)"
+	],
+	"mainTopicalClusters": [
+		"1. Divine Consumption: god eat eye open (0 | 29% | 63%)",
+		"2. Forbidden Knowledge: serpent tree fruit woman midst garden touch (1 | 50% | 26%)",
+		"3. Moral Duality: knowing good evil (2 | 21% | 10%)"
+	],
+	"mainConcepts": [
+		"god",
+		"eat",
+		"serpent",
+		"knowing",
+		"tree",
+		"good",
+		"fruit",
+		"woman",
+		"midst",
+		"garden",
+		"touch",
+		"eye",
+		"open",
+		"evil"
+	],
+	"conceptualGateways": [
+		"god",
+		"eat",
+		"serpent",
+		"good",
+		"knowing",
+		"tree",
+		"fruit",
+		"woman"
+	],
+	"topRelations": [
+		"1) god <-> eat",
+		"2) god <-> eye",
+		"3) god <-> open",
+		"4) eat <-> fruit",
+		"5) fruit <-> tree",
+		"6) tree <-> midst",
+		"7) midst <-> garden",
+		"8) garden <-> touch",
+		"9) touch <-> serpent",
+		"10) serpent <-> woman",
+		"11) woman <-> god",
+		"12) eat <-> eye"
+	],
+	"topBigrams": [
+		"god eat",
+		"god eye",
+		"god open",
+		"eat fruit",
+		"fruit tree",
+		"tree midst",
+		"midst garden",
+		"garden touch",
+		"touch serpent",
+		"serpent woman",
+		"woman god",
+		"eat eye"
+	],
+	"topInfluentialNodes": [
+		{
+			"node": "god",
+			"bc": 0.5897435897435898,
+			"degree": 11
+		},
+		{
+			"node": "eat",
+			"bc": 0.2692307692307692,
+			"degree": 8
+		}
+	],
+	"statements": [],
+	"userName": "deemeetree"
+}
+```
+
+### analyze_text
+
+Analyze a text or the content of a URL page (or a YouTube video transcript), and provide information about the main topical clusters, concepts, content gaps, the text structure, as well as as the statements analyzed.
+
+Useful for general text analysis. Similar to `generate_knowledge_graph` however here the focus is not on the graph, but on the results of analysis and general recommendations regarding the text's structure (e.g. its diversity and focus).
+
+**Parameters (JSON):**
+
+```json
+{
+	"text": "<Genesis 3: The Fall — full text from the Example text section above>"
+}
+```
+
+**Result:**
+
+```json
+{
+	"statistics": {
+		"modularity": 0.2951913988657845,
+		"clusterCount": 3,
+		"diversity_stats": {
+			"diversity_score": "focused",
+			"modularity_score": "medium",
+			"too_focused_on_top_nodes": true,
+			"too_focused_on_top_clusters": true,
+			"ratio_of_top_nodes_influence_by_betweenness": 0.63,
+			"top_nodes_entropy": 0,
+			"ratio_of_top_cluster_influence_by_betweenness": 0.63,
+			"total_clusters": 3,
+			"fair_influence_by_cluster": 0.33
+		}
+	},
+	"contentGaps": [
+		"Gap 1: 2. Forbidden Knowledge (serpent tree fruit woman midst garden touch) -> 3. Moral Duality (knowing good evil)",
+		"Gap 2: 1. Divine Consumption (god eat eye open) -> 2. Forbidden Knowledge (serpent tree fruit woman midst garden touch)",
+		"Gap 3: 1. Divine Consumption (god eat eye open) -> 3. Moral Duality (knowing good evil)"
+	],
+	"mainTopicalClusters": [
+		"1. Divine Consumption: god eat eye open (0 | 29% | 63%)",
+		"2. Forbidden Knowledge: serpent tree fruit woman midst garden touch (1 | 50% | 26%)",
+		"3. Moral Duality: knowing good evil (2 | 21% | 10%)"
+	],
+	"mainConcepts": [
+		"god",
+		"eat",
+		"serpent",
+		"knowing",
+		"tree",
+		"good",
+		"fruit",
+		"woman",
+		"midst",
+		"garden",
+		"touch",
+		"eye",
+		"open",
+		"evil"
+	],
+	"conceptualGateways": [
+		"god",
+		"eat",
+		"serpent",
+		"good",
+		"knowing",
+		"tree",
+		"fruit",
+		"woman"
+	],
+	"topRelations": [
+		"1) god <-> eat",
+		"2) god <-> eye",
+		"3) god <-> open",
+		"4) eat <-> fruit",
+		"5) fruit <-> tree",
+		"6) tree <-> midst",
+		"7) midst <-> garden",
+		"8) garden <-> touch",
+		"9) touch <-> serpent",
+		"10) serpent <-> woman",
+		"11) woman <-> god",
+		"12) eat <-> eye"
+	],
+	"topBigrams": [
+		"god eat",
+		"god eye",
+		"god open",
+		"eat fruit",
+		"fruit tree",
+		"tree midst",
+		"midst garden",
+		"garden touch",
+		"touch serpent",
+		"serpent woman",
+		"woman god",
+		"eat eye"
+	],
+	"topInfluentialNodes": [
+		{
+			"node": "god",
+			"bc": 0.5897435897435898,
+			"degree": 11
+		},
+		{
+			"node": "eat",
+			"bc": 0.2692307692307692,
+			"degree": 8
+		}
+	],
+	"statements": [
+		{
+			"id": "842386_1",
+			"content": " God said, 'You shall not eat of the fruit of the tree which is in the midst of the garden, neither shall you touch it, lest you die.'\" But the serpent said to the woman, \"You will not die. For God knows that when you eat of it your eyes will be opened, and you will be like God, knowing good and evil.\"",
+			"topStatementCommunity": "1",
+			"topStatementOfCommunity": "2"
+		}
+	],
+	"userName": "deemeetree"
+}
+```
 
 ### develop_text_tool
 
 _(Example to be added.)_
 
-### create_knowledge_graph
+## Utility Tools
 
-_(Example to be added.)_
+These tools are used for listing all available graphs, retrieving search results from the knowledge base, searching existing graphs, and fetching specific search results.
 
-### add_memory (memory_add_relations)
+### retrieve_from_knowledge_base
 
-_(Example to be added.)_
+Get the existing graph provided (by name) and retrieve statements relevant to the prompt using GraphRAG and RAG retrieval algorithms.
 
-### Overlap / difference (multiple texts)
+Use it for augmented RAG with GraphRAG capabilities (that retrieves not only the most similar statements to the prompt but also related connections that are connected to the nodes you require).
+
+Additionally, you can ask InfraNodus MCP to include a graph summary to augment your RAG flows with additional information about the general context from where the data was extracted using the `includeGraphSummary` parameter.
+
+**Parameters (JSON)**
+
+```json
+{
+	"graphName": "test_bible",
+	"prompt": "sin",
+    "includeGraphSummary: true
+}
+```
+
+Note, in the example above we use a word "sin" that does not exist in the graph, however both vector search and GraphRAG retrieves the most relevant part of the graph's structure:
+
+**Result:**
+
+```json
+{
+	"retrievedStatements": [
+		{
+			"content": " God said, 'You shall not eat of the fruit of the tree which is in the midst of the garden, neither shall you touch it, lest you die.'\" But the serpent said to the woman, \"You will not die. For God knows that when you eat of it your eyes will be opened, and you will be like God, knowing good and evil.\"",
+			"categories": [],
+			"topStatementCommunity": "1",
+			"topStatementOfCommunity": "2",
+			"similarityScore": 0.16702114939288282
+		},
+		{
+			"content": " God said, 'You shall not eat of the fruit of the tree which is in the midst of the garden, neither shall you touch it, lest you die.'\" But the serpent said to the woman, \"You will not die. For God knows that when you eat of it your eyes will be opened, and you will be like God, knowing good and evil.\"",
+			"categories": [],
+			"topStatementCommunity": "1",
+			"topStatementOfCommunity": "2",
+			"similarityScore": 0.3
+		}
+	],
+	"graphSummary": "<Main Concepts (concept_degree | concept_betweenness_centrality | concept_topic_id)>: \n god (11 | 0.5897 | ), eat (8 | 0.2692 | ), serpent (6 | 0.1282 | 1), knowing (5 | 0.0769 | 2), tree (6 | 0.0641 | 1), good (4 | 0.0641 | 2), fruit (5 | 0.0449 | 1), woman (6 | 0.0449 | 1), midst (6 | 0.0256 | 1), garden (6 | 0.0256 | 1), touch (6 | 0.0256 | 1), eye (5 | 0.0000 | ), open (5 | 0.0000 | ), evil (3 | 0.0000 | 2) \n </MainConcepts> \n\n <MainTopics (topic_id | cluster_influence_by_degree_ratio | cluster_influence_by_betweenness_ratio)>: \n 1. Divine Consumption: god eat eye open (0 | 29% | 63%)\n2. Forbidden Knowledge: serpent tree fruit woman midst garden touch (1 | 50% | 26%)\n3. Moral Duality: knowing good evil (2 | 21% | 10%) \n </MainTopics> \n\n <TopicalGaps>: \n Gap 1: 2. Forbidden Knowledge (serpent tree fruit woman midst garden touch) -> 3. Moral Duality (knowing good evil)\nGap 2: 1. Divine Consumption (god eat eye open) -> 2. Forbidden Knowledge (serpent tree fruit woman midst garden touch)\nGap 3: 1. Divine Consumption (god eat eye open) -> 3. Moral Duality (knowing good evil) \n </TopicalGaps> \n\n <ConceptualGateways> \n god\neat\nserpent\ngood\nknowing\ntree\nfruit\nwoman \n </ConceptualGateways> \n\n <Relations>: \n 1) god <-> eat\n2) god <-> eye\n3) god <-> open\n4) eat <-> fruit\n5) fruit <-> tree\n6) tree <-> midst\n7) midst <-> garden\n8) garden <-> touch\n9) touch <-> serpent\n10) serpent <-> woman\n11) woman <-> god\n12) eat <-> eye \n </Relations> \n <DiversityStatistics>:\n        Modularity: 0.30 \n        Modularity Score: medium \n        Too focused on top concept nodes \n        Too focused on top topical clusters \n        Ratio of top nodes influence / betweenness: 0.63 \n        Ratio of top topical clusters influence / betweenness: 0.63 \n        Total clusters: 3\n        Fair betweenness / influence ratio per cluster: 0.33 \n        Entropy of top nodes distribution among clusters: 0 \n</DiversityStatistics> \n",
+	"userName": "deemeetree"
+}
+```
+
+### list_graphs
+
+Lists all the graphs that exist in the user's account. Can search by name, type, date, language, and favorites.
+
+Can be useful for finding the graphs that belong to a certain category and retrieving the graphs that relate to a certain topic.
+
+A different function is used for search.
+
+For example, in the
+
+**Parameters (JSON)**
+
+```json
+{
+	"nameContains": "bible",
+	"type": "memory"
+}
+```
+
+**Result**
+
+```json
+{
+	"totalGraphs": 1,
+	"filters": "query: \"bible\", type: MEMORY",
+	"graphs": [
+		{
+			"id": 294,
+			"name": "test_ bible_memory",
+			"description": null,
+			"type": "MEMORY",
+			"isFavorite": false,
+			"isPublic": false,
+			"createdAt": "2026-02-14T18:00:31.564Z",
+			"language": "AUTO"
+		}
+	]
+}
+```
+
+### search
+
+Find all the statements in the user's account that contain a certain search term.
+
+A required function for any MCP that connects to ChatGPT as it allows the LLM to find the content.
+
+**Parameters (JSON)**
+
+```json
+{
+	"query": "serpent"
+}
+```
+
+**Result**
+
+```json
+{
+	"results": [
+		{
+			"id": "deemeetree:test_bible:serpent",
+			"title": "test_bible",
+			"url": "https://localhost:3000/deemeetree/test_bible/edit"
+		},
+		{
+			"id": "deemeetree:test_ bible_memory:serpent",
+			"title": "test_ bible_memory",
+			"url": "https://localhost:3000/deemeetree/test_ bible_memory/edit"
+		}
+	]
+}
+```
+
+### fetch
+
+Fetches the statements found using the `search` tool above using the ID provided by the `search` tool. Note, it doesn't extract the whole graph, but the statements that were found in the graph using the search `query`.
+
+**Parameters (JSON)**
+
+```json
+{
+	"id": "deemeetree:test_bible:serpent"
+}
+```
+
+**Result**
+
+```json
+{
+	"id": "deemeetree:test_bible:serpent",
+	"title": "test_bible",
+	"text": " God said, 'You shall not eat of the fruit of the tree which is in the midst of the garden, neither shall you touch it, lest you die.'\" But the serpent said to the woman, \"You will not die. For God knows that when you eat of it your eyes will be opened, and you will be like God, knowing good and evil.\"",
+	"url": "https://localhost:3000/deemeetree/test_bible/edit"
+}
+```
+
+## Knowledge-Graph Based Memory
+
+InfraNodus has a set of tools for generating "memories" in InfraNodus that have the structure of knowledge graphs.
+
+In the default setting, entities identified in text are converted to [[wikilinks]] which are then represented as nodes. Relations between the entities are described by the statement where they appear.
+
+Can be used for saving and retrieving structured memories from your LLM conversations or workflows.
+
+### memory_add_relations
+
+Add relations to a memory graph (the new graph is created in user's account if the graph with this name does not exist yet).
+
+By default, entities will be detected as marked with [[wikilinks]], so the resulting graph is a high-level representation of the main concepts.
+
+**Parameters (JSON):**
+
+```json
+{
+	"graphName": "test_bible_entities",
+	"text": "<Genesis 3: The Fall — full text from the Example text section above>",
+	"modifyAnalyzedText": "extractEntitiesOnly"
+}
+```
+
+**Result:**
+
+```json
+{
+	"statistics": {
+		"modularity": 0,
+		"clusterCount": 1,
+		"nodeCount": 5,
+		"edgeCount": 8,
+		"diversity_stats": {
+			"diversity_score": "biased",
+			"modularity_score": "low",
+			"too_focused_on_top_nodes": true,
+			"too_focused_on_top_clusters": true,
+			"ratio_of_top_nodes_influence_by_betweenness": 1,
+			"top_nodes_entropy": 0,
+			"ratio_of_top_cluster_influence_by_betweenness": 1,
+			"total_clusters": 1,
+			"fair_influence_by_cluster": 1
+		}
+	},
+	"contentGaps": [],
+	"mainTopicalClusters": [
+		"Divine Temptation: [[god]] [[fruit]] [[tree]] [[the_serpent]] [[good_and_evil]] (0 | 100% | 100%)"
+	],
+	"mainConcepts": [
+		"[[god]]",
+		"[[fruit]]",
+		"[[tree]]",
+		"[[the_serpent]]",
+		"[[good_and_evil]]"
+	],
+	"conceptualGateways": [
+		"[[god]]",
+		"[[fruit]]",
+		"[[tree]]",
+		"[[the_serpent]]",
+		"[[good_and_evil]]"
+	],
+	"topRelations": [
+		"1) [[god]] <-> [[the_serpent]]",
+		"2) [[god]] <-> [[tree]]",
+		"3) [[god]] <-> [[good_and_evil]]",
+		"4) [[god]] <-> [[fruit]]",
+		"5) [[fruit]] <-> [[tree]]",
+		"6) [[tree]] <-> [[the_serpent]]",
+		"7) [[fruit]] <-> [[the_serpent]]",
+		"8) [[the_serpent]] <-> [[good_and_evil]]"
+	],
+	"topBigrams": [
+		"[[god]] [[the_serpent]]",
+		"[[god]] [[tree]]",
+		"[[god]] [[good_and_evil]]",
+		"[[god]] [[fruit]]",
+		"[[fruit]] [[tree]]",
+		"[[tree]] [[the_serpent]]",
+		"[[fruit]] [[the_serpent]]",
+		"[[the_serpent]] [[good_and_evil]]"
+	],
+	"topInfluentialNodes": [
+		{
+			"node": "[[god]]",
+			"bc": 0.6666666666666666,
+			"degree": 4
+		}
+	],
+	"knowledgeGraphByCluster": {
+		"0": [
+			"[[god]] <-> [[the_serpent]] [label=\"[[tree]], [[good_and_evil]], [[fruit]]\"]"
+		],
+		"top_nodes": [
+			"[[god]] <-> [[the_serpent]] [label=\"[[tree]], [[good_and_evil]], [[fruit]]\"]"
+		],
+		"inter_cluster": []
+	},
+	"statements": [],
+	"userName": "deemeetree",
+	"graphName": "test_ bible_memory",
+	"graphUrl": "https://localhost:3000/deemeetree/test_ bible_memory/edit"
+}
+```
+
+### memory_get_relations
+
+Retrieves memory from your InfraNodus account that contains the entity or, if the entity is empty, all the statements that exist in a certain graph.
+
+```json
+{
+	"memoryContextName": "test_ bible_memory",
+    "entity": "[[god]]
+}
+```
+
+**Result:**
+
+```json
+{
+	"statements": [
+		" [[God]] said, 'You shall not eat of the [[fruit]] of the [[tree]] which is in the midst of the garden, neither shall you touch it, lest you die.'\" But [[the serpent]] said to the woman, \"You will not die. For [[God]] knows that when you eat of it your eyes will be opened, and you will be like [[God]], knowing [[good and evil]].\""
+	],
+	"userName": "deemeetree",
+	"graphNames": ["test_ bible_memory"],
+	"graphUrls": ["https://localhost:3000/deemeetree/test_ bible_memory/edit"]
+}
+```
+
+## Text Comparison
+
+This set of tools is useful for comparing multiple texts in order to find commonalities and differences between them.
+
+For example, one can compare one's own website to the website of competitors to reveal what the competitors are writing about that you miss.
+
+It is also possible to add several texts (e.g. a collection of landing pages from the top Google search results) to reveal what are the common topical clusters and gaps that emerge on all the pages combined.
+
+### Overlap / Difference (multiple texts)
 
 For `generate_overlap_graph_from_texts` and `generate_difference_graph_from_texts`, use this text as one input and add a second text for comparison.
 
 _(Example to be added.)_
 
-### Google / SEO tools
+## Google / SEO & GEO / LLMO tools
+
+This set of tools help optimize content for seach engines and LLMs. They have access to real search results and search intent data and provide additional statistical information to your LLM text analysis workflows that can show which search terms are used more often than others or what topics top-ranking content pages contain.
 
 For `generate_google_search_results_graph`, `generate_google_search_queries_graph`, `generate_google_results_vs_queries_graph`, and `generate_seo_report`, use search queries or a URL derived from this passage.
 
