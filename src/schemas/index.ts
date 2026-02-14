@@ -22,7 +22,7 @@ export const GenerateGraphSchema = z.object({
 		),
 	includeGraph: z
 		.boolean()
-		.default(false)
+		.default(true)
 		.describe(
 			"Include full graph structure in response (true only if explicitly needed or requested)"
 		),
@@ -493,11 +493,11 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		.describe(
 			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
 		),
-	responseMode: z
+	requestMode: z
 		.enum(["question", "transcend"])
 		.default("transcend")
 		.describe(
-			"Response mode: 'question' — generate questions that focus on this context; 'transcend' — generate responses that transcend and go beyond the content of the text and relate to a broader discourse."
+			"Request mode: 'question' — generate questions that focus on this context; 'transcend' — generate responses that transcend and go beyond the content of the text and relate to a broader discourse."
 		),
 	modelToUse: z
 		.enum([

@@ -44,12 +44,18 @@ export const developLatentTopicsTool = {
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
-			let requestBody: { text?: string; name?: string; aiTopics: string; requestMode: string; modelToUse: string };
+			let requestBody: {
+				text?: string;
+				name?: string;
+				aiTopics: string;
+				requestMode: string;
+				modelToUse: string;
+			};
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
 					aiTopics: "true",
-					requestMode: params.responseMode ?? "transcend",
+					requestMode: params.requestMode ?? "transcend",
 					modelToUse: params.modelToUse ?? "gpt-4o",
 				};
 			} else {
@@ -63,12 +69,14 @@ export const developLatentTopicsTool = {
 				} else if (params.text?.trim()) {
 					contentText = params.text;
 				} else {
-					return errorContent("Provide either text, url, or graphName for analysis");
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
 				}
 				requestBody = {
 					text: contentText,
 					aiTopics: "true",
-					requestMode: params.responseMode ?? "transcend",
+					requestMode: params.requestMode ?? "transcend",
 					modelToUse: params.modelToUse ?? "gpt-4o",
 				};
 			}
