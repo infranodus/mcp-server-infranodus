@@ -14,9 +14,9 @@ export const getMemoryTool = {
 			"Provide a list of relations from the InfraNodus memory for a given concept or entity",
 		inputSchema: getMemorySchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof getMemorySchema>) => {
@@ -25,12 +25,14 @@ export const getMemoryTool = {
 			const hasContextName =
 				params.memoryContextName && params.memoryContextName.length > 0;
 
-			// If searchQuery is empty but contextNames exist, use graphAndStatements endpoint
+			// If searchQuery is empty but contextNames exist, use graphAndStatements endpoint.
+			// Use the same params as analyze_existing_graph_by_name (including aiTopics: "true")
+			// so the backend resolves the graph by name the same way.
 			if (!searchQuery && hasContextName) {
 				const queryParams = new URLSearchParams({
 					doNotSave: "true",
 					addStats: "true",
-					includeStatements: "false",
+					includeStatements: "true",
 					includeGraphSummary: "false",
 					extendedGraphSummary: "false",
 					includeGraph: "true",
