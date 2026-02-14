@@ -6,6 +6,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+import type { GraphResponse } from "../types/index.js";
 
 function errorContent(message: string) {
 	return {
@@ -16,55 +17,108 @@ function errorContent(message: string) {
 	};
 }
 
+/** Fetches an existing graph by name with includeStatements and returns its statements joined as text. */
+async function fetchGraphTextByName(
+	graphName: string
+): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+	const queryParams = new URLSearchParams({
+		doNotSave: "true",
+		addStats: "true",
+		includeStatements: "true",
+		includeGraphSummary: "false",
+		extendedGraphSummary: "false",
+		includeGraph: "false",
+		compactGraph: "true",
+		compactStatements: "true",
+		aiTopics: "false",
+		optimize: "develop",
+	});
+	const endpoint = `/graphAndStatements?${queryParams.toString()}`;
+	const requestBody = { name: graphName, aiTopics: "false" };
+	let response: GraphResponse;
+	try {
+		response = await makeInfraNodusRequest(endpoint, requestBody);
+	} catch (err) {
+		return {
+			ok: false,
+			error: err instanceof Error ? err.message : String(err),
+		};
+	}
+	if (response.error) {
+		return { ok: false, error: response.error };
+	}
+	const statements = response.statements ?? [];
+	const text = statements
+		.map((s) => s.content?.trim())
+		.filter(Boolean)
+		.join("\n");
+	if (!text.trim()) {
+		return {
+			ok: false,
+			error: `Graph "${graphName}" returned no statement content`,
+		};
+	}
+	return { ok: true, text };
+}
+
 export const generateDifferenceGraphFromTextsTool = {
 	name: "difference_between_texts",
 	definition: {
 		title: "Generate Difference Knowledge Graph from Texts",
 		description:
-			"Extract the conceptial relations that are not present in the first text but are in the other texts",
+			"Extract the conceptial relations that are missing in the first text, url, or InfraNodus graph but are present in the other texts",
 		inputSchema: GenerateDifferenceGraphFromTextsSchemaBase.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateDifferenceGraphFromTextsSchema>
 	) => {
 		try {
-			let contexts: Array<{ text: string; modifyAnalyzedText?: string }>;
-			if (params.urls && params.urls.length >= 2) {
-				const results = await Promise.all(
-					params.urls.map((url) => fetchUrlContentAsText(url))
-				);
-				const failed = results.findIndex((r) => !r.ok);
-				if (failed >= 0)
-					return errorContent(
-						`URL ${params.urls[failed]} failed: ${(results[failed] as { error: string }).error}`
-					);
-				const contentTexts = (results as { ok: true; contentText: string }[]).map(
-					(r) => r.contentText
-				);
-				const empty = contentTexts.findIndex((t) => !t?.trim());
-				if (empty >= 0)
-					return errorContent(
-						`URL ${params.urls[empty]} did not return any text content`
-					);
-				contexts = contentTexts.map((text) => ({
-					text,
-					modifyAnalyzedText: params.modifyAnalyzedText ?? "none",
-				}));
-			} else if (params.contexts && params.contexts.length >= 2) {
-				contexts = params.contexts.map((text) => ({
-					text,
-					modifyAnalyzedText: params.modifyAnalyzedText ?? "none",
-				}));
-			} else {
+			const modifyAnalyzedText = params.modifyAnalyzedText ?? "none";
+			const resolvedTexts: string[] = [];
+			for (let i = 0; i < params.contexts.length; i++) {
+				const item = params.contexts[i];
+				if ("text" in item) {
+					if (!item.text.trim())
+						return errorContent(`Context at index ${i} has empty text.`);
+					resolvedTexts.push(item.text);
+					continue;
+				}
+				if ("url" in item) {
+					const result = await fetchUrlContentAsText(item.url);
+					if (!result.ok)
+						return errorContent(
+							`URL at context index ${i} failed: ${result.error}`
+						);
+					if (!result.contentText?.trim())
+						return errorContent(
+							`URL at context index ${i} did not return any text content`
+						);
+					resolvedTexts.push(result.contentText);
+					continue;
+				}
+				if ("graphName" in item) {
+					const result = await fetchGraphTextByName(item.graphName);
+					if (!result.ok)
+						return errorContent(
+							`Graph at context index ${i} failed: ${result.error}`
+						);
+					resolvedTexts.push(result.text);
+					continue;
+				}
 				return errorContent(
-					"Provide either contexts or urls (at least two items - one target and one reference)."
+					`Context at index ${i} must be { text }, { url }, or { graphName }.`
 				);
 			}
+			const contexts: Array<{ text: string; modifyAnalyzedText?: string }> =
+				resolvedTexts.map((text) => ({
+					text,
+					modifyAnalyzedText,
+				}));
 
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;

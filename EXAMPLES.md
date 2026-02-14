@@ -1067,11 +1067,110 @@ For example, one can compare one's own website to the website of competitors to 
 
 It is also possible to add several texts (e.g. a collection of landing pages from the top Google search results) to reveal what are the common topical clusters and gaps that emerge on all the pages combined.
 
-### Overlap / Difference (multiple texts)
+### generate_difference_graph_from_text
+
+This tool shows you what's _missing_ in the first text, url, or InfraNodus graph object you have that is _present_ in all the other objects you sent.
+
+The result shows the topics and concepts that are missing and can be used to improve your content and add some more ideas that are present in the already existing discourse.
+
+You can also optionally set `includeStatements` true to include the specific statements that are missing.
+
+This is very useful for finding content gaps in your texts or websites in relation to the already existing discourse. For instance, you can add your article as a first text and then compare it with several URLs of other articles that exist on the internet.
+
+**Request (JSON)**
+
+```json
+{
+	"contexts": [
+		{
+			"url": "https://infranodus.com"
+		},
+		{
+			"text": "Network science meets cognitive variability and cosmic solitude"
+		}
+	],
+	"includeStatements": true
+}
+```
+
+In the example above, we see what is missing on the homepage of [https://infranodus.com](https://infranodus.com) that is present in the other text provided. Obviously, InfraNodus talks about "network science" and "cognitive variability" but there's no mention of "cosmic solitude" and so that is exactly what this tool shows us.
+
+Note, that the result shows not the keywords, but the relations and clusters that are missing. Because most of the texts will use the same concepts, but it's the relations that will be different!
+
+**Result**
+
+```json
+{
+	"statistics": {
+		"modularity": 0,
+		"diversity_stats": {},
+		"clusterCount": 0
+	},
+	"contentGaps": [
+		"Gap 1: 1. Cognitive Networks (meet cognitive network science) -> 2. Cosmic Solitude (variability cosmic solitude)"
+	],
+	"mainTopicalClusters": [
+		"1. Cognitive Networks: meet cognitive network science (0 | 57% | 63%)",
+		"2. Cosmic Solitude: variability cosmic solitude (1 | 43% | 37%)"
+	],
+	"mainConcepts": [
+		"meet",
+		"variability",
+		"cognitive",
+		"cosmic",
+		"network",
+		"science",
+		"solitude"
+	],
+	"conceptualGateways": [
+		"meet",
+		"variability",
+		"cognitive",
+		"cosmic",
+		"network",
+		"science",
+		"solitude"
+	],
+	"topRelations": [
+		"1) science <-> meet",
+		"2) meet <-> cognitive",
+		"3) variability <-> cosmic",
+		"4) cosmic <-> solitude",
+		"5) network <-> meet",
+		"6) science <-> cognitive",
+		"7) meet <-> variability",
+		"8) cognitive <-> cosmic",
+		"9) variability <-> solitude",
+		"10) network <-> cognitive",
+		"11) science <-> variability",
+		"12) meet <-> cosmic"
+	],
+	"topBigrams": [
+		"science meet",
+		"meet cognitive",
+		"variability cosmic",
+		"cosmic solitude",
+		"network meet",
+		"science cognitive",
+		"meet variability",
+		"cognitive cosmic",
+		"variability solitude",
+		"network cognitive",
+		"science variability",
+		"meet cosmic"
+	],
+	"statements": [
+		{
+			"id": "724134_1",
+			"content": "Network science meets cognitive variability and cosmic solitude",
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "1"
+		}
+	]
+}
+```
 
 For `generate_overlap_graph_from_texts` and `generate_difference_graph_from_texts`, use this text as one input and add a second text for comparison.
-
-_(Example to be added.)_
 
 ## Google / SEO & GEO / LLMO tools
 

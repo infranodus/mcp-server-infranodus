@@ -726,25 +726,44 @@ export const GenerateOverlapGraphFromTextsSchema =
 		{ message: "Provide either contexts or urls (at least two items)." }
 	);
 
-const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
-	contexts: z
-		.array(
-			z
+const contextItemDifferenceSchema = z.union([
+	z
+		.object({
+			text: z
 				.string()
 				.min(1, "Text is required for analysis")
 				.describe(
-					"Text content - First element is the target text to analyze for missing parts, subsequent elements are reference texts to identify what's missing. Use new lines to separate separate statements in each text (but not the sentences)."
-				)
-		)
-		.optional()
+					"Text content - use new lines to separate statements (but not sentences)."
+				),
+		})
+		.describe("Context from plain text."),
+	z
+		.object({
+			url: z
+				.string()
+				.min(1, "URL is required")
+				.url("Must be a valid URL")
+				.describe("URL to fetch content from (or YouTube transcript)."),
+		})
+		.describe("Context from a URL."),
+	z
+		.object({
+			graphName: z
+				.string()
+				.min(1, "Graph name is required when provided")
+				.describe(
+					"Name of an existing InfraNodus graph; its statements are retrieved and used as text."
+				),
+		})
+		.describe("Context from an existing InfraNodus graph by name."),
+]);
+
+const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
+	contexts: z
+		.array(contextItemDifferenceSchema)
+		.min(2, "At least two contexts (target + one reference) are required")
 		.describe(
-			"Array of texts where the FIRST (targetText) text is what we analyze for the missing parts that exist in the REMAINING reference texts (referenceText). At least one targetText and one referenceText should be provided. Example: [targetText, referenceText1, referenceText2, ...]. Provide either this or urls."
-		),
-	urls: z
-		.array(z.string().min(1, "URL is required").url("Must be a valid URL"))
-		.optional()
-		.describe(
-			"Array of URLs where the FIRST URL (targetUrl) is what we analyze for the missing parts that exist in the REMAINING URLs (referenceUrl). At least one targetUrl and one referenceUrl should be provided. Content is extracted from each URL first, then difference is computed. Example: [targetUrl, referenceUrl1, referenceUrl2, ...]. Provide either this or texts."
+			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }]."
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -774,14 +793,7 @@ const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 
 export { GenerateDifferenceGraphFromTextsSchemaBase };
 export const GenerateDifferenceGraphFromTextsSchema =
-	GenerateDifferenceGraphFromTextsSchemaBase.refine(
-		(data) =>
-			(data.contexts?.length ?? 0) >= 2 || (data.urls?.length ?? 0) >= 2,
-		{
-			message:
-				"Provide either contexts or urls (at least two items - one target and one reference).",
-		}
-	);
+	GenerateDifferenceGraphFromTextsSchemaBase;
 
 export const GenerateGoogleSearchResultsGraphSchema = z.object({
 	queries: z
