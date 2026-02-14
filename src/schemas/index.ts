@@ -672,61 +672,8 @@ export const GenerateGeneralGraphSchema = z.object({
 		),
 });
 
-const GenerateOverlapGraphFromTextsSchemaBase = z.object({
-	contexts: z
-		.array(
-			z
-				.string()
-				.min(1, "Text is required for analysis")
-				.describe(
-					"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences)."
-				)
-		)
-		.optional()
-		.describe(
-			"Array of the texts to analyze and find content overlaps for (at least two). Example: [text1, text2, ...]. Provide either this or urls."
-		),
-	urls: z
-		.array(z.string().min(1, "URL is required").url("Must be a valid URL"))
-		.optional()
-		.describe(
-			"Array of URLs to fetch and analyze for content overlap (at least two). Content is extracted from each URL first, then overlap is computed. Example: [url1, url2, ...]. Provide either this or contexts."
-		),
-	modifyAnalyzedText: z
-		.enum(["none", "detectEntities", "extractEntitiesOnly"])
-		.default("none")
-		.describe(
-			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
-		),
-	includeStatements: z
-		.boolean()
-		.default(false)
-		.describe(
-			"Include processed statements in response (add only if explicitly needed)"
-		),
-	includeGraph: z
-		.boolean()
-		.default(false)
-		.describe(
-			"Include full graph structure in response (add only if explicitly needed)"
-		),
-	addNodesAndEdges: z
-		.boolean()
-		.default(false)
-		.describe(
-			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
-		),
-});
-
-export { GenerateOverlapGraphFromTextsSchemaBase };
-export const GenerateOverlapGraphFromTextsSchema =
-	GenerateOverlapGraphFromTextsSchemaBase.refine(
-		(data) =>
-			(data.contexts?.length ?? 0) >= 2 || (data.urls?.length ?? 0) >= 2,
-		{ message: "Provide either contexts or urls (at least two items)." }
-	);
-
-const contextItemDifferenceSchema = z.union([
+/** Shared context item: one of { text }, { url }, or { graphName }. Used by overlap and difference tools. */
+const contextItemTextUrlOrGraphSchema = z.union([
 	z
 		.object({
 			text: z
@@ -758,9 +705,46 @@ const contextItemDifferenceSchema = z.union([
 		.describe("Context from an existing InfraNodus graph by name."),
 ]);
 
+const GenerateOverlapGraphFromTextsSchemaBase = z.object({
+	contexts: z
+		.array(contextItemTextUrlOrGraphSchema)
+		.min(2, "At least two contexts are required for overlap")
+		.describe(
+			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }]."
+		),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)"
+		),
+	includeStatements: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include processed statements in response (add only if explicitly needed)"
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include full graph structure in response (add only if explicitly needed)"
+		),
+	addNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)"
+		),
+});
+
+export { GenerateOverlapGraphFromTextsSchemaBase };
+export const GenerateOverlapGraphFromTextsSchema =
+	GenerateOverlapGraphFromTextsSchemaBase;
+
 const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 	contexts: z
-		.array(contextItemDifferenceSchema)
+		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts (target + one reference) are required")
 		.describe(
 			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }]."

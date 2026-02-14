@@ -1075,7 +1075,117 @@ The result shows the topics and concepts that are missing and can be used to imp
 
 You can also optionally set `includeStatements` true to include the specific statements that are missing.
 
+Note, that the result shows not the keywords, but the relations and clusters that are missing. Because most of the texts will use the same concepts, but it's the relations that will be different!
+
 This is very useful for finding content gaps in your texts or websites in relation to the already existing discourse. For instance, you can add your article as a first text and then compare it with several URLs of other articles that exist on the internet.
+
+Simple example:
+
+**Request (JSON)**
+
+```json
+{
+	"contexts": [
+		{
+			"text": "Apples and oranges are good"
+		},
+		{
+			"text": "Network science meets cognitive variability and cosmic solitude"
+		},
+		{
+			"text": "Solitude is a form of contemplation"
+		}
+	],
+	"includeStatements": true
+}
+```
+
+As a result, we will see only the content that's present in text 2 and text 3 but NOT in text 1:
+
+**Response**
+
+```json
+{
+	"statistics": {
+		"modularity": 0,
+		"diversity_stats": {},
+		"clusterCount": 0
+	},
+	"contentGaps": [
+		"Gap 1: 2. Cognitive Networks (meet cognitive science network) -> 3. Contemplative Solitude (solitude form contemplation)"
+	],
+	"mainTopicalClusters": [
+		"1. Cosmic Variability: variability cosmic (1 | 22% | 35%)",
+		"2. Cognitive Networks: meet cognitive science network (0 | 44% | 33%)",
+		"3. Contemplative Solitude: solitude form contemplation (2 | 33% | 32%)"
+	],
+	"mainConcepts": [
+		"solitude",
+		"variability",
+		"meet",
+		"cognitive",
+		"cosmic",
+		"science",
+		"network",
+		"form",
+		"contemplation"
+	],
+	"conceptualGateways": [
+		"solitude",
+		"variability",
+		"meet",
+		"cognitive",
+		"cosmic",
+		"science",
+		"network",
+		"form"
+	],
+	"topRelations": [
+		"1) network <-> science",
+		"2) science <-> meet",
+		"3) meet <-> cognitive",
+		"4) cognitive <-> variability",
+		"5) variability <-> cosmic",
+		"6) cosmic <-> solitude",
+		"7) solitude <-> form",
+		"8) form <-> contemplation",
+		"9) network <-> meet",
+		"10) science <-> cognitive",
+		"11) meet <-> variability",
+		"12) cognitive <-> cosmic"
+	],
+	"topBigrams": [
+		"network science",
+		"science meet",
+		"meet cognitive",
+		"cognitive variability",
+		"variability cosmic",
+		"cosmic solitude",
+		"solitude form",
+		"form contemplation",
+		"network meet",
+		"science cognitive",
+		"meet variability",
+		"cognitive cosmic"
+	],
+	"statements": [
+		{
+			"id": "401450_1",
+			"content": "Network science meets cognitive variability and cosmic solitude",
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "0"
+		},
+		{
+			"id": "41332_1",
+			"content": "Solitude is a form of contemplation",
+			"topStatementCommunity": "2",
+			"topStatementOfCommunity": "2"
+		}
+	]
+}
+```
+
+In the second example, we want to see what is missing on the homepage of [https://infranodus.com](https://infranodus.com) that is present in the other text provided. Obviously, InfraNodus talks about "network science" and "cognitive variability" but there's no mention of "cosmic solitude" and the Genesis bible text and so that is exactly what this tool shows us:
 
 **Request (JSON)**
 
@@ -1087,15 +1197,13 @@ This is very useful for finding content gaps in your texts or websites in relati
 		},
 		{
 			"text": "Network science meets cognitive variability and cosmic solitude"
+		},
+		{
+			"graphName": "test_bible"
 		}
-	],
-	"includeStatements": true
+	]
 }
 ```
-
-In the example above, we see what is missing on the homepage of [https://infranodus.com](https://infranodus.com) that is present in the other text provided. Obviously, InfraNodus talks about "network science" and "cognitive variability" but there's no mention of "cosmic solitude" and so that is exactly what this tool shows us.
-
-Note, that the result shows not the keywords, but the relations and clusters that are missing. Because most of the texts will use the same concepts, but it's the relations that will be different!
 
 **Result**
 
@@ -1107,66 +1215,72 @@ Note, that the result shows not the keywords, but the relations and clusters tha
 		"clusterCount": 0
 	},
 	"contentGaps": [
-		"Gap 1: 1. Cognitive Networks (meet cognitive network science) -> 2. Cosmic Solitude (variability cosmic solitude)"
+		"Gap 1: 2. Serpent's Temptation (serpent tree fruit woman midst garden touch) -> 3. Cosmic Connectivity (meet variability cognitive cosmic network science solitude)",
+		"Gap 2: 1. Divine Duality (god eat knowing good open eye evil) -> 3. Cosmic Connectivity (meet variability cognitive cosmic network science solitude)",
+		"Gap 3: 1. Divine Duality (god eat knowing good open eye evil) -> 2. Serpent's Temptation (serpent tree fruit woman midst garden touch)"
 	],
 	"mainTopicalClusters": [
-		"1. Cognitive Networks: meet cognitive network science (0 | 57% | 63%)",
-		"2. Cosmic Solitude: variability cosmic solitude (1 | 43% | 37%)"
+		"1. Divine Duality: god eat knowing good open eye evil (1 | 33% | 64%)",
+		"2. Serpent's Temptation: serpent tree fruit woman midst garden touch (2 | 33% | 23%)",
+		"3. Cosmic Connectivity: meet variability cognitive cosmic network science solitude (0 | 33% | 12%)"
 	],
 	"mainConcepts": [
+		"god",
+		"eat",
+		"serpent",
 		"meet",
+		"knowing",
+		"tree",
+		"good",
 		"variability",
+		"fruit",
+		"woman",
 		"cognitive",
+		"midst",
+		"garden",
+		"touch",
 		"cosmic",
-		"network",
-		"science",
-		"solitude"
+		"network"
 	],
 	"conceptualGateways": [
+		"god",
+		"eat",
+		"serpent",
 		"meet",
+		"good",
+		"knowing",
 		"variability",
-		"cognitive",
-		"cosmic",
-		"network",
-		"science",
-		"solitude"
+		"tree"
 	],
 	"topRelations": [
-		"1) science <-> meet",
-		"2) meet <-> cognitive",
-		"3) variability <-> cosmic",
-		"4) cosmic <-> solitude",
-		"5) network <-> meet",
-		"6) science <-> cognitive",
-		"7) meet <-> variability",
-		"8) cognitive <-> cosmic",
-		"9) variability <-> solitude",
-		"10) network <-> cognitive",
-		"11) science <-> variability",
-		"12) meet <-> cosmic"
+		"1) god <-> eat",
+		"2) god <-> eye",
+		"3) god <-> open",
+		"4) eat <-> fruit",
+		"5) fruit <-> tree",
+		"6) tree <-> midst",
+		"7) midst <-> garden",
+		"8) garden <-> touch",
+		"9) touch <-> serpent",
+		"10) serpent <-> woman",
+		"11) woman <-> god",
+		"12) eat <-> eye"
 	],
 	"topBigrams": [
-		"science meet",
-		"meet cognitive",
-		"variability cosmic",
-		"cosmic solitude",
-		"network meet",
-		"science cognitive",
-		"meet variability",
-		"cognitive cosmic",
-		"variability solitude",
-		"network cognitive",
-		"science variability",
-		"meet cosmic"
+		"god eat",
+		"god eye",
+		"god open",
+		"eat fruit",
+		"fruit tree",
+		"tree midst",
+		"midst garden",
+		"garden touch",
+		"touch serpent",
+		"serpent woman",
+		"woman god",
+		"eat eye"
 	],
-	"statements": [
-		{
-			"id": "724134_1",
-			"content": "Network science meets cognitive variability and cosmic solitude",
-			"topStatementCommunity": "0",
-			"topStatementOfCommunity": "1"
-		}
-	]
+	"statements": []
 }
 ```
 
