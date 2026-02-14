@@ -1087,13 +1087,13 @@ Simple example:
 {
 	"contexts": [
 		{
-			"text": "Apples and oranges are good"
+			"graphName": "test_bible"
 		},
 		{
-			"text": "Network science meets cognitive variability and cosmic solitude"
+			"text": "Serpent is woman's friend"
 		},
 		{
-			"text": "Solitude is a form of contemplation"
+			"url": "https://infranodus.com"
 		}
 	],
 	"includeStatements": true
@@ -1284,7 +1284,121 @@ In the second example, we want to see what is missing on the homepage of [https:
 }
 ```
 
-For `generate_overlap_graph_from_texts` and `generate_difference_graph_from_texts`, use this text as one input and add a second text for comparison.
+### generate_overlap_from_texts
+
+This tool helps you find which common topics and relations exist in all the texts, URLs (including YouTube videos), or existing InfraNodus graphs provided.
+
+This is very useful for revealing the common themes in specific content and exposing the commonalities present within a discourse.
+
+Note, that if it least one context provided does not have any intersections with the rest of the contexts, then no results will be shown.
+
+Consider this simple example where there are no intersections between any texts:
+
+**Request (JSON)**
+
+```json
+{
+	"contexts": [
+		{
+			"text": "Apples and oranges are good"
+		},
+		{
+			"text": "Network science meets cognitive variability and cosmic solitude"
+		},
+		{
+			"text": "Solitude is a form of contemplation"
+		}
+	]
+}
+```
+
+**Response**
+
+```json
+{
+	"statistics": {
+		"modularity": 0,
+		"diversity_stats": {},
+		"clusterCount": 0
+	},
+	"mainConcepts": [],
+	"conceptualGateways": [],
+	"topRelations": [],
+	"topBigrams": [],
+	"statements": []
+}
+```
+
+Consider another example where we use our original demo text (retrieved as an InfraNodus graph), a URL with a longer version of that demo text, and plain text. We also ask MCP to include statements here so that we can see the exact statements where intersections have been found:
+
+**Request**
+
+```json
+{
+	"contexts": [
+		{
+			"graphName": "test_bible"
+		},
+		{
+			"text": "Serpent is a woman's friend"
+		},
+		{
+			"url": "https://www.biblegateway.com/passage/?search=Genesis%203&version=NIV"
+		}
+	],
+	"includeStatements": true
+}
+```
+
+**Result**
+
+```json
+{
+	"statistics": {
+		"modularity": 0,
+		"diversity_stats": {},
+		"clusterCount": 0
+	},
+	"contentGaps": [],
+	"mainTopicalClusters": ["1. Serpent Bond: serpent woman (0 | 100% | 0%)"],
+	"mainConcepts": ["serpent", "woman"],
+	"conceptualGateways": ["serpent", "woman"],
+	"topRelations": ["1) serpent <-> woman"],
+	"topBigrams": ["serpent woman"],
+	"statements": [
+		{
+			"id": "270623_1",
+			"content": "God said, 'You shall not eat of the fruit of the tree which is in the midst of the garden, neither shall you touch it, lest you die.'\" But the serpent said to the woman, \"You will not die. For God knows that when you eat of it your eyes will be opened, and you will be like God, knowing good and evil.\"",
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "none"
+		},
+		{
+			"id": "715965_1",
+			"content": "Serpent is a woman's friend",
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "0"
+		},
+		{
+			"id": "199975_34",
+			"content": "2 The woman said to the serpent, “We may eat fruit from the trees in the garden,(C) 3 but God did say, ‘You must not eat fruit from the tree that is in the middle of the garden, and you must not touch it, or you will die.’”(D)",
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "none"
+		},
+		{
+			"id": "199975_35",
+			"content": "4 “You will not certainly die,” the serpent said to the woman.(E) 5 “For God knows that when you eat from it your eyes will be opened, and you will be like God,(F) knowing good and evil.”",
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "none"
+		},
+		{
+			"id": "199975_42",
+			"content": "The woman said, “The serpent deceived me,(T) and I ate.”",
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "none"
+		}
+	]
+}
+```
 
 ## Google / SEO & GEO / LLMO tools
 
@@ -1293,3 +1407,7 @@ This set of tools help optimize content for seach engines and LLMs. They have ac
 For `generate_google_search_results_graph`, `generate_google_search_queries_graph`, `generate_google_results_vs_queries_graph`, and `generate_seo_report`, use search queries or a URL derived from this passage.
 
 _(Example to be added.)_
+
+```
+
+```

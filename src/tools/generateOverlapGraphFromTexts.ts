@@ -26,11 +26,11 @@ async function fetchGraphTextByName(
 		addStats: "true",
 		includeStatements: "true",
 		includeGraphSummary: "false",
-		extendedGraphSummary: "true",
+		extendedGraphSummary: "false",
 		includeGraph: "false",
 		compactGraph: "true",
 		compactStatements: "true",
-		aiTopics: "true",
+		aiTopics: "false",
 		optimize: "develop",
 	});
 	const endpoint = `/graphAndStatements?${queryParams.toString()}`;
@@ -114,9 +114,15 @@ export const generateOverlapGraphFromTextsTool = {
 					`Context at index ${i} must be { text }, { url }, or { graphName }.`
 				);
 			}
+			const contexts: Array<{ text: string; modifyAnalyzedText?: string }> =
+				resolvedTexts.map((text) => ({
+					text,
+					modifyAnalyzedText,
+				}));
+
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
-			// Build query parameters; modifyAnalyzedText as query param for compare endpoint
+			// Build query parameters (same shape as difference tool)
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -128,14 +134,13 @@ export const generateOverlapGraphFromTextsTool = {
 				compactStatements: "true",
 				aiTopics: "true",
 				optimize: "develop",
-				modifyAnalyzedText: modifyAnalyzedText,
+				compareMode: "intersection",
 			});
 
 			const endpoint = `/graphsAndStatements?${queryParams.toString()}`;
 
-			// InfraNodus compare endpoint expects contexts as array of plain text strings
 			const requestBody: any = {
-				contexts: resolvedTexts,
+				contexts,
 				aiTopics: "true",
 			};
 
