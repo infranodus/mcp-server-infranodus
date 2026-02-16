@@ -32,17 +32,18 @@ Available Tools:
 12. develop_text_tool - Comprehensive text analysis combining research questions, latent topics, and content gaps with progress tracking
 13. create_knowledge_graph - Create a knowledge graph in InfraNodus from text and provide a link to it
 14. overlap_between_texts - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
-15. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
-16. analyze_google_search_results - Generate a Google search results graph from search queries
-17. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
-18. search_queries_vs_search_results - Find what people search for but don't yet find
-19. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
-20. memory_add_relations - Add relations to InfraNodus memory from text with entity detection and save for future retrieval
-21. memory_get_relations - Retrieve relations from InfraNodus memory for specific entities or contexts
-22. retrieve_from_knowledge_base - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG for prompt augmentation
-23. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
-24. search - Search through existing InfraNodus graphs
-25. fetch - Fetch a specific search result from an InfraNodus graph
+15. merged_graph_from_texts - Build a graph of all the texts, URLs, and existing graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
+16. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
+17. analyze_google_search_results - Generate a Google search results graph from search queries
+18. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
+19. search_queries_vs_search_results - Find what people search for but don't yet find
+20. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
+21. memory_add_relations - Add relations to InfraNodus memory from text with entity detection and save for future retrieval
+22. memory_get_relations - Retrieve relations from InfraNodus memory for specific entities or contexts
+23. retrieve_from_knowledge_base - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG for prompt augmentation
+24. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
+25. search - Search through existing InfraNodus graphs
+26. fetch - Fetch a specific search result from an InfraNodus graph
 
 Key Features:
 - Topic modeling and clustering

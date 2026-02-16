@@ -13,6 +13,7 @@ export { listGraphsTool } from "./listGraphs.js";
 export { searchExistingGraphsTool } from "./searchGraphs.js";
 export { searchExistingGraphsFetchTool } from "./searchGraphsFetch.js";
 export { generateOverlapGraphFromTextsTool } from "./generateOverlapGraphFromTexts.js";
+export { generateMergedGraphFromTextsTool } from "./generateMergedGraphFromTexts.js";
 export { generateDifferenceGraphFromTextsTool } from "./generateDifferenceGraphFromTexts.js";
 export { generateGoogleSearchResultsGraphTool } from "./generateGoogleSearchResultsGraph.js";
 export { generateGoogleSearchQueriesGraphTool } from "./generateGoogleSearchQueriesGraph.js";

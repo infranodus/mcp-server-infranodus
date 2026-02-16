@@ -19,6 +19,7 @@ import {
 	searchExistingGraphsTool,
 	searchExistingGraphsFetchTool,
 	generateOverlapGraphFromTextsTool,
+	generateMergedGraphFromTextsTool,
 	generateDifferenceGraphFromTextsTool,
 	generateGoogleSearchResultsGraphTool,
 	generateGoogleSearchQueriesGraphTool,
@@ -153,6 +154,12 @@ export default function createServer({
 		generateOverlapGraphFromTextsTool.name,
 		generateOverlapGraphFromTextsTool.definition,
 		wrapHandler(generateOverlapGraphFromTextsTool.handler)
+	);
+
+	mcpServer.registerTool(
+		generateMergedGraphFromTextsTool.name,
+		generateMergedGraphFromTextsTool.definition,
+		wrapHandler(generateMergedGraphFromTextsTool.handler)
 	);
 
 	mcpServer.registerTool(
