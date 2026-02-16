@@ -38,6 +38,19 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const INFRANODUS_API_BASE =
 	process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1";
 
+// Allow HTTP only for localhost/127.0.0.1 (local dev); otherwise require HTTPS
+function isRedirectUriAllowed(redirectUri: string): boolean {
+	if (redirectUri.startsWith("https://")) return true;
+	if (!redirectUri.startsWith("http://")) return false;
+	try {
+		const u = new URL(redirectUri);
+		const host = u.hostname.toLowerCase();
+		return host === "localhost" || host === "127.0.0.1";
+	} catch {
+		return false;
+	}
+}
+
 // Store auth info on request (using a symbol to avoid conflicts with MCP SDK)
 const AUTH_KEY = Symbol("auth");
 
@@ -209,12 +222,12 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		return;
 	}
 
-	// Accept any HTTPS redirect_uri (stateless validation)
-	// The real security is in the API key validation
-	if (!redirect_uri.startsWith("https://")) {
+	// Accept HTTPS or http://localhost / http://127.0.0.1 (for local dev)
+	if (!isRedirectUriAllowed(redirect_uri)) {
 		res.status(400).json({
 			error: "invalid_request",
-			error_description: "redirect_uri must use HTTPS",
+			error_description:
+				"redirect_uri must use HTTPS or http://localhost or http://127.0.0.1",
 		});
 		return;
 	}
@@ -293,8 +306,8 @@ app.post(
 			return;
 		}
 
-		// Validate redirect_uri (stateless - accept any HTTPS URL)
-		if (!redirect_uri || !redirect_uri.startsWith("https://")) {
+		// Validate redirect_uri (HTTPS or localhost/127.0.0.1 for local dev)
+		if (!redirect_uri || !isRedirectUriAllowed(redirect_uri)) {
 			res.status(400).json({
 				error: "invalid_request",
 				error_description: "Invalid redirect_uri",
