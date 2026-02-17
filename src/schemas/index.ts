@@ -784,25 +784,29 @@ export const GenerateGoogleSearchResultsGraphSchema = z.object({
 		.array(z.string())
 		.min(1, "Queries are required for analysis")
 		.describe(
-			"Queries that you'd like to get Google search results for, can be comma-separated for multiple queries"
+			"Queries that you'd like to get Google search results for, can be multiple queries"
 		),
-	includeSearchResultsOnly: z
+	includeSearchResults: z
+		.boolean()
+		.default(false)
+		.describe("Include search results in the response"),
+	includeGraph: z
 		.boolean()
 		.default(false)
 		.describe(
-			"Only include search results in the response (do not include the knowledge graph and keywords)"
-		),
-	showGraphOnly: z
-		.boolean()
-		.default(true)
-		.describe(
-			"Only include the graph structure and keywords in the response (do not include the search results)"
+			"Include the graph structure and keywords in the response (add only if explicitly needed"
 		),
 	showExtendedGraphInfo: z
 		.boolean()
 		.default(false)
 		.describe(
-			"Include extended graph information in the response (add only if explicitly needed)"
+			"Include extended graph information in the response (additional information about the content gaps and main topics)"
+		),
+	includeNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in the response (true only if explicitly required)"
 		),
 	importLanguage: z
 		.enum([

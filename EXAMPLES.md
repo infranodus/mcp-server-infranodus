@@ -1400,13 +1400,261 @@ Consider another example where we use our original demo text (retrieved as an In
 }
 ```
 
+### merged_graph_from_texts
+
+This tool generates a merged graph from several texts, URLs (including YouTube videos), and existing InfraNodus graphs. It provides information about the main topics and gaps in a collection of documents. Can be useful for getting an overview of a certain discourse from various sources and identifying potential topics that could be developed further.
+
+**Request**
+
+```json
+{
+	"contexts": [
+		{
+			"graphName": "test_bible"
+		},
+		{
+			"text": "Serpent is a woman's friend"
+		},
+		{
+			"url": "https://www.biblegateway.com/passage/?search=Genesis%203&version=NIV"
+		}
+	],
+	"includeStatements": true
+}
+```
+
+Note, to include `diversity_stats`, use the `"includeGraph": true` parameter in the Request above.
+
+**Response**
+
+```json
+{
+	"statistics": {
+		"modularity": 0,
+		"diversity_stats": {},
+		"clusterCount": 0
+	},
+	"contentGaps": [
+		"Gap 1: 2. Divine Garden (garden god eden man tree lord eat wife) -> 5. Bulgarian Editions (библия, berv bn книги издание превод bpb нов)",
+		"Gap 2: 2. Divine Garden (garden god eden man tree lord eat wife) -> 3. Language Connections (— amu de cco ceb luth1545 apsd-ceb hoffnung)",
+		"Gap 3: 3. Language Connections (— amu de cco ceb luth1545 apsd-ceb hoffnung) -> 5. Bulgarian Editions (библия, berv bn книги издание превод bpb нов)"
+	],
+	"mainTopicalClusters": [
+		"1. Bible Versions: ar bible version bulgarian erv-ar easy-to-read gateway arabic (1 | 19% | 28%)",
+		"2. Divine Garden: garden god eden man tree lord eat wife (0 | 20% | 24%)",
+		"3. Language Connections: — amu de cco ceb luth1545 apsd-ceb hoffnung (2 | 13% | 16%)",
+		"4. Testament Links: chr new testament ckb ꭶꮼꮒꭿꮝ kss sorani kurdi (3 | 7% | 10%)",
+		"5. Bulgarian Editions: библия, berv bn книги издание превод bpb нов (4 | 13% | 7%)",
+		"6. Publishing Networks: bwm cs snc ckw b21 cy 21 na (5 | 10% | 6%)",
+		"7. Danish Bible: da på bibelen dette hverdagsdansk biblen bph er (6 | 6% | 3%)",
+		"8. Scriptural References: genesis job co rev jn isa jer ki (8 | 6% | 2%)",
+		"9. Copyright Issues: english greek your copyright hebrew (7 | 3% | 1%)",
+		"10] harpercollins publishing christian: nelson (9 | 3% | 1%)"
+	],
+	"mainConcepts": [
+		"ar",
+		"garden",
+		"bible",
+		"—",
+		"god",
+		"version",
+		"chr",
+		"amu",
+		"eden",
+		"библия,",
+		"bwm",
+		"bulgarian",
+		"man",
+		"genesis",
+		"tree",
+		"da"
+	],
+	"conceptualGateways": [
+		"eden",
+		"ar",
+		"garden",
+		"chr",
+		"amu",
+		"da",
+		"—",
+		"bwm"
+	],
+	"topRelations": [
+		"1) lord <-> god",
+		"2) bible <-> gateway",
+		"3) genesis <-> isa",
+		"4) bulgarian <-> bible",
+		"5) eat <-> tree",
+		"6) fruit <-> tree",
+		"7) easy-to-read <-> version",
+		"8) god <-> eat",
+		"9) genesis <-> job",
+		"10) occidental <-> ckw",
+		"11) serpent <-> woman",
+		"12) woman <-> god"
+	],
+	"topBigrams": [
+		"lord god",
+		"bible gateway",
+		"genesis isa",
+		"bulgarian bible",
+		"eat tree",
+		"fruit tree",
+		"easy-to-read version",
+		"god eat",
+		"genesis job",
+		"occidental ckw",
+		"serpent woman",
+		"woman god"
+	],
+	"statements": []
+}
+```
+
 ## Google / SEO & GEO / LLMO tools
 
 This set of tools help optimize content for seach engines and LLMs. They have access to real search results and search intent data and provide additional statistical information to your LLM text analysis workflows that can show which search terms are used more often than others or what topics top-ranking content pages contain.
 
-For `generate_google_search_results_graph`, `generate_google_search_queries_graph`, `generate_google_results_vs_queries_graph`, and `generate_seo_report`, use search queries or a URL derived from this passage.
+### analyze_google_search_results
 
-_(Example to be added.)_
+This tool generates a graph of the Google search results for a certain query.
+
+It can be useful for getting an overview of the topics that should be covered to gain topical authority in a subject or to get a general overview of a discourse.
+
+The response can optionally provide search results and URLs retrieved if the `"includeSearchResults": true` parameter is added to the request.
+
+**Request**
+
+```json
+{
+	"queries": ["bible", "forbidden fruit"],
+	"showExtendedGraphInfo": true
+}
+```
+
+**Response**
+
+```json
+{
+	"statistics": {
+		"modularity": 0.6111963690548499,
+		"clusterCount": 8,
+		"diversity_stats": {
+			"diversity_score": "focused",
+			"modularity_score": "high",
+			"too_focused_on_top_nodes": false,
+			"too_focused_on_top_clusters": true,
+			"ratio_of_top_nodes_influence_by_betweenness": 0.7,
+			"top_nodes_entropy": 1.9219280948873623,
+			"ratio_of_top_cluster_influence_by_betweenness": 0.36,
+			"total_clusters": 8,
+			"fair_influence_by_cluster": 0.13
+		}
+	},
+	"graphSummary": "<Main Concepts (concept_degree | concept_betweenness_centrality | concept_topic_id)>: \n bible (200 | 0.6749 | ), fruit (192 | 0.3853 | 3), forbidden (147 | 0.3507 | 3), @theabbybible (24 | 0.2741 | 6), create (23 | 0.1064 | 1), eve (15 | 0.0777 | 3), god (43 | 0.0598 | 1), light (16 | 0.0464 | 3), hand (13 | 0.0460 | ), study (32 | 0.0438 | ), free (41 | 0.0437 | 1), church (22 | 0.0406 | 4), people (22 | 0.0390 | 1), book (27 | 0.0342 | ), song (17 | 0.0284 | 4), red (12 | 0.0216 | 2) \n </MainConcepts> \n\n <MainTopics (topic_id | cluster_influence_by_degree_ratio | cluster_influence_by_betweenness_ratio)>: \n 1. Bible Insights: bible hand study book true written edition transform (0 | 31% | 36%)\n2. Forbidden Knowledge: fruit forbidden eve light adam idea wellness university (3 | 27% | 36%)\n3. Social Media: @theabbybible · abby • instagram photos videos k (6 | 15% | 11%)\n4. Divine Connection: create god free people magazine apr step word (1 | 12% | 11%)\n5. Musical Faith: church song aug month couple back write christian (4 | 7% | 4%)\n6. Flavor Versatility: red highlight versatile tone feature sauce pepper (2 | 5% | 1%)\n7. Spiritual Journey: faith spiritual american (5 | 2% | 1%)\n8. Label Impact: warning effect label (7 | 2% | 1%) \n </MainTopics> \n\n <TopicalGaps>: \n Gap 1: 2. Forbidden Knowledge (fruit forbidden eve light adam idea wellness university) -> 3. Social Media (@theabbybible · abby • instagram photos videos k)\nGap 2: 3. Social Media (@theabbybible · abby • instagram photos videos k) -> 4. Divine Connection (create god free people magazine apr step word)\nGap 3: 1. Bible Insights (bible hand study book true written edition transform) -> 3. Social Media (@theabbybible · abby • instagram photos videos k) \n </TopicalGaps> \n\n <ConceptualGateways> \n @theabbybible\neve\ncreate\nhand\nbible\nlight\nforbidden\nwellness \n </ConceptualGateways> \n\n <Relations>: \n 1) forbidden <-> fruit\n2) @theabbybible <-> ·\n3) read <-> bible\n4) book <-> bible\n5) bible <-> study\n6) half <-> bible\n7) warpaint <-> fanatic\n8) fanatic <-> forbidden\n9) bible <-> online\n10) god <-> create\n11) · <-> following\n12) · <-> pos \n </Relations> \n <DiversityStatistics>:\n        Modularity: 0.61 \n        Modularity Score: high \n        Top concept nodes diversified\n        Too focused on top topical clusters \n        Ratio of top nodes influence / betweenness: 0.7 \n        Ratio of top topical clusters influence / betweenness: 0.36 \n        Total clusters: 8\n        Fair betweenness / influence ratio per cluster: 0.13 \n        Entropy of top nodes distribution among clusters: 1.9219280948873623 \n</DiversityStatistics> \n",
+	"contentGaps": [
+		"Gap 1: 2. Forbidden Knowledge (fruit forbidden eve light adam idea wellness university) -> 3. Social Media (@theabbybible · abby • instagram photos videos k)",
+		"Gap 2: 3. Social Media (@theabbybible · abby • instagram photos videos k) -> 4. Divine Connection (create god free people magazine apr step word)",
+		"Gap 3: 1. Bible Insights (bible hand study book true written edition transform) -> 3. Social Media (@theabbybible · abby • instagram photos videos k)"
+	],
+	"mainTopicalClusters": [
+		"1. Bible Insights: bible hand study book true written edition transform (0 | 31% | 36%)",
+		"2. Forbidden Knowledge: fruit forbidden eve light adam idea wellness university (3 | 27% | 36%)",
+		"3. Social Media: @theabbybible · abby • instagram photos videos k (6 | 15% | 11%)",
+		"4. Divine Connection: create god free people magazine apr step word (1 | 12% | 11%)",
+		"5. Musical Faith: church song aug month couple back write christian (4 | 7% | 4%)",
+		"6. Flavor Versatility: red highlight versatile tone feature sauce pepper (2 | 5% | 1%)",
+		"7. Spiritual Journey: faith spiritual american (5 | 2% | 1%)",
+		"8. Label Impact: warning effect label (7 | 2% | 1%)"
+	],
+	"mainConcepts": [
+		"bible",
+		"fruit",
+		"forbidden",
+		"@theabbybible",
+		"create",
+		"eve",
+		"god",
+		"light",
+		"hand",
+		"study",
+		"free",
+		"church",
+		"people",
+		"book",
+		"song",
+		"red"
+	],
+	"conceptualGateways": [
+		"@theabbybible",
+		"eve",
+		"create",
+		"hand",
+		"bible",
+		"light",
+		"forbidden",
+		"wellness"
+	],
+	"topRelations": [
+		"1) forbidden <-> fruit",
+		"2) @theabbybible <-> ·",
+		"3) read <-> bible",
+		"4) book <-> bible",
+		"5) bible <-> study",
+		"6) half <-> bible",
+		"7) warpaint <-> fanatic",
+		"8) fanatic <-> forbidden",
+		"9) bible <-> online",
+		"10) god <-> create",
+		"11) · <-> following",
+		"12) · <-> pos"
+	],
+	"topBigrams": [
+		"forbidden fruit",
+		"@theabbybible ·",
+		"read bible",
+		"book bible",
+		"bible study",
+		"half bible",
+		"warpaint fanatic",
+		"fanatic forbidden",
+		"bible online",
+		"god create",
+		"· following",
+		"· pos"
+	],
+	"topInfluentialNodes": [
+		{
+			"node": "bible",
+			"bc": 0.6748896547554266,
+			"degree": 200
+		},
+		{
+			"node": "fruit",
+			"bc": 0.3852560614305581,
+			"degree": 192
+		},
+		{
+			"node": "forbidden",
+			"bc": 0.3506711409395973,
+			"degree": 147
+		},
+		{
+			"node": "@theabbybible",
+			"bc": 0.27407944857609284,
+			"degree": 24
+		},
+		{
+			"node": "create",
+			"bc": 0.10638490839833122,
+			"degree": 23
+		}
+	],
+	"userName": "deemeetree"
+}
+```
+
+generate_google_search_queries_graph`, `generate_google_results_vs_queries_graph`, and `generate_seo_report`, use search queries or a URL derived from this passage.
 
 ```
 
