@@ -430,7 +430,7 @@ Generates ideas to help develop the text further. Will be based by default on th
 
 ```json
 {
-	"ideas": [
+	"responses": [
 		"In the labyrinth of divine prohibition and serpentine temptation, one might propose a novel perspective: \"Consciousness as the forbidden fruit.\" Rather than viewing knowledge as static binaries—good or evil—it becomes an evolving awareness where divine consumption isn't just about godlike knowing but embodying the perpetual journey of understanding itself. This transcends duality, reshaping existence into a dynamic synthesis where morality is not fixed but fluid, redefined by every act of seeing and being. The true revelation lies in recognizing that it's not solely what you consume that opens your eyes, but how those open eyes redefine reality continuously."
 	]
 }
