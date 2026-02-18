@@ -415,6 +415,8 @@ The questions are based on the content gaps identified using text network analys
 
 Generates ideas to help develop the text further. Will be based by default on the content gap and will generate an idea that bridges the gap (staying within the text's context). With the `shouldTranscend` mode on, will focus on the least represented clusters as well as conceptual gateways and attempt to link the text to a wider discourse or to an alternative viewpoint.
 
+You can use the `responseType` parameter and set it to `idea` to make the model generate more business-like ideas and less philosophical ones.
+
 - **Parameters (JSON):**
 
 ```json
@@ -845,9 +847,111 @@ In all these tools a special `transcend` mode can be used to connect the discour
 }
 ```
 
-### optimize_text_tool
+### optimize_text_structure
 
-_(Example to be added.)_
+This tool optimizes the structure of the text. It analyzes the level of bias and coherence in text; if too biased, it develops the represented topics; if focused or diversified, it develops the content gaps; if dispersed, it develops the most common gap topics.
+
+A special `transcend` `responseMode` setting will push it to connect the discourse to a wider context.
+
+Text structure statistics is also provided that can be used by LLM to develop the discourse further.
+
+**Request**
+
+```json
+{
+	"text": "God said, You shall not eat of the fruit of the tree which is in the midst of the garden, neither shall you touch it, lest you die. But the serpent said to the woman, You will not die. For God knows that when you eat of it your eyes will be opened, and you will be like God, knowing good and evil.",
+	"responseType": "transcend"
+}
+```
+
+**Response**
+
+```json
+{
+	"suggestions": [
+		"The narrative contains a dynamic tension between forbidden touch and divine knowledge. An intriguing idea that transcends this discourse could propose perceiving the garden not merely as a physical or moral space but as a fluid state of consciousness where boundaries dissolve. Instead of seeing \"knowing good and evil\" as opposing binaries, consider them playful dualities in an evolving dance of experience.\n\nThis reimagined realm invites participation with every being—serpent, woman, god—as co-creators rather than adversaries. Here, understanding emerges not from defiance nor obedience but through continuous transformation within the interconnected web—a perpetual genesis beyond dichotomy."
+	],
+	"diversity_stats": {
+		"diversity_score": "focused",
+		"modularity_score": "medium",
+		"too_focused_on_top_nodes": true,
+		"too_focused_on_top_clusters": true,
+		"ratio_of_top_nodes_influence_by_betweenness": 0.63,
+		"top_nodes_entropy": 0,
+		"ratio_of_top_cluster_influence_by_betweenness": 0.63,
+		"total_clusters": 3,
+		"fair_influence_by_cluster": 0.33
+	},
+	"mainTopicalClusters": [
+		"1. Divine Consumption: god eat eye open (0 | 29% | 63%)",
+		"2. Forbidden Touch: serpent tree fruit woman midst garden touch (1 | 50% | 26%)",
+		"3. Moral Awareness: knowing good evil (2 | 21% | 10%)"
+	],
+	"contentGaps": [
+		"Gap 1: 2. Forbidden Touch (serpent tree fruit woman midst garden touch) -> 3. Moral Awareness (knowing good evil)",
+		"Gap 2: 1. Divine Consumption (god eat eye open) -> 2. Forbidden Touch (serpent tree fruit woman midst garden touch)",
+		"Gap 3: 1. Divine Consumption (god eat eye open) -> 3. Moral Awareness (knowing good evil)"
+	],
+	"mainConcepts": [
+		"god",
+		"eat",
+		"serpent",
+		"knowing",
+		"tree",
+		"good",
+		"fruit",
+		"woman",
+		"midst",
+		"garden",
+		"touch",
+		"eye",
+		"open",
+		"evil"
+	],
+	"topicsToDevelop": [
+		"midst <-> garden [label=\"tree, fruit, touch, serpent\"],serpent <-> woman [label=\"touch, garden\"]",
+		"knowing <-> good [label=\"evil\"]"
+	],
+	"conceptualGateways": [
+		"god",
+		"eat",
+		"serpent",
+		"good",
+		"knowing",
+		"tree",
+		"fruit",
+		"woman"
+	],
+	"topRelations": [
+		"1) god <-> eat",
+		"2) god <-> eye",
+		"3) god <-> open",
+		"4) eat <-> fruit",
+		"5) fruit <-> tree",
+		"6) tree <-> midst",
+		"7) midst <-> garden",
+		"8) garden <-> touch",
+		"9) touch <-> serpent",
+		"10) serpent <-> woman",
+		"11) woman <-> god",
+		"12) eat <-> eye"
+	],
+	"topKeywordCombinations": [
+		"god eat",
+		"god eye",
+		"god open",
+		"eat fruit",
+		"fruit tree",
+		"tree midst",
+		"midst garden",
+		"garden touch",
+		"touch serpent",
+		"serpent woman",
+		"woman god",
+		"eat eye"
+	]
+}
+```
 
 ## Utility Tools
 

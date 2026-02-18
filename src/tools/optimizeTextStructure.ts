@@ -1,11 +1,11 @@
 import { z } from "zod";
 import {
-	GenerateResearchIdeasSchema,
-	GenerateResearchIdeasSchemaBase,
+	OptimizeTextStructureSchema,
+	OptimizeTextStructureSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
-import { generateResearchIdeas } from "../utils/transformers.js";
+import { generateOptimizationResult } from "../utils/transformers.js";
 
 function errorContent(message: string) {
 	return {
@@ -22,14 +22,14 @@ export const optimizeTextStructureTool = {
 		title: "Optimize Text Structure",
 		description:
 			"Analyze the level of bias and coherence in text. If it's too biased, develop the represented topics, if it's focused or diversified, develop the content gaps. If it's dispersed, focus the most common gap topics.",
-		inputSchema: GenerateResearchIdeasSchemaBase.shape,
+		inputSchema: OptimizeTextStructureSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
 		},
 	},
-	handler: async (params: z.infer<typeof GenerateResearchIdeasSchema>) => {
+	handler: async (params: z.infer<typeof OptimizeTextStructureSchema>) => {
 		try {
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
@@ -37,11 +37,9 @@ export const optimizeTextStructureTool = {
 				optimize: "optimize",
 				includeStatements: "false",
 				includeGraphSummary: "false",
-				extendedGraphSummary: "false",
-				includeGraph: "false",
+				extendedGraphSummary: "true",
+				includeGraph: "true",
 				aiTopics: "true",
-				extendedAdvice: params.useSeveralGaps ? "true" : "false",
-				gapDepth: params.gapDepth ? params.gapDepth.toString() : "0",
 			});
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
@@ -53,11 +51,13 @@ export const optimizeTextStructureTool = {
 				requestMode: string;
 				modelToUse: string;
 			};
+			const requestMode = params.responseType ?? "response";
+
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
 					aiTopics: "true",
-					requestMode: params.shouldTranscend ? "transcend" : "response",
+					requestMode,
 					modelToUse: params.modelToUse ?? "gpt-4o",
 				};
 			} else {
@@ -78,14 +78,12 @@ export const optimizeTextStructureTool = {
 				requestBody = {
 					text: contentText,
 					aiTopics: "true",
-					requestMode: params.shouldTranscend ? "transcend" : "response",
+					requestMode,
 					modelToUse: params.modelToUse ?? "gpt-4o",
 				};
 			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
-
-			const researchIdeas = generateResearchIdeas(response);
 
 			if (response.error) {
 				return {
@@ -99,11 +97,13 @@ export const optimizeTextStructureTool = {
 				};
 			}
 
+			const optimizationResult = generateOptimizationResult(response);
+
 			return {
 				content: [
 					{
 						type: "text" as const,
-						text: JSON.stringify(researchIdeas, null, 2),
+						text: JSON.stringify(optimizationResult, null, 2),
 					},
 				],
 			};

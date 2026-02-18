@@ -13,6 +13,7 @@ import {
 	generateTopicalClustersTool,
 	generateResearchQuestionsTool,
 	generateResearchIdeasTool,
+	optimizeTextStructureTool,
 	generateResponsesFromGraphTool,
 	generateContextualHintTool,
 	listGraphsTool,
@@ -118,6 +119,12 @@ export default function createServer({
 		generateResearchIdeasTool.name,
 		generateResearchIdeasTool.definition,
 		wrapHandler(generateResearchIdeasTool.handler)
+	);
+
+	mcpServer.registerTool(
+		optimizeTextStructureTool.name,
+		optimizeTextStructureTool.definition,
+		wrapHandler(optimizeTextStructureTool.handler)
 	);
 
 	mcpServer.registerTool(

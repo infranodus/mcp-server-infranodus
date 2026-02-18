@@ -478,6 +478,63 @@ export const GenerateResearchIdeasSchema =
 		{ message: "Provide either text, url, or graphName for analysis." }
 	);
 
+export const OptimizeTextStructureSchemaBase = z.object({
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"Text that you'd like to optimize the structure of by analyzing its bias and coherence using knowledge graph analysis. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: text, url, or graphName."
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName."
+		),
+	graphName: z
+		.string()
+		.min(1, "Graph name must be non-empty when provided")
+		.optional()
+		.describe(
+			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName."
+		),
+	responseType: z
+		.enum(["response", "idea", "question", "transcend"])
+		.default("response")
+		.describe(
+			"Type of response to generate: 'response' — generates a response based on the gaps identified; 'idea' — generate a business idea that bridges the gap; 'question' — generate questions that focus on this context; 'transcend' — generate responses that go beyond the text and relate to a broader discourse."
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.1",
+			"claude-opus-4.5",
+			"claude-sonnet-4",
+			"claude-sonnet-4.5",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5",
+			"gpt-5-mini",
+		])
+		.default("gpt-4o")
+		.describe(
+			"AI model to use for generating optimization suggestions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini"
+		),
+});
+export const OptimizeTextStructureSchema =
+	OptimizeTextStructureSchemaBase.refine(
+		(data) =>
+			(data.text !== undefined && data.text.trim().length > 0) ||
+			(data.url !== undefined && data.url.length > 0) ||
+			(data.graphName !== undefined && data.graphName.trim().length > 0),
+		{ message: "Provide either text, url, or graphName for analysis." }
+	);
+
 export const DevelopLatentConceptsSchemaBase = z.object({
 	text: z
 		.string()

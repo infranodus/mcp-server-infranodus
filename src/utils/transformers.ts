@@ -10,6 +10,7 @@ import {
 	ResearchQuestionsOutput,
 	ResearchIdeasOutput,
 	ResponsesOutput,
+	OptimizeTextOutput,
 	SearchOutput,
 	FetchOutput,
 	StatementsSearchOutput,
@@ -352,6 +353,35 @@ export function generateResponses(data: GraphResponse): ResponsesOutput {
 	}
 
 	return responses;
+}
+
+export function generateOptimizationResult(
+	data: GraphResponse
+): OptimizeTextOutput {
+	const output: OptimizeTextOutput = {};
+
+	if (data.aiAdvice) {
+		output.suggestions = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.graph?.graphologyGraph?.attributes?.diversity_stats) {
+		output.diversity_stats =
+			data.graph.graphologyGraph.attributes.diversity_stats;
+	}
+
+	if (data.extendedGraphSummary) {
+		const ext = data.extendedGraphSummary;
+		if (ext.mainTopics) output.mainTopicalClusters = ext.mainTopics;
+		if (ext.contentGaps) output.contentGaps = ext.contentGaps;
+		if (ext.mainConcepts) output.mainConcepts = ext.mainConcepts;
+		if (ext.topicsToDevelop) output.topicsToDevelop = ext.topicsToDevelop;
+		if (ext.conceptualGateways)
+			output.conceptualGateways = ext.conceptualGateways;
+		if (ext.topRelations) output.topRelations = ext.topRelations;
+		if (ext.topBigrams) output.topKeywordCombinations = ext.topBigrams;
+	}
+
+	return output;
 }
 
 export function extractLatentConceptsIdeas(
