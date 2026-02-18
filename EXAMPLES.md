@@ -1716,22 +1716,185 @@ Offers an overview of what people think about when they search for a certain top
 
 Looks for the clusters of search queries with high search volume that do not appear in the Google search results for the same requests.
 
-Reveals content gaps in current search results: things people search for that they do not find so easily.
+Reveals content gaps in current search results: queries that people search for that they do not find so easily.
+
+It is also possible the actual search queries (with searches per month) in the output results using `includeSearchQueries: true`, which will then show not only the topical structure and gaps that should be targed but also the actual queries with search intent stats.
 
 **Request**
 
 ```json
 {
-    "queries": ["rv", "dfa"],
+    "queries": ["heart rate variability", "fitness trackers"],
+    "showExtendedGraphInfo": true,
+    "includeSearchQueries": true,
     "importLanguage": "EN",
     "importCountry": "US
 }
 ```
 
+In the response below we omit some data for brevity:
+
 **Response**
 
 ```json
-
+{
+	"statistics": {
+		"modularity": 0.5251344144516379,
+		"clusterCount": 7,
+		"nodeCount": 128,
+		"edgeCount": 419,
+		"diversity_stats": {
+			"diversity_score": "focused",
+			"modularity_score": "high",
+			"too_focused_on_top_nodes": false,
+			"too_focused_on_top_clusters": true,
+			"ratio_of_top_nodes_influence_by_betweenness": 0.44,
+			"top_nodes_entropy": 1.5,
+			"ratio_of_top_cluster_influence_by_betweenness": 0.36,
+			"total_clusters": 7,
+			"fair_influence_by_cluster": 0.14
+		}
+	},
+	"contentGaps": [
+		"Gap 1: 1. Fitness Accuracy (tracker fitness reddit accurate for best woman subscription) -> 3. HRV Monitoring (hrv device monitoring dangerously home monitor improve to)",
+		"Gap 2: 4. Age Variability (variability heart chart rate age apple sleep female) -> 5. Whoop Comparison (price whoop peak one review s life band)",
+		"Gap 3: 3. HRV Monitoring (hrv device monitoring dangerously home monitor improve to) -> 5. Whoop Comparison (price whoop peak one review s life band)"
+	],
+	"mainTopicalClusters": [
+		"1. Fitness Accuracy: tracker fitness reddit accurate for best woman subscription (2 | 27% | 36%)",
+		"2. Smartwatch Compatibility: watch android garmin iphone wom lady smartwatch app (3 | 16% | 22%)",
+		"3. HRV Monitoring: hrv device monitoring dangerously home monitor improve to (1 | 20% | 13%)",
+		"4. Age Variability: variability heart chart rate age apple sleep female (0 | 15% | 13%)",
+		"5. Whoop Comparison: price whoop peak one review s life band (4 | 13% | 12%)",
+		"6. Variability Insights: variabilityn normal rang range meaning gender woem lower (5 | 6% | 3%)",
+		"7. Senior Technology: senior report consumer smartphone (6 | 3% | 1%)"
+	],
+	"mainConcepts": [
+		"watch",
+		"tracker",
+		"hrv",
+		"fitness",
+		"reddit",
+		"price",
+		"accurate",
+		"whoop",
+		"variability",
+		"heart",
+		"android",
+		"chart",
+		"variabilityn",
+		"for",
+		"garmin",
+		"iphone"
+	],
+	"conceptualGateways": [
+		"price",
+		"watch",
+		"accurate",
+		"tracker",
+		"chart",
+		"whoop",
+		"android",
+		"hrv"
+	],
+	"topRelations": [
+		"1) variability <-> chart",
+		"2) chart <-> female",
+		"3) rate <-> chart",
+		"4) accurate <-> fitness",
+		"5) most <-> accurate",
+		"6) best <-> fitness",
+		"7) tracker <-> reddit",
+		"8) variability <-> apple",
+		"9) variability <-> female",
+		"10) tracker <-> woman",
+		"11) dangerously <-> low",
+		"12) accurate <-> tracker"
+	],
+	"topBigrams": [
+		"variability chart",
+		"chart female",
+		"rate chart",
+		"accurate fitness",
+		"most accurate",
+		"best fitness",
+		"tracker reddit",
+		"variability apple",
+		"variability female",
+		"tracker woman",
+		"dangerously low",
+		"accurate tracker"
+	],
+	"knowledgeGraph": {
+		"attributes": {
+			"modularity": 0.5251344144516379,
+			"diversity_stats": {
+				"diversity_score": "focused",
+				"modularity_score": "high",
+				"too_focused_on_top_nodes": false,
+				"too_focused_on_top_clusters": true,
+				"ratio_of_top_nodes_influence_by_betweenness": 0.44,
+				"top_nodes_entropy": 1.5,
+				"ratio_of_top_cluster_influence_by_betweenness": 0.36,
+				"total_clusters": 7,
+				"fair_influence_by_cluster": 0.14
+			},
+			"top_clusters": [
+				{
+					"community": "2",
+					"nodes": [
+						{
+							"nodeName": "tracker",
+							"bc": 0.4095113110861142
+						},
+						{
+							"nodeName": "fitness",
+							"bc": 0.22972128483939505
+						}
+					],
+					"bcRatio": 0.36
+				}
+			],
+			"gaps": [
+				{
+					"from": {
+						"community": "2"
+					},
+					"to": {
+						"community": "1"
+					}
+				},
+				{
+					"from": {
+						"community": "0"
+					},
+					"to": {
+						"community": "4"
+					}
+				}
+			]
+		}
+	},
+	"statements": [
+		{
+			"id": "197082_3",
+			"content": "heart rate variability device",
+			"categories": [
+				"related to: heart rate variability",
+				"N/A searches/month"
+			],
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "none"
+		},
+		{
+			"id": "197082_4",
+			"content": "whoop 5 peak",
+			"categories": ["related to: fitness trackers", "N/A searches/month"],
+			"topStatementCommunity": "4",
+			"topStatementOfCommunity": "none"
+		}
+	]
+}
 ```
 
 ### generate_seo_report
