@@ -1738,6 +1738,190 @@ In the response below we omit some data for brevity:
 
 ```json
 {
+	"statistics": {
+		"modularity": 0.5251344144516379,
+		"clusterCount": 7,
+		"nodeCount": 128,
+		"edgeCount": 419,
+		"diversity_stats": {
+			"diversity_score": "focused",
+			"modularity_score": "high",
+			"too_focused_on_top_nodes": false,
+			"too_focused_on_top_clusters": true,
+			"ratio_of_top_nodes_influence_by_betweenness": 0.44,
+			"top_nodes_entropy": 1.5,
+			"ratio_of_top_cluster_influence_by_betweenness": 0.36,
+			"total_clusters": 7,
+			"fair_influence_by_cluster": 0.14
+		}
+	},
+	"contentGaps": [
+		"Gap 1: 1. Fitness Accuracy (tracker fitness reddit accurate for best woman subscription) -> 3. HRV Monitoring (hrv device monitoring dangerously home monitor improve to)",
+		"Gap 2: 4. Age Variability (variability heart chart rate age apple sleep female) -> 5. Whoop Comparison (price whoop peak one review s life band)",
+		"Gap 3: 3. HRV Monitoring (hrv device monitoring dangerously home monitor improve to) -> 5. Whoop Comparison (price whoop peak one review s life band)"
+	],
+	"mainTopicalClusters": [
+		"1. Fitness Accuracy: tracker fitness reddit accurate for best woman subscription (2 | 27% | 36%)",
+		"2. Smartwatch Compatibility: watch android garmin iphone wom lady smartwatch app (3 | 16% | 22%)",
+		"3. HRV Monitoring: hrv device monitoring dangerously home monitor improve to (1 | 20% | 13%)",
+		"4. Age Variability: variability heart chart rate age apple sleep female (0 | 15% | 13%)",
+		"5. Whoop Comparison: price whoop peak one review s life band (4 | 13% | 12%)",
+		"6. Variability Insights: variabilityn normal rang range meaning gender woem lower (5 | 6% | 3%)",
+		"7. Senior Technology: senior report consumer smartphone (6 | 3% | 1%)"
+	],
+	"mainConcepts": [
+		"watch",
+		"tracker",
+		"hrv",
+		"fitness",
+		"reddit",
+		"price",
+		"accurate",
+		"whoop",
+		"variability",
+		"heart",
+		"android",
+		"chart",
+		"variabilityn",
+		"for",
+		"garmin",
+		"iphone"
+	],
+	"conceptualGateways": [
+		"price",
+		"watch",
+		"accurate",
+		"tracker",
+		"chart",
+		"whoop",
+		"android",
+		"hrv"
+	],
+	"topRelations": [
+		"1) variability <-> chart",
+		"2) chart <-> female",
+		"3) rate <-> chart",
+		"4) accurate <-> fitness",
+		"5) most <-> accurate",
+		"6) best <-> fitness",
+		"7) tracker <-> reddit",
+		"8) variability <-> apple",
+		"9) variability <-> female",
+		"10) tracker <-> woman",
+		"11) dangerously <-> low",
+		"12) accurate <-> tracker"
+	],
+	"topBigrams": [
+		"variability chart",
+		"chart female",
+		"rate chart",
+		"accurate fitness",
+		"most accurate",
+		"best fitness",
+		"tracker reddit",
+		"variability apple",
+		"variability female",
+		"tracker woman",
+		"dangerously low",
+		"accurate tracker"
+	],
+	"knowledgeGraph": {
+		"attributes": {
+			"modularity": 0.5251344144516379,
+			"diversity_stats": {
+				"diversity_score": "focused",
+				"modularity_score": "high",
+				"too_focused_on_top_nodes": false,
+				"too_focused_on_top_clusters": true,
+				"ratio_of_top_nodes_influence_by_betweenness": 0.44,
+				"top_nodes_entropy": 1.5,
+				"ratio_of_top_cluster_influence_by_betweenness": 0.36,
+				"total_clusters": 7,
+				"fair_influence_by_cluster": 0.14
+			},
+			"top_clusters": [
+				{
+					"community": "2",
+					"nodes": [
+						{
+							"nodeName": "tracker",
+							"bc": 0.4095113110861142
+						},
+						{
+							"nodeName": "fitness",
+							"bc": 0.22972128483939505
+						}
+					],
+					"bcRatio": 0.36
+				}
+			],
+			"gaps": [
+				{
+					"from": {
+						"community": "2"
+					},
+					"to": {
+						"community": "1"
+					}
+				},
+				{
+					"from": {
+						"community": "0"
+					},
+					"to": {
+						"community": "4"
+					}
+				}
+			]
+		}
+	},
+	"statements": [
+		{
+			"id": "197082_3",
+			"content": "heart rate variability device",
+			"categories": [
+				"related to: heart rate variability",
+				"N/A searches/month"
+			],
+			"topStatementCommunity": "0",
+			"topStatementOfCommunity": "none"
+		},
+		{
+			"id": "197082_4",
+			"content": "whoop 5 peak",
+			"categories": ["related to: fitness trackers", "N/A searches/month"],
+			"topStatementCommunity": "4",
+			"topStatementOfCommunity": "none"
+		}
+	]
+}
+```
+
+### generate_seo_report
+
+Generates a full SEO report for a text or a URL. It is based on the tools above: first the text is extracted and the main keywords are identified. Then the search results are retrieved for these search results (for topical authority), search intent (what people look for), then the graph of what people look for but do not find (`search_queries_vs_search_results` tool), then finally synthesizes the insights and generates content ideas, information about main topical cluster to cover and content gaps.
+
+Can be used by LLM to get a structured understanding of any topic or text and generate full insights on how it can be developed further.
+
+You can also choose to extract not only all the content, but also the `header tags` or only `link tags` to analyze <h1>...<h6> headers of a page or link tags.
+
+Note, that because this tool launches multiple other tools, its execution might take longer, so you need to extend the timeout to at least 90 seconds. The results will be worth it though!
+
+The tool provides intemediary progress, so if your LLM client supports it, you'll be able to see what's happening.
+
+**Request**
+
+```json
+{
+	"url": "https://infranodus.com",
+	"contentToExtract": "header tags"
+}
+```
+
+**Response**
+
+```json
+{
 	"inSearchResultsNotInText": {
 		"mainTopics": [
 			"1. Content Gaps: learn keyword analysis gap content find fill exist (2 | 16% | 53%)",
@@ -1917,109 +2101,13 @@ In the response below we omit some data for brevity:
 		]
 	},
 	"topMissingQueries": [
-		"pagespeed insights | related to: seo insights, from 10000 searches/month",
-		"google pagespeed insights | related to: seo insights, from 10000 searches/month",
-		"website speed test | related to: seo insights, from 10000 searches/month",
 		"content gap analysis ahrefs | related to: content gap, 100 to 1000 searches/month",
 		"knowledge graph llm | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph llm | related to: knowledge graph, 100 to 1000 searches/month",
-		"page speed | related to: seo insights, 1000 to 10000 searches/month",
-		"content gap ahrefs | related to: content gap, 100 to 1000 searches/month",
-		"google pagespeed | related to: seo insights, 1000 to 10000 searches/month",
-		"page speed test | related to: seo insights, 1000 to 10000 searches/month",
 		"knowledge graph for rag | related to: knowledge graph, 100 to 1000 searches/month",
 		"knowledge graph for rag | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph visualization | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph visualization | related to: knowledge graph, 100 to 1000 searches/month",
 		"page insights | related to: seo insights, 1000 to 10000 searches/month",
 		"seo audit tool free | related to: seo insights, 1000 to 10000 searches/month",
-		"google page insights | related to: seo insights, 1000 to 10000 searches/month",
-		"what is seo in digital marketing | related to: seo insights, 1000 to 10000 searches/month",
-		"seo software tools free | related to: seo insights, 1000 to 10000 searches/month",
-		"what is seo and how it works | related to: seo insights, 100 to 1000 searches/month",
-		"website speed test free | related to: seo insights, 100 to 1000 searches/month",
-		"what is seo stand for | related to: seo insights, 100 to 1000 searches/month",
-		"how to do seo for website step-by-step | related to: seo insights, 100 to 1000 searches/month",
-		"seo content gap analysis | related to: content gap, 100 to 1000 searches/month",
-		"ahrefs content gap | related to: content gap, 100 to 1000 searches/month",
-		"content gap analysis ahrefs | related to: content gap, 100 to 1000 searches/month",
-		"ahrefs content gap analysis | related to: content gap, 100 to 1000 searches/month",
-		"seo optimizer tool | related to: seo insights, 100 to 1000 searches/month",
-		"ahrefs content gap tool | related to: content gap, 100 to 1000 searches/month",
-		"content gap ahrefs | related to: content gap, 100 to 1000 searches/month",
-		"pagespeed insights vs lighthouse | related to: seo insights, 100 to 1000 searches/month",
-		"gtmetrix speed test | related to: seo insights, 100 to 1000 searches/month",
-		"google's knowledge graph | related to: knowledge graph, 1000 to 10000 searches/month",
-		"google's knowledge graph | related to: knowledge graph, 1000 to 10000 searches/month",
-		"gtmetrix alternative | related to: seo insights, 100 to 1000 searches/month",
-		"knowledge graph rag | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph rag | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph search api | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph search api | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph-llm | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph-llm | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph examples | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph examples | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph llm | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph llm | related to: knowledge graph, 100 to 1000 searches/month",
-		"neo4j knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"neo4j knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"seo knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"seo knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph seo | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph seo | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph a i | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph a i | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph artificial intelligence | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph artificial intelligence | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph visualization | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph visualization | related to: knowledge graph, 100 to 1000 searches/month",
-		"confidence vs knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"confidence vs knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph for rag | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph for rag | related to: knowledge graph, 100 to 1000 searches/month",
-		"llm knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"llm knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"google's knowledge graph api | related to: knowledge graph, 100 to 1000 searches/month",
-		"google's knowledge graph api | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge vs confidence graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge vs confidence graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph optimization | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph optimization | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph wikipedia | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph wikipedia | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph software | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph software | related to: knowledge graph, 100 to 1000 searches/month",
-		"semantic knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"semantic knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"wikipedia knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"wikipedia knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph wiki | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph wiki | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph tool | related to: knowledge graph, 100 to 1000 searches/month",
-		"knowledge graph tool | related to: knowledge graph, 100 to 1000 searches/month",
-		"neo4j llm knowledge graph builder | related to: knowledge graph, 100 to 1000 searches/month",
-		"neo4j llm knowledge graph builder | related to: knowledge graph, 100 to 1000 searches/month",
-		"wiki knowledge graph | related to: knowledge graph, 100 to 1000 searches/month",
-		"wiki knowledge graph | related to: knowledge graph, 100 to 1000 searches/month"
+		"google page insights | related to: seo insights, 1000 to 10000 searches/month"
 	]
 }
-```
-
-### generate_seo_report
-
-Generates a full SEO report for a text, URL, or an existing InfraNodus graph. It is based on the tools above: first the text is extracted and the main keywords are identified. Then the search results are retrieved for these search results (for topical authority), search intent (what people look for), then the graph of what people look for but do not find (`search_queries_vs_search_results` tool), then finally synthesizes the insights and generates content ideas, information about main topical cluster to cover and content gaps.
-
-Can be used by LLM to get a structured understanding of any topic or text and generate full insights on how it can be developed further.
-
-**Request**
-
-```json
-
-```
-
-**Response**
-
-```json
-
 ```
