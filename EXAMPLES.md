@@ -784,6 +784,10 @@ Useful for general text analysis. Similar to `generate_knowledge_graph` however 
 
 _(Example to be added.)_
 
+### optimize_text_tool
+
+_(Example to be added.)_
+
 ## Utility Tools
 
 These tools are used for listing all available graphs, retrieving search results from the knowledge base, searching existing graphs, and fetching specific search results.
@@ -1515,6 +1519,8 @@ Note, to include `diversity_stats`, use the `"includeGraph": true` parameter in 
 
 This set of tools help optimize content for seach engines and LLMs. They have access to real search results and search intent data and provide additional statistical information to your LLM text analysis workflows that can show which search terms are used more often than others or what topics top-ranking content pages contain.
 
+You can run separate tools in a sequence or the `#generate_seo_report` tool that combines all of them and executes them step by step providing a full SEO report based on the existing search results (to maximize topical authority), popular search queries, content gaps and opportunities identified.
+
 ### analyze_google_search_results
 
 This tool generates a graph of the Google search results for a certain query.
@@ -1654,8 +1660,94 @@ The response can optionally provide search results and URLs retrieved if the `"i
 }
 ```
 
-generate_google_search_queries_graph`, `generate_google_results_vs_queries_graph`, and `generate_seo_report`, use search queries or a URL derived from this passage.
+### analyze_related_search_queries
+
+Analyzes which search queries people use together with the search queries provided to the tool and provides an analysis report with the main topical clusters and gaps. The data is derived from Google "people also search for" feature and optionally includes search volume if `includeSearchQueries` is `true`. Can work for multiple markets and languages.
+
+Offers an overview of what people think about when they search for a certain topic. Useful for understanding informational demand and comparing it with supply to find possible gaps.
+
+**Request**
+
+```json
+{
+    "queries": ["heart rate variability", "dfa"],
+    "importLanguage": "EN",
+    "importCountry": "US
+}
+```
+
+**Response**
+
+```json
+{
+	"statistics": {
+		"modularity": 0.3751510928963107,
+		"clusterCount": 6,
+		"diversity_stats": {
+			"diversity_score": "focused",
+			"modularity_score": "medium",
+			"too_focused_on_top_nodes": true,
+			"too_focused_on_top_clusters": true,
+			"ratio_of_top_nodes_influence_by_betweenness": 0.41,
+			"top_nodes_entropy": 0,
+			"ratio_of_top_cluster_influence_by_betweenness": 0.46,
+			"total_clusters": 6,
+			"fair_influence_by_cluster": 0.17
+		}
+	},
+	"graphSummary": "<Main Concepts (concept_degree | concept_betweenness_centrality | concept_topic_id)>: \n hrv (44 | 0.6147 | 2), monitor (12 | 0.2476 | 2), heart (27 | 0.2404 | ), variability (27 | 0.1990 | ), rate (30 | 0.1820 | ), watch (20 | 0.1255 | 4), variabilityn (10 | 0.0855 | 3), normal (14 | 0.0832 | 3), apple (18 | 0.0640 | 4), device (7 | 0.0570 | 2), chart (10 | 0.0561 | ), age (15 | 0.0466 | 3), rang (6 | 0.0289 | 3), low (12 | 0.0289 | 2), garmin (5 | 0.0289 | 2), improve (6 | 0.0201 | 5) \n </MainConcepts> \n\n <MainTopics (topic_id | cluster_influence_by_degree_ratio | cluster_influence_by_betweenness_ratio)>: \n 1. HRV Monitoring: hrv monitor device low garmin dangerously symptoms woman (2 | 44% | 46%)\n2. Female Variability: heart variability rate chart female increase most accurate (0 | 16% | 32%)\n3. Age Impact: variabilityn normal age rang sleeping range meaning gender (3 | 21% | 12%)\n4. Apple Accuracy: watch apple accuracy series check reddit make continuous (4 | 12% | 9%)\n5. HRV Enhancement: improve to how (5 | 4% | 1%)\n6. Fractal Analysis: fractal dfa (1 | 3% | 0%) \n </MainTopics> \n\n <TopicalGaps>: \n Gap 1: 2. Female Variability (heart variability rate chart female increase most accurate) -> 3. Age Impact (variabilityn normal age rang sleeping range meaning gender)\nGap 2: 1. HRV Monitoring (hrv monitor device low garmin dangerously symptoms woman) -> 2. Female Variability (heart variability rate chart female increase most accurate)\nGap 3: 3. Age Impact (variabilityn normal age rang sleeping range meaning gender) -> 4. Apple Accuracy (watch apple accuracy series check reddit make continuous) \n </TopicalGaps> \n\n <ConceptualGateways> \n monitor\nhrv\nheart\nvariabilityn\ndevice\nvariability\nwatch\nrate \n </ConceptualGateways> \n\n <Relations>: \n 1) heart <-> rate\n2) rate <-> variability\n3) heart <-> variability\n4) apple <-> watch\n5) variability <-> chart\n6) low <-> hrv\n7) chart <-> female\n8) rate <-> chart\n9) variability <-> apple\n10) variability <-> female\n11) dangerously <-> low\n12) variabilityn <-> gender \n </Relations> \n <DiversityStatistics>:\n        Modularity: 0.38 \n        Modularity Score: medium \n        Too focused on top concept nodes \n        Too focused on top topical clusters \n        Ratio of top nodes influence / betweenness: 0.41 \n        Ratio of top topical clusters influence / betweenness: 0.46 \n        Total clusters: 6\n        Fair betweenness / influence ratio per cluster: 0.17 \n        Entropy of top nodes distribution among clusters: 0 \n</DiversityStatistics> \n",
+	"topInfluentialNodes": [
+		{
+			"node": "hrv",
+			"bc": 0.6146540027137042,
+			"degree": 44
+		},
+		{
+			"node": "monitor",
+			"bc": 0.24762550881953868,
+			"degree": 12
+		}
+	],
+	"userName": "deemeetree"
+}
+```
+
+### search_queries_vs_search_results
+
+Looks for the clusters of search queries with high search volume that do not appear in the Google search results for the same requests.
+
+Reveals content gaps in current search results: things people search for that they do not find so easily.
+
+**Request**
+
+```json
+{
+    "queries": ["rv", "dfa"],
+    "importLanguage": "EN",
+    "importCountry": "US
+}
+```
+
+**Response**
+
+```json
 
 ```
+
+### generate_seo_report
+
+Generates a full SEO report for a text, URL, or an existing InfraNodus graph. It is based on the tools above: first the text is extracted and the main keywords are identified. Then the search results are retrieved for these search results (for topical authority), search intent (what people look for), then the graph of what people look for but do not find (`search_queries_vs_search_results` tool), then finally synthesizes the insights and generates content ideas, information about main topical cluster to cover and content gaps.
+
+Can be used by LLM to get a structured understanding of any topic or text and generate full insights on how it can be developed further.
+
+**Request**
+
+```json
+
+```
+
+**Response**
+
+```json
 
 ```
