@@ -982,17 +982,25 @@ export const GenerateGoogleResultsVsQueriesGraphSchema = z.object({
 		.describe(
 			"Queries for which you'd like to find the difference between what people find and what people are looking for"
 		),
-	showGraphOnly: z
+	includeGraph: z
 		.boolean()
-		.default(true)
-		.describe(
-			"Only include the graph structure and keywords in the response (do not include the search results)"
-		),
+		.default(false)
+		.describe("Include the graph structure and keywords in the response"),
 	showExtendedGraphInfo: z
 		.boolean()
 		.default(false)
 		.describe(
 			"Include extended graph information in the response (add only if explicitly needed)"
+		),
+	includeSearchQueries: z
+		.boolean()
+		.default(false)
+		.describe("Include search queries in the response"),
+	includeSearchQueriesOnly: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Only include search queries in the response (do not include the knowledge graph, analysis, and keywords)"
 		),
 	importLanguage: z
 		.enum([
