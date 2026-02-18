@@ -263,7 +263,22 @@ export function extractStatementStrings(
 	const statements: StatementStringsOutput = {};
 
 	if (data.statements) {
-		statements.statements = data.statements.map((statement) => {
+		const filterByCategory = (pattern: RegExp) =>
+			data.statements!.filter((statement) =>
+				statement.categories?.some((category) => pattern.test(category))
+			);
+
+		const thresholds: RegExp[] = [/1000/, /100/, /\d/];
+		let filtered = data.statements!;
+		for (const pattern of thresholds) {
+			const result = filterByCategory(pattern);
+			if (result.length > 0) {
+				filtered = result;
+				break;
+			}
+		}
+
+		statements.statements = filtered.map((statement) => {
 			const statementContent = statement.content;
 			const statementCategories =
 				statement.categories?.map((category) => category) || [];

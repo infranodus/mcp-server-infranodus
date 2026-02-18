@@ -1083,6 +1083,20 @@ export const GenerateSEOGraphSchema = z.object({
 		.describe(
 			"What to extract from URL: 'all' (default), 'header tags', or 'link tags'."
 		),
+	numberOfKeywordsToExtract: z
+		.number()
+		.max(4)
+		.default(2)
+		.describe(
+			"Number of the top keyword groups extracted from text to use for the SEO analysis, default is 2, maximum is 4. Use more if you want to get deeper insights but longer processing. In case the tool fails, reduce to 2 or less."
+		),
+	numberOfTopicsToExtract: z
+		.number()
+		.max(4)
+		.default(2)
+		.describe(
+			"Number of the top topical cluster names extracted from text to use for the SEO analysis, default is 2, maximum is 4. Use more if you want to get deeper insights but longer processing. In case the tool fails, reduce to 2 or less."
+		),
 	importLanguage: z
 		.enum([
 			"EN",
