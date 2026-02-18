@@ -881,6 +881,10 @@ export const GenerateGoogleSearchQueriesGraphSchema = z.object({
 		.describe(
 			"Queries that you'd like to get Google related queries for, can be comma-separated for multiple queries"
 		),
+	includeSearchQueries: z
+		.boolean()
+		.default(false)
+		.describe("Include search queries in the response"),
 	includeSearchQueriesOnly: z
 		.boolean()
 		.default(false)
@@ -893,17 +897,23 @@ export const GenerateGoogleSearchQueriesGraphSchema = z.object({
 		.describe(
 			"Source of keywords to use for the graph: related (Google suggestions) or adwords (Google Ads suggestions - broader range)"
 		),
-	showGraphOnly: z
+	includeGraph: z
 		.boolean()
-		.default(true)
+		.default(false)
 		.describe(
-			"Only include the graph structure and keywords in the response (do not include the search queries)"
+			"Include the graph structure and keywords in the response (add only if explicitly needed)"
 		),
 	showExtendedGraphInfo: z
 		.boolean()
 		.default(false)
 		.describe(
-			"Include extended graph information in the response (add only if explicitly needed)"
+			"Include extended graph information in the response (additional information about the content gaps, main topics, and keywords)"
+		),
+	includeNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in the response (true only if explicitly required)"
 		),
 	importLanguage: z
 		.enum([

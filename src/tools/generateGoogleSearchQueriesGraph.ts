@@ -11,26 +11,32 @@ export const generateGoogleSearchQueriesGraphTool = {
 			"Generate a knowledge graph and identifymain topical clusters in the search requests related to the search queries provided",
 		inputSchema: GenerateGoogleSearchQueriesGraphSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateGoogleSearchQueriesGraphSchema>
 	) => {
 		try {
-			const includeGraph = params.includeSearchQueriesOnly ? false : true;
-			const includeStatements = params.showGraphOnly ? false : true;
+			const includeGraph = params.includeGraph ? true : false;
+			const includeStatements = params.includeSearchQueries ? true : false;
+			const showExtendedGraphInfo = params.showExtendedGraphInfo ? true : false;
+			const includeNodesAndEdges = params.includeNodesAndEdges ? true : false;
+			const includeSearchQueriesOnly = params.includeSearchQueriesOnly
+				? true
+				: false;
 
 			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
 				includeGraphSummary: "true",
-				extendedGraphSummary: "true",
-				includeGraph: includeGraph ? "false" : "true",
-				includeStatements: includeStatements ? "true" : "false",
+				extendedGraphSummary: showExtendedGraphInfo ? "true" : "false",
+				includeGraph: includeGraph ? "true" : "false",
+				includeStatements:
+					includeStatements || includeSearchQueriesOnly ? "true" : "false",
 				compactGraph: "true",
 				compactStatements: "true",
 				aiTopics: "true",
@@ -40,7 +46,7 @@ export const generateGoogleSearchQueriesGraphTool = {
 
 			const response = await makeInfraNodusRequest(endpoint, {
 				searchQuery: params.queries.join(","),
-				doNotAddGraph: includeGraph ? "false" : "true",
+				includeSearchQueriesOnly: includeSearchQueriesOnly ? "true" : "false",
 				keywordsSource:
 					params.keywordsSource == "adwords" ? "adwords" : "related",
 				aiTopics: "true",
@@ -63,8 +69,16 @@ export const generateGoogleSearchQueriesGraphTool = {
 			const textOverview = transformToStructuredOutput(
 				response,
 				includeGraph,
-				includeStatements
+				includeNodesAndEdges
 			);
+
+			if (!includeStatements && !includeSearchQueriesOnly) {
+				delete textOverview.statements;
+			}
+
+			if (showExtendedGraphInfo || includeGraph) {
+				delete textOverview.graphSummary;
+			}
 
 			return {
 				content: [

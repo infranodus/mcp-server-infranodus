@@ -34,7 +34,8 @@ export const generateGoogleSearchResultsGraphTool = {
 				includeGraphSummary: "true",
 				extendedGraphSummary: showExtendedGraphInfo ? "true" : "false",
 				includeGraph: includeGraph ? "true" : "false",
-				includeStatements: includeStatements ? "true" : "false",
+				includeStatements:
+					includeStatements || includeSearchResultsOnly ? "true" : "false",
 				compactGraph: "true",
 				compactStatements: "true",
 				aiTopics: "true",
