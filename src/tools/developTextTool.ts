@@ -54,7 +54,9 @@ export const developTextTool = {
 				} else if (params.text?.trim()) {
 					contentText = params.text;
 				} else {
-					return errorContent("Provide either text, url, or graphName for analysis");
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
 				}
 			}
 
@@ -78,13 +80,13 @@ export const developTextTool = {
 			// Step 1: Generate Research Questions
 			await progress.report(
 				10,
-				"🔍 Generating research questions and topical gaps from text..."
+				"🔍 Generating research questions and topical gaps from text based on its structure..."
 			);
 
 			const queryParamsResearch = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
-				optimize: "gap",
+				optimize: "optimize",
 				includeStatements: "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
@@ -102,13 +104,13 @@ export const developTextTool = {
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
-					}
+				  }
 				: {
 						text: contentText,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
-					};
+				  };
 
 			const researchResponse = await makeInfraNodusRequest(
 				endpointResearch,
@@ -149,13 +151,13 @@ export const developTextTool = {
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
-					}
+				  }
 				: {
 						text: contentText,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
-					};
+				  };
 
 			const latentResponse = await makeInfraNodusRequest(
 				endpointLatent,
@@ -196,13 +198,13 @@ export const developTextTool = {
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
-					}
+				  }
 				: {
 						text: contentText,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
-					};
+				  };
 
 			const conceptualBridgesResponse = await makeInfraNodusRequest(
 				endpointBridges,

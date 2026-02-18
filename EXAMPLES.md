@@ -782,7 +782,34 @@ Useful for general text analysis. Similar to `generate_knowledge_graph` however 
 
 ### develop_text_tool
 
-_(Example to be added.)_
+Uses a combination of InfraNodus tools to develop a text based on content gaps and underrepresented topical clusters.
+
+This tool can be used to improve your writing or to develop research ideas. It's also useful for SEO where it can be used to make sure that a text or a web page has the highest topical authority.
+
+This tool iterates through the following tools:
+
+1. Uses the "optimize" tool that generates an idea / research question based on the gap between topical clusters. If the text is too biased, it'll use the least represented topics. If the text is too focused on a specific idea or diversified, it will focus on the clusters that are furthest from each other. If the text is dispersed, it will focus on the clusters that are most frequent in all the gaps that exist in this text.
+
+2. Uses the "latent" ideas tool which extracts underdeveloped topics and attempts to develop the discourse in this direction.
+
+3. Uses the "conceptual bridges" tool to extract the concepts that may link this discourse to a broader context.
+
+In all these tools a special `transcend` mode can be used to connect the discourse to a wider context and push the model to think outside of the particular text analyzed.
+
+**Request**
+
+```json
+{
+	"text": "God said, You shall not eat of the fruit of the tree which is in the midst of the garden, neither shall you touch it, lest you die. But the serpent said to the woman: You will not die. For God knows that when you eat of it your eyes will be opened, and you will be like God, knowing good and evil",
+	"requestMode": "transcend"
+}
+```
+
+**Response**
+
+```json
+
+```
 
 ### optimize_text_tool
 
