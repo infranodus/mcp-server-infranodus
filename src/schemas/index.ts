@@ -802,6 +802,12 @@ export const GenerateGoogleSearchResultsGraphSchema = z.object({
 		.describe(
 			"Include extended graph information in the response (additional information about the content gaps and main topics)"
 		),
+	includeSearchResultsOnly: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Only include search results in the response (do not include the knowledge graph, analysis, and keywords)"
+		),
 	includeNodesAndEdges: z
 		.boolean()
 		.default(false)

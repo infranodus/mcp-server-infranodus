@@ -24,6 +24,9 @@ export const generateGoogleSearchResultsGraphTool = {
 			const includeStatements = params.includeSearchResults ? true : false;
 			const showExtendedGraphInfo = params.showExtendedGraphInfo ? true : false;
 			const includeNodesAndEdges = params.includeNodesAndEdges ? true : false;
+			const includeSearchResultsOnly = params.includeSearchResultsOnly
+				? true
+				: false;
 			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
@@ -43,6 +46,7 @@ export const generateGoogleSearchResultsGraphTool = {
 				searchQuery: params.queries.join(","),
 				includeGraph: includeGraph ? "true" : "false",
 				aiTopics: "true",
+				includeSearchResultsOnly: includeSearchResultsOnly ? "true" : "false",
 				importLanguage: params.importLanguage || "EN",
 				importCountry: params.importCountry || "US",
 			});
@@ -65,8 +69,12 @@ export const generateGoogleSearchResultsGraphTool = {
 				includeNodesAndEdges
 			);
 
-			if (!includeStatements) {
+			if (!includeStatements && !includeSearchResultsOnly) {
 				delete textOverview.statements;
+			}
+
+			if (showExtendedGraphInfo || includeGraph) {
+				delete textOverview.graphSummary;
 			}
 
 			return {
