@@ -5,7 +5,10 @@ import {
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
-import { generateResearchIdeas } from "../utils/transformers.js";
+import {
+	generateResearchIdeas,
+	generateResponses,
+} from "../utils/transformers.js";
 
 function errorContent(message: string) {
 	return {
@@ -31,6 +34,7 @@ export const generateResearchIdeasTool = {
 	},
 	handler: async (params: z.infer<typeof GenerateResearchIdeasSchema>) => {
 		try {
+			const responseType = params.responseType === "idea" ? "idea" : "response";
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -78,14 +82,21 @@ export const generateResearchIdeasTool = {
 				requestBody = {
 					text: contentText,
 					aiTopics: "true",
-					requestMode: params.shouldTranscend ? "transcend" : "response",
+					requestMode: params.shouldTranscend
+						? "transcend"
+						: responseType === "idea"
+						? "idea"
+						: "response",
 					modelToUse: params.modelToUse ?? "gpt-4o",
 				};
 			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
-			const researchIdeas = generateResearchIdeas(response);
+			const researchIdeas =
+				responseType === "idea"
+					? generateResearchIdeas(response)
+					: generateResponses(response);
 
 			if (response.error) {
 				return {

@@ -442,6 +442,12 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.describe(
 			"Generate ideas that transcend and go beyond the content of the text and relate to a broader discourse. Only run if explicitly requested by the user to go beyond the text and relate to a broader discourse"
 		),
+	responseType: z
+		.enum(["response", "idea"])
+		.default("response")
+		.describe(
+			"Type of response to generate: 'response' — generates a response based on the gaps identified; 'idea' — generate an business idea that bridges the gap."
+		),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.1",
