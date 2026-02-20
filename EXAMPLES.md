@@ -849,9 +849,9 @@ In all these tools a special `transcend` mode can be used to connect the discour
 
 ### optimize_text_structure
 
-This tool optimizes the structure of the text. It analyzes the level of bias and coherence in text; if too biased, it develops the represented topics; if focused or diversified, it develops the content gaps; if dispersed, it develops the most common gap topics.
+This tool optimizes the structure of the text. It analyzes the level of bias and coherence in text; if too biased, it develops the least represented topics; if focused or diversified, it develops the content gaps; if dispersed, it develops the most common gap topics.
 
-A special `transcend` `responseMode` setting will push it to connect the discourse to a wider context.
+A special `transcend` `responseType` setting will push it to connect the discourse to a wider context.
 
 Text structure statistics is also provided that can be used by LLM to develop the discourse further.
 
