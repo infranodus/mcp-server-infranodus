@@ -6,6 +6,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import crypto from "crypto";
 import * as dotenv from "dotenv";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import createServer from "./index.js";
@@ -95,9 +96,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
 /**
- * Auth middleware - validates Bearer token and attaches auth info to request
+ * Auth middleware - validates Bearer token and attaches auth info to request.
+ * Supports both JWT access tokens (from OAuth flow) and raw InfraNodus API keys.
  */
-function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
 	console.log(`[AUTH] Checking auth for ${req.method} ${req.path}`);
 	const authHeader = req.headers.authorization;
 
@@ -113,23 +115,45 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
 
 	const token = authHeader.slice(7); // Remove "Bearer " prefix
 	console.log(`[AUTH] Token present, verifying...`);
-	const authInfo = verifyAccessToken(token);
 
-	if (!authInfo) {
-		console.log(`[AUTH] Token verification failed`);
-		const error: ErrorResponse = {
-			error: "invalid_token",
-			error_description: "Access token is invalid or expired",
-		};
-		res.status(401).json(error);
+	// Try JWT verification first (fast path for OAuth-authenticated clients)
+	const authInfo = verifyAccessToken(token);
+	if (authInfo) {
+		console.log(
+			`[AUTH] Authenticated via JWT as ${authInfo.userName} (${authInfo.userId})`
+		);
+		(req as AuthenticatedExpressRequest)[AUTH_KEY] = authInfo;
+		next();
 		return;
 	}
 
-	console.log(
-		`[AUTH] Authenticated as ${authInfo.userName} (${authInfo.userId})`
-	);
-	(req as AuthenticatedExpressRequest)[AUTH_KEY] = authInfo;
-	next();
+	// JWT failed — try treating the token as a raw InfraNodus API key
+	console.log(`[AUTH] JWT verification failed, trying as raw API key...`);
+	try {
+		const userInfo = await validateApiKey(token);
+		if (userInfo) {
+			console.log(
+				`[AUTH] Authenticated via raw API key as ${userInfo.userName} (${userInfo.userId})`
+			);
+			(req as AuthenticatedExpressRequest)[AUTH_KEY] = {
+				userId: userInfo.userId,
+				userName: userInfo.userName,
+				apiKey: token,
+				sessionId: crypto.randomUUID(),
+			};
+			next();
+			return;
+		}
+	} catch (err) {
+		console.log(`[AUTH] Raw API key validation error: ${err}`);
+	}
+
+	console.log(`[AUTH] All authentication methods failed`);
+	const error: ErrorResponse = {
+		error: "invalid_token",
+		error_description: "Access token is invalid or expired",
+	};
+	res.status(401).json(error);
 }
 
 /**
