@@ -9,6 +9,7 @@ import helmet from "helmet";
 import crypto from "crypto";
 import * as dotenv from "dotenv";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import createServer from "./index.js";
 import {
 	exchangeApiKeyForToken,
@@ -92,8 +93,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 	next();
 });
 
-// Store transports per session for MCP
+// Store transports per session for MCP (Streamable HTTP)
 const transports = new Map<string, StreamableHTTPServerTransport>();
+
+// Store SSE transports per session for legacy MCP clients
+const sseTransports = new Map<string, SSEServerTransport>();
 
 /**
  * Auth middleware - validates Bearer token and attaches auth info to request.
@@ -675,13 +679,23 @@ app.post("/mcp", authMiddleware, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /mcp - SSE endpoint for server-to-client notifications
+ * GET /mcp - Auto-detect transport:
+ *   SSE client (no mcp-session-id, Accept: text/event-stream) → SSE transport
+ *   Streamable HTTP client (has mcp-session-id) → existing Streamable HTTP
  */
 app.get("/mcp", authMiddleware, async (req: Request, res: Response) => {
 	try {
-		await handleMcpRequest(req, res);
+		const wantsSSE =
+			!req.headers["mcp-session-id"] &&
+			req.headers.accept?.includes("text/event-stream");
+
+		if (wantsSSE) {
+			await handleSseConnection(req, res);
+		} else {
+			await handleMcpRequest(req, res);
+		}
 	} catch (error) {
-		console.error("MCP GET error:", error);
+		console.error("MCP GET /mcp error:", error);
 		if (!res.headersSent) {
 			res.status(500).json({ error: "Internal server error" });
 		}
@@ -696,6 +710,84 @@ app.delete("/mcp", authMiddleware, async (req: Request, res: Response) => {
 		await handleMcpRequest(req, res);
 	} catch (error) {
 		console.error("MCP DELETE error:", error);
+		if (!res.headersSent) {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+});
+
+// ============================================================================
+// Legacy SSE Transport Endpoints (for clients like Make.com)
+// ============================================================================
+
+/**
+ * Shared helper: establish an SSE connection for the authenticated user.
+ * Creates an SSEServerTransport, wires up an MCP server, and starts streaming.
+ */
+async function handleSseConnection(req: Request, res: Response): Promise<void> {
+	const auth = getAuth(req);
+	if (!auth) {
+		res.status(401).json({ error: "unauthorized" });
+		return;
+	}
+
+	console.log(`[SSE] New SSE connection from ${auth.userName} (${auth.userId})`);
+
+	const transport = new SSEServerTransport("/message", res);
+	const sessionId = transport.sessionId;
+	sseTransports.set(sessionId, transport);
+
+	const config = {
+		apiKey: auth.apiKey,
+		apiBase: INFRANODUS_API_BASE,
+	};
+	const server = createServer({ config });
+
+	transport.onclose = () => {
+		console.log(`[SSE] Transport closed for session ${sessionId}`);
+		sseTransports.delete(sessionId);
+	};
+
+	await server.connect(transport);
+	console.log(`[SSE] Server connected, session ${sessionId}`);
+}
+
+/**
+ * GET /sse - Establish SSE stream (legacy MCP transport)
+ * The client connects here first to get an SSE stream, then POSTs messages to /message
+ */
+app.get("/sse", authMiddleware, async (req: Request, res: Response) => {
+	try {
+		await handleSseConnection(req, res);
+	} catch (error) {
+		console.error("SSE GET /sse error:", error);
+		if (!res.headersSent) {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+});
+
+/**
+ * POST /message - Receive messages from SSE clients (legacy MCP transport)
+ */
+app.post("/message", authMiddleware, async (req: Request, res: Response) => {
+	const sessionId = req.query.sessionId as string;
+	if (!sessionId) {
+		res.status(400).json({ error: "Missing sessionId query parameter" });
+		return;
+	}
+
+	const transport = sseTransports.get(sessionId);
+	if (!transport) {
+		res.status(404).json({ error: "Session not found. The SSE connection may have been closed." });
+		return;
+	}
+
+	console.log(`[SSE] POST /message for session ${sessionId}`);
+	try {
+		await transport.handlePostMessage(req, res, req.body);
+	} catch (error) {
+		console.error(`[SSE] Error handling message:`, error);
 		if (!res.headersSent) {
 			res.status(500).json({ error: "Internal server error" });
 		}
@@ -763,11 +855,21 @@ app.post("/", authMiddleware, async (req: Request, res: Response) => {
 });
 
 /**
- * GET / with auth - SSE endpoint for MCP at root
+ * GET / with auth - Auto-detect transport:
+ *   SSE client (no mcp-session-id, Accept: text/event-stream) → SSE transport
+ *   Streamable HTTP client (has mcp-session-id) → existing Streamable HTTP
  */
 app.get("/", authMiddleware, async (req: Request, res: Response) => {
 	try {
-		await handleMcpRequest(req, res);
+		const wantsSSE =
+			!req.headers["mcp-session-id"] &&
+			req.headers.accept?.includes("text/event-stream");
+
+		if (wantsSSE) {
+			await handleSseConnection(req, res);
+		} else {
+			await handleMcpRequest(req, res);
+		}
 	} catch (error) {
 		console.error("MCP GET / error:", error);
 		if (!res.headersSent) {
@@ -797,8 +899,10 @@ app.delete("/", authMiddleware, async (req: Request, res: Response) => {
 // Handle graceful shutdown
 process.on("SIGINT", () => {
 	console.log("\nShutting down HTTP server...");
-	// Close all transports
 	for (const transport of transports.values()) {
+		transport.close();
+	}
+	for (const transport of sseTransports.values()) {
 		transport.close();
 	}
 	process.exit(0);
@@ -807,6 +911,9 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
 	console.log("\nShutting down HTTP server...");
 	for (const transport of transports.values()) {
+		transport.close();
+	}
+	for (const transport of sseTransports.values()) {
 		transport.close();
 	}
 	process.exit(0);
@@ -818,6 +925,7 @@ app.listen(PORT, () => {
 	console.log(`  - Health: http://localhost:${PORT}/health`);
 	console.log(`  - OAuth token: POST http://localhost:${PORT}/oauth/token`);
 	console.log(`  - MCP endpoint: http://localhost:${PORT}/mcp`);
+	console.log(`  - SSE endpoint: http://localhost:${PORT}/sse (legacy)`);
 	console.log("");
 	console.log("Environment:");
 	console.log(`  - CORS_ORIGIN: ${CORS_ORIGIN}`);
