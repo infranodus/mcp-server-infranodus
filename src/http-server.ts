@@ -70,13 +70,13 @@ app.set("trust proxy", true);
 app.use(
 	helmet({
 		contentSecurityPolicy: false, // Disable for SSE compatibility
-	})
+	}),
 );
 app.use(
 	cors({
 		origin: CORS_ORIGIN,
 		credentials: true,
-	})
+	}),
 );
 app.use(express.json());
 
@@ -88,7 +88,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 			authorization: req.headers.authorization ? "[present]" : "[missing]",
 			"content-type": req.headers["content-type"],
 			accept: req.headers.accept,
-		})}`
+		})}`,
 	);
 	next();
 });
@@ -103,7 +103,11 @@ const sseTransports = new Map<string, SSEServerTransport>();
  * Auth middleware - validates Bearer token and attaches auth info to request.
  * Supports both JWT access tokens (from OAuth flow) and raw InfraNodus API keys.
  */
-async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+async function authMiddleware(
+	req: Request,
+	res: Response,
+	next: NextFunction,
+): Promise<void> {
 	console.log(`[AUTH] Checking auth for ${req.method} ${req.path}`);
 	const authHeader = req.headers.authorization;
 
@@ -129,7 +133,7 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction): 
 	const authInfo = verifyAccessToken(token);
 	if (authInfo) {
 		console.log(
-			`[AUTH] Authenticated via JWT as ${authInfo.userName} (${authInfo.userId})`
+			`[AUTH] Authenticated via JWT as ${authInfo.userName} (${authInfo.userId})`,
 		);
 		(req as AuthenticatedExpressRequest)[AUTH_KEY] = authInfo;
 		next();
@@ -142,7 +146,7 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction): 
 		const userInfo = await validateApiKey(token);
 		if (userInfo) {
 			console.log(
-				`[AUTH] Authenticated via raw API key as ${userInfo.userName} (${userInfo.userId})`
+				`[AUTH] Authenticated via raw API key as ${userInfo.userName} (${userInfo.userId})`,
 			);
 			(req as AuthenticatedExpressRequest)[AUTH_KEY] = {
 				userId: userInfo.userId,
@@ -380,7 +384,7 @@ app.post(
 			api_key,
 			scope,
 			code_challenge,
-			code_challenge_method
+			code_challenge_method,
 		);
 
 		// Redirect with code
@@ -388,7 +392,7 @@ app.post(
 		redirectUrl.searchParams.set("code", code);
 		if (state) redirectUrl.searchParams.set("state", state);
 		res.redirect(redirectUrl.toString());
-	}
+	},
 );
 
 /**
@@ -414,7 +418,7 @@ app.post(
 			if (authHeader && authHeader.startsWith("Basic ")) {
 				const base64Credentials = authHeader.slice(6);
 				const credentials = Buffer.from(base64Credentials, "base64").toString(
-					"utf-8"
+					"utf-8",
 				);
 				const [headerClientId, headerClientSecret] = credentials.split(":");
 				if (headerClientId) client_id = headerClientId;
@@ -441,7 +445,7 @@ app.post(
 					code,
 					client_id,
 					redirect_uri,
-					code_verifier
+					code_verifier,
 				);
 				if (!tokenResponse) {
 					res.status(400).json({
@@ -483,7 +487,7 @@ app.post(
 				error_description: "Internal server error",
 			});
 		}
-	}
+	},
 );
 
 /**
@@ -521,7 +525,7 @@ app.get(
 			scopes_supported: ["mcp", "read", "write"],
 			service_documentation: `${baseUrl}/`,
 		});
-	}
+	},
 );
 
 /**
@@ -561,7 +565,7 @@ app.get(
 			scopes_supported: ["mcp", "read", "write"],
 			bearer_methods_supported: ["header"],
 		});
-	}
+	},
 );
 
 // ============================================================================
@@ -580,7 +584,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	}
 
 	console.log(
-		`[MCP] ${req.method} request from user ${auth.userName} (${auth.userId})`
+		`[MCP] ${req.method} request from user ${auth.userName} (${auth.userId})`,
 	);
 	console.log(
 		`[MCP] Headers:`,
@@ -588,7 +592,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 			"content-type": req.headers["content-type"],
 			"mcp-session-id": req.headers["mcp-session-id"],
 			accept: req.headers["accept"],
-		})
+		}),
 	);
 	console.log(`[MCP] Body:`, JSON.stringify(req.body));
 
@@ -600,7 +604,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	const existingSessionId = req.headers["mcp-session-id"] as string | undefined;
 	if (existingSessionId) {
 		console.log(
-			`[MCP] Existing MCP session ID in header: ${existingSessionId}`
+			`[MCP] Existing MCP session ID in header: ${existingSessionId}`,
 		);
 	}
 
@@ -608,7 +612,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	const isInitializeRequest = req.body?.method === "initialize";
 	if (isInitializeRequest && transport) {
 		console.log(
-			`[MCP] Received initialize on existing session, closing old transport`
+			`[MCP] Received initialize on existing session, closing old transport`,
 		);
 		try {
 			await transport.close();
@@ -682,7 +686,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 		await transport.handleRequest(
 			req as unknown as import("http").IncomingMessage,
 			res as unknown as import("http").ServerResponse,
-			req.body
+			req.body,
 		);
 		console.log(`[MCP] handleRequest completed`);
 	} catch (error) {
@@ -758,7 +762,9 @@ async function handleSseConnection(req: Request, res: Response): Promise<void> {
 		return;
 	}
 
-	console.log(`[SSE] New SSE connection from ${auth.userName} (${auth.userId})`);
+	console.log(
+		`[SSE] New SSE connection from ${auth.userName} (${auth.userId})`,
+	);
 
 	const transport = new SSEServerTransport("/message", res);
 	const sessionId = transport.sessionId;
@@ -806,7 +812,11 @@ app.post("/message", authMiddleware, async (req: Request, res: Response) => {
 
 	const transport = sseTransports.get(sessionId);
 	if (!transport) {
-		res.status(404).json({ error: "Session not found. The SSE connection may have been closed." });
+		res
+			.status(404)
+			.json({
+				error: "Session not found. The SSE connection may have been closed.",
+			});
 		return;
 	}
 
@@ -851,7 +861,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: "InfraNodus MCP Server",
-		version: "1.2.4",
+		version: "1.3.0",
 		description: "MCP server for InfraNodus knowledge graph analysis",
 		endpoints: {
 			oauth: {
@@ -962,6 +972,6 @@ app.listen(PORT, () => {
 	console.log(`  - CORS_ORIGIN: ${CORS_ORIGIN}`);
 	console.log(`  - INFRANODUS_API_BASE: ${INFRANODUS_API_BASE}`);
 	console.log(
-		`  - JWT_SECRET: ${process.env.JWT_SECRET ? "[set]" : "[generated]"}`
+		`  - JWT_SECRET: ${process.env.JWT_SECRET ? "[set]" : "[generated]"}`,
 	);
 });
