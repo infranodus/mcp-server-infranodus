@@ -1,0 +1,64 @@
+# InfraNodus MCP Server
+
+> MCP server for knowledge graph generation, text network analysis, content gap detection, and SEO optimization powered by InfraNodus API and graph theory algorithms.
+
+## Documentation
+
+- [README](https://github.com/infranodus/mcp-server-infranodus/blob/main/README.md): Installation, setup, and feature overview
+- [Tool Examples](https://github.com/infranodus/mcp-server-infranodus/blob/main/EXAMPLES.md): Detailed examples for every tool with request/response formats
+- [Full LLM Documentation](https://github.com/infranodus/mcp-server-infranodus/blob/main/llms-full.txt): Comprehensive tool documentation optimized for LLMs
+- [API Access](https://infranodus.com/api-access): Get your InfraNodus API key
+- [InfraNodus MCP](https://infranodus.com/mcp): MCP integration overview
+
+## Tools
+
+### Analysis
+
+- generate_knowledge_graph: Convert text into a knowledge graph with topics, concepts, relations, and structural analysis
+- analyze_text: Analyze text, URL, or YouTube transcript for topics, clusters, and structural insights
+- analyze_existing_graph_by_name: Retrieve and analyze existing graphs from your InfraNodus account
+- generate_topical_clusters: Extract compact topical clusters from text
+- generate_content_gaps: Identify missing connections between topic clusters
+- generate_contextual_hint: Generate structural summary for RAG/LLM augmentation
+
+### Idea Generation
+
+- generate_research_questions: Generate research questions that bridge content gaps
+- generate_research_ideas: Generate innovative ideas based on content gaps
+- optimize_text_structure: Analyze bias/coherence and suggest development directions
+- develop_text_tool: Comprehensive text development combining multiple analysis tools
+- develop_conceptual_bridges: Connect discourse to broader context via gateway concepts
+- develop_latent_topics: Find and develop underdeveloped topics
+- generate_responses_from_graph: Generate AI responses based on existing knowledge graph
+
+### Comparison
+
+- overlap_between_texts: Find common topics across multiple texts
+- difference_between_texts: Find what's missing in first text vs others
+- merged_graph_from_texts: Merge multiple sources into one graph with combined analysis
+
+### SEO & Search
+
+- generate_seo_report: Full SEO analysis comparing text with search results and queries
+- analyze_google_search_results: Graph of Google search results for queries
+- analyze_related_search_queries: Graph of related search queries (search intent)
+- search_queries_vs_search_results: Find what people search for but don't find
+
+### Memory & Storage
+
+- create_knowledge_graph: Save text as a knowledge graph in InfraNodus
+- memory_add_relations: Persist entity relations to knowledge graph memory
+- memory_get_relations: Retrieve relations from memory
+- retrieve_from_knowledge_base: GraphRAG retrieval from existing knowledge base
+
+### Utility
+
+- list_graphs: List all graphs with filtering by name, type, date, language
+- search: Search through existing InfraNodus graphs
+- fetch: Fetch specific search results from a graph
+
+## Optional
+
+- [npm Package](https://www.npmjs.com/package/infranodus-mcp-server): NPM package for local installation
+- [Smithery](https://smithery.ai/server/@infranodus/mcp-server-infranodus): Alternative installation via Smithery
+- [InfraNodus Research](https://noduslabs.com/research/): Graph theory concepts and methodology

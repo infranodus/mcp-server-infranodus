@@ -12,7 +12,9 @@
 		"dist/",
 		"bin/",
 		"README.md",
-		"LICENSE"
+		"LICENSE",
+		"llms.txt",
+		"llms-full.txt"
 	],
 	"keywords": [
 		"mcp",

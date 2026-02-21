@@ -24,6 +24,9 @@ import {
 	exchangeAuthorizationCode,
 	validateApiKey,
 } from "./auth/oauth-provider.js";
+import * as fs from "fs";
+import * as path from "path";
+import { fileURLToPath } from "url";
 import {
 	TokenRequest,
 	ErrorResponse,
@@ -832,6 +835,30 @@ app.post("/message", authMiddleware, async (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// LLM Documentation Endpoints (llms.txt standard)
+// ============================================================================
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function serveLlmsFile(filename: string, res: Response): void {
+	const filePath = path.resolve(__dirname, "../", filename);
+	try {
+		const content = fs.readFileSync(filePath, "utf-8");
+		res.type("text/markdown; charset=utf-8").send(content);
+	} catch {
+		res.status(404).send(`${filename} not found`);
+	}
+}
+
+app.get("/llms.txt", (_req: Request, res: Response) => {
+	serveLlmsFile("llms.txt", res);
+});
+
+app.get("/llms-full.txt", (_req: Request, res: Response) => {
+	serveLlmsFile("llms-full.txt", res);
+});
+
+// ============================================================================
 // Health & Status Endpoints
 // ============================================================================
 
@@ -875,6 +902,10 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 				disconnect: "DELETE / or DELETE /mcp",
 			},
 			health: "GET /health",
+			llms: {
+				index: "GET /llms.txt",
+				full: "GET /llms-full.txt",
+			},
 		},
 		authentication: "Bearer token (obtain via /oauth/token with api_key)",
 	});
