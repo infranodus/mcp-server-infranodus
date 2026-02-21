@@ -1,15 +1,27 @@
 import { z } from "zod";
-import { AnalyzeExistingGraphSchema } from "../schemas/index.js";
+import {
+	AnalyzeExistingGraphSchema,
+	AnalyzeExistingGraphSchemaBase,
+} from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const analyzeExistingGraphTool = {
 	name: "analyze_existing_graph_by_name",
 	definition: {
-		title: "Analyze or Extract an Existing InfraNodus Graph",
+		title: "Analyze the Content ofan Existing InfraNodus Graph by Name",
 		description:
-			"Extract and analyze an existing graph from your InfraNodus account",
-		inputSchema: AnalyzeExistingGraphSchema.shape,
+			"Extract and analyze the content of an existing InfraNodus graph from your account.",
+		inputSchema: AnalyzeExistingGraphSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
@@ -36,12 +48,7 @@ export const analyzeExistingGraphTool = {
 			});
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
-
-			const requestBody = {
-				name: params.graphName,
-				aiTopics: "true",
-			};
-
+			const requestBody = { name: params.graphName, aiTopics: "true" };
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {

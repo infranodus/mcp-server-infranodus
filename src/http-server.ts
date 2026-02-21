@@ -6,8 +6,10 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import crypto from "crypto";
 import * as dotenv from "dotenv";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import createServer from "./index.js";
 import {
 	exchangeApiKeyForToken,
@@ -22,6 +24,9 @@ import {
 	exchangeAuthorizationCode,
 	validateApiKey,
 } from "./auth/oauth-provider.js";
+import * as fs from "fs";
+import * as path from "path";
+import { fileURLToPath } from "url";
 import {
 	TokenRequest,
 	ErrorResponse,
@@ -37,6 +42,19 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const INFRANODUS_API_BASE =
 	process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1";
+
+// Allow HTTP only for localhost/127.0.0.1 (local dev); otherwise require HTTPS
+function isRedirectUriAllowed(redirectUri: string): boolean {
+	if (redirectUri.startsWith("https://")) return true;
+	if (!redirectUri.startsWith("http://")) return false;
+	try {
+		const u = new URL(redirectUri);
+		const host = u.hostname.toLowerCase();
+		return host === "localhost" || host === "127.0.0.1";
+	} catch {
+		return false;
+	}
+}
 
 // Store auth info on request (using a symbol to avoid conflicts with MCP SDK)
 const AUTH_KEY = Symbol("auth");
@@ -55,13 +73,13 @@ app.set("trust proxy", true);
 app.use(
 	helmet({
 		contentSecurityPolicy: false, // Disable for SSE compatibility
-	})
+	}),
 );
 app.use(
 	cors({
 		origin: CORS_ORIGIN,
 		credentials: true,
-	})
+	}),
 );
 app.use(express.json());
 
@@ -73,23 +91,36 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 			authorization: req.headers.authorization ? "[present]" : "[missing]",
 			"content-type": req.headers["content-type"],
 			accept: req.headers.accept,
-		})}`
+		})}`,
 	);
 	next();
 });
 
-// Store transports per session for MCP
+// Store transports per session for MCP (Streamable HTTP)
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
+// Store SSE transports per session for legacy MCP clients
+const sseTransports = new Map<string, SSEServerTransport>();
+
 /**
- * Auth middleware - validates Bearer token and attaches auth info to request
+ * Auth middleware - validates Bearer token and attaches auth info to request.
+ * Supports both JWT access tokens (from OAuth flow) and raw InfraNodus API keys.
  */
-function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+async function authMiddleware(
+	req: Request,
+	res: Response,
+	next: NextFunction,
+): Promise<void> {
 	console.log(`[AUTH] Checking auth for ${req.method} ${req.path}`);
 	const authHeader = req.headers.authorization;
 
 	if (!authHeader || !authHeader.startsWith("Bearer ")) {
 		console.log(`[AUTH] Missing or invalid Authorization header`);
+		const baseUrl = `${req.protocol}://${req.get("host")}`;
+		res.setHeader(
+			"WWW-Authenticate",
+			`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
+		);
 		const error: ErrorResponse = {
 			error: "unauthorized",
 			error_description: "Missing or invalid Authorization header",
@@ -100,23 +131,50 @@ function authMiddleware(req: Request, res: Response, next: NextFunction): void {
 
 	const token = authHeader.slice(7); // Remove "Bearer " prefix
 	console.log(`[AUTH] Token present, verifying...`);
-	const authInfo = verifyAccessToken(token);
 
-	if (!authInfo) {
-		console.log(`[AUTH] Token verification failed`);
-		const error: ErrorResponse = {
-			error: "invalid_token",
-			error_description: "Access token is invalid or expired",
-		};
-		res.status(401).json(error);
+	// Try JWT verification first (fast path for OAuth-authenticated clients)
+	const authInfo = verifyAccessToken(token);
+	if (authInfo) {
+		console.log(
+			`[AUTH] Authenticated via JWT as ${authInfo.userName} (${authInfo.userId})`,
+		);
+		(req as AuthenticatedExpressRequest)[AUTH_KEY] = authInfo;
+		next();
 		return;
 	}
 
-	console.log(
-		`[AUTH] Authenticated as ${authInfo.userName} (${authInfo.userId})`
+	// JWT failed — try treating the token as a raw InfraNodus API key
+	console.log(`[AUTH] JWT verification failed, trying as raw API key...`);
+	try {
+		const userInfo = await validateApiKey(token);
+		if (userInfo) {
+			console.log(
+				`[AUTH] Authenticated via raw API key as ${userInfo.userName} (${userInfo.userId})`,
+			);
+			(req as AuthenticatedExpressRequest)[AUTH_KEY] = {
+				userId: userInfo.userId,
+				userName: userInfo.userName,
+				apiKey: token,
+				sessionId: crypto.randomUUID(),
+			};
+			next();
+			return;
+		}
+	} catch (err) {
+		console.log(`[AUTH] Raw API key validation error: ${err}`);
+	}
+
+	console.log(`[AUTH] All authentication methods failed`);
+	const baseUrl = `${req.protocol}://${req.get("host")}`;
+	res.setHeader(
+		"WWW-Authenticate",
+		`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
 	);
-	(req as AuthenticatedExpressRequest)[AUTH_KEY] = authInfo;
-	next();
+	const error: ErrorResponse = {
+		error: "invalid_token",
+		error_description: "Access token is invalid or expired",
+	};
+	res.status(401).json(error);
 }
 
 /**
@@ -209,12 +267,12 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		return;
 	}
 
-	// Accept any HTTPS redirect_uri (stateless validation)
-	// The real security is in the API key validation
-	if (!redirect_uri.startsWith("https://")) {
+	// Accept HTTPS or http://localhost / http://127.0.0.1 (for local dev)
+	if (!isRedirectUriAllowed(redirect_uri)) {
 		res.status(400).json({
 			error: "invalid_request",
-			error_description: "redirect_uri must use HTTPS",
+			error_description:
+				"redirect_uri must use HTTPS or http://localhost or http://127.0.0.1",
 		});
 		return;
 	}
@@ -293,8 +351,8 @@ app.post(
 			return;
 		}
 
-		// Validate redirect_uri (stateless - accept any HTTPS URL)
-		if (!redirect_uri || !redirect_uri.startsWith("https://")) {
+		// Validate redirect_uri (HTTPS or localhost/127.0.0.1 for local dev)
+		if (!redirect_uri || !isRedirectUriAllowed(redirect_uri)) {
 			res.status(400).json({
 				error: "invalid_request",
 				error_description: "Invalid redirect_uri",
@@ -329,7 +387,7 @@ app.post(
 			api_key,
 			scope,
 			code_challenge,
-			code_challenge_method
+			code_challenge_method,
 		);
 
 		// Redirect with code
@@ -337,7 +395,7 @@ app.post(
 		redirectUrl.searchParams.set("code", code);
 		if (state) redirectUrl.searchParams.set("state", state);
 		res.redirect(redirectUrl.toString());
-	}
+	},
 );
 
 /**
@@ -363,7 +421,7 @@ app.post(
 			if (authHeader && authHeader.startsWith("Basic ")) {
 				const base64Credentials = authHeader.slice(6);
 				const credentials = Buffer.from(base64Credentials, "base64").toString(
-					"utf-8"
+					"utf-8",
 				);
 				const [headerClientId, headerClientSecret] = credentials.split(":");
 				if (headerClientId) client_id = headerClientId;
@@ -390,7 +448,7 @@ app.post(
 					code,
 					client_id,
 					redirect_uri,
-					code_verifier
+					code_verifier,
 				);
 				if (!tokenResponse) {
 					res.status(400).json({
@@ -432,7 +490,7 @@ app.post(
 				error_description: "Internal server error",
 			});
 		}
-	}
+	},
 );
 
 /**
@@ -470,7 +528,7 @@ app.get(
 			scopes_supported: ["mcp", "read", "write"],
 			service_documentation: `${baseUrl}/`,
 		});
-	}
+	},
 );
 
 /**
@@ -496,6 +554,23 @@ app.get("/.well-known/openid-configuration", (req: Request, res: Response) => {
 	});
 });
 
+/**
+ * GET /.well-known/oauth-protected-resource - OAuth2 Protected Resource Metadata (RFC 9728)
+ * MCP clients fetch this to discover the authorization server for this resource.
+ */
+app.get(
+	"/.well-known/oauth-protected-resource",
+	(req: Request, res: Response) => {
+		const baseUrl = `${req.protocol}://${req.get("host")}`;
+		res.json({
+			resource: baseUrl,
+			authorization_servers: [baseUrl],
+			scopes_supported: ["mcp", "read", "write"],
+			bearer_methods_supported: ["header"],
+		});
+	},
+);
+
 // ============================================================================
 // MCP Endpoints
 // ============================================================================
@@ -512,7 +587,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	}
 
 	console.log(
-		`[MCP] ${req.method} request from user ${auth.userName} (${auth.userId})`
+		`[MCP] ${req.method} request from user ${auth.userName} (${auth.userId})`,
 	);
 	console.log(
 		`[MCP] Headers:`,
@@ -520,7 +595,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 			"content-type": req.headers["content-type"],
 			"mcp-session-id": req.headers["mcp-session-id"],
 			accept: req.headers["accept"],
-		})
+		}),
 	);
 	console.log(`[MCP] Body:`, JSON.stringify(req.body));
 
@@ -532,7 +607,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	const existingSessionId = req.headers["mcp-session-id"] as string | undefined;
 	if (existingSessionId) {
 		console.log(
-			`[MCP] Existing MCP session ID in header: ${existingSessionId}`
+			`[MCP] Existing MCP session ID in header: ${existingSessionId}`,
 		);
 	}
 
@@ -540,7 +615,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 	const isInitializeRequest = req.body?.method === "initialize";
 	if (isInitializeRequest && transport) {
 		console.log(
-			`[MCP] Received initialize on existing session, closing old transport`
+			`[MCP] Received initialize on existing session, closing old transport`,
 		);
 		try {
 			await transport.close();
@@ -614,7 +689,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 		await transport.handleRequest(
 			req as unknown as import("http").IncomingMessage,
 			res as unknown as import("http").ServerResponse,
-			req.body
+			req.body,
 		);
 		console.log(`[MCP] handleRequest completed`);
 	} catch (error) {
@@ -638,13 +713,23 @@ app.post("/mcp", authMiddleware, async (req: Request, res: Response) => {
 });
 
 /**
- * GET /mcp - SSE endpoint for server-to-client notifications
+ * GET /mcp - Auto-detect transport:
+ *   SSE client (no mcp-session-id, Accept: text/event-stream) → SSE transport
+ *   Streamable HTTP client (has mcp-session-id) → existing Streamable HTTP
  */
 app.get("/mcp", authMiddleware, async (req: Request, res: Response) => {
 	try {
-		await handleMcpRequest(req, res);
+		const wantsSSE =
+			!req.headers["mcp-session-id"] &&
+			req.headers.accept?.includes("text/event-stream");
+
+		if (wantsSSE) {
+			await handleSseConnection(req, res);
+		} else {
+			await handleMcpRequest(req, res);
+		}
 	} catch (error) {
-		console.error("MCP GET error:", error);
+		console.error("MCP GET /mcp error:", error);
 		if (!res.headersSent) {
 			res.status(500).json({ error: "Internal server error" });
 		}
@@ -666,6 +751,112 @@ app.delete("/mcp", authMiddleware, async (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// Legacy SSE Transport Endpoints (for clients like Make.com)
+// ============================================================================
+
+/**
+ * Shared helper: establish an SSE connection for the authenticated user.
+ * Creates an SSEServerTransport, wires up an MCP server, and starts streaming.
+ */
+async function handleSseConnection(req: Request, res: Response): Promise<void> {
+	const auth = getAuth(req);
+	if (!auth) {
+		res.status(401).json({ error: "unauthorized" });
+		return;
+	}
+
+	console.log(
+		`[SSE] New SSE connection from ${auth.userName} (${auth.userId})`,
+	);
+
+	const transport = new SSEServerTransport("/message", res);
+	const sessionId = transport.sessionId;
+	sseTransports.set(sessionId, transport);
+
+	const config = {
+		apiKey: auth.apiKey,
+		apiBase: INFRANODUS_API_BASE,
+	};
+	const server = createServer({ config });
+
+	transport.onclose = () => {
+		console.log(`[SSE] Transport closed for session ${sessionId}`);
+		sseTransports.delete(sessionId);
+	};
+
+	await server.connect(transport);
+	console.log(`[SSE] Server connected, session ${sessionId}`);
+}
+
+/**
+ * GET /sse - Establish SSE stream (legacy MCP transport)
+ * The client connects here first to get an SSE stream, then POSTs messages to /message
+ */
+app.get("/sse", authMiddleware, async (req: Request, res: Response) => {
+	try {
+		await handleSseConnection(req, res);
+	} catch (error) {
+		console.error("SSE GET /sse error:", error);
+		if (!res.headersSent) {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+});
+
+/**
+ * POST /message - Receive messages from SSE clients (legacy MCP transport)
+ */
+app.post("/message", authMiddleware, async (req: Request, res: Response) => {
+	const sessionId = req.query.sessionId as string;
+	if (!sessionId) {
+		res.status(400).json({ error: "Missing sessionId query parameter" });
+		return;
+	}
+
+	const transport = sseTransports.get(sessionId);
+	if (!transport) {
+		res.status(404).json({
+			error: "Session not found. The SSE connection may have been closed.",
+		});
+		return;
+	}
+
+	console.log(`[SSE] POST /message for session ${sessionId}`);
+	try {
+		await transport.handlePostMessage(req, res, req.body);
+	} catch (error) {
+		console.error(`[SSE] Error handling message:`, error);
+		if (!res.headersSent) {
+			res.status(500).json({ error: "Internal server error" });
+		}
+	}
+});
+
+// ============================================================================
+// LLM Documentation Endpoints (llms.txt standard)
+// ============================================================================
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function serveLlmsFile(filename: string, res: Response): void {
+	const filePath = path.resolve(__dirname, "../", filename);
+	try {
+		const content = fs.readFileSync(filePath, "utf-8");
+		res.type("text/markdown; charset=utf-8").send(content);
+	} catch {
+		res.status(404).send(`${filename} not found`);
+	}
+}
+
+app.get("/llms.txt", (_req: Request, res: Response) => {
+	serveLlmsFile("llms.txt", res);
+});
+
+app.get("/llms-full.txt", (_req: Request, res: Response) => {
+	serveLlmsFile("llms-full.txt", res);
+});
+
+// ============================================================================
 // Health & Status Endpoints
 // ============================================================================
 
@@ -682,16 +873,20 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 /**
- * GET / - Server info (only when no auth header - otherwise it's MCP)
+ * GET / - Server info (only when no auth header and not an MCP/SSE client)
  */
 app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	// If auth header is present, treat as MCP request
 	if (req.headers.authorization) {
 		return next();
 	}
+	// If client wants SSE or MCP, let it fall through to authMiddleware (→ 401 triggers OAuth)
+	if (req.headers.accept?.includes("text/event-stream")) {
+		return next();
+	}
 	res.json({
 		name: "InfraNodus MCP Server",
-		version: "1.2.4",
+		version: "1.4.0",
 		description: "MCP server for InfraNodus knowledge graph analysis",
 		endpoints: {
 			oauth: {
@@ -705,6 +900,10 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 				disconnect: "DELETE / or DELETE /mcp",
 			},
 			health: "GET /health",
+			llms: {
+				index: "GET /llms.txt",
+				full: "GET /llms-full.txt",
+			},
 		},
 		authentication: "Bearer token (obtain via /oauth/token with api_key)",
 	});
@@ -726,11 +925,21 @@ app.post("/", authMiddleware, async (req: Request, res: Response) => {
 });
 
 /**
- * GET / with auth - SSE endpoint for MCP at root
+ * GET / with auth - Auto-detect transport:
+ *   SSE client (no mcp-session-id, Accept: text/event-stream) → SSE transport
+ *   Streamable HTTP client (has mcp-session-id) → existing Streamable HTTP
  */
 app.get("/", authMiddleware, async (req: Request, res: Response) => {
 	try {
-		await handleMcpRequest(req, res);
+		const wantsSSE =
+			!req.headers["mcp-session-id"] &&
+			req.headers.accept?.includes("text/event-stream");
+
+		if (wantsSSE) {
+			await handleSseConnection(req, res);
+		} else {
+			await handleMcpRequest(req, res);
+		}
 	} catch (error) {
 		console.error("MCP GET / error:", error);
 		if (!res.headersSent) {
@@ -760,8 +969,10 @@ app.delete("/", authMiddleware, async (req: Request, res: Response) => {
 // Handle graceful shutdown
 process.on("SIGINT", () => {
 	console.log("\nShutting down HTTP server...");
-	// Close all transports
 	for (const transport of transports.values()) {
+		transport.close();
+	}
+	for (const transport of sseTransports.values()) {
 		transport.close();
 	}
 	process.exit(0);
@@ -770,6 +981,9 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
 	console.log("\nShutting down HTTP server...");
 	for (const transport of transports.values()) {
+		transport.close();
+	}
+	for (const transport of sseTransports.values()) {
 		transport.close();
 	}
 	process.exit(0);
@@ -781,11 +995,12 @@ app.listen(PORT, () => {
 	console.log(`  - Health: http://localhost:${PORT}/health`);
 	console.log(`  - OAuth token: POST http://localhost:${PORT}/oauth/token`);
 	console.log(`  - MCP endpoint: http://localhost:${PORT}/mcp`);
+	console.log(`  - SSE endpoint: http://localhost:${PORT}/sse (legacy)`);
 	console.log("");
 	console.log("Environment:");
 	console.log(`  - CORS_ORIGIN: ${CORS_ORIGIN}`);
 	console.log(`  - INFRANODUS_API_BASE: ${INFRANODUS_API_BASE}`);
 	console.log(
-		`  - JWT_SECRET: ${process.env.JWT_SECRET ? "[set]" : "[generated]"}`
+		`  - JWT_SECRET: ${process.env.JWT_SECRET ? "[set]" : "[generated]"}`,
 	);
 });

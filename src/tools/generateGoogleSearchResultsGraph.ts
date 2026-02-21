@@ -11,26 +11,31 @@ export const generateGoogleSearchResultsGraphTool = {
 			"Generate a knowledge graph and topical clusters from Google search results for provided search queries",
 		inputSchema: GenerateGoogleSearchResultsGraphSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateGoogleSearchResultsGraphSchema>
 	) => {
 		try {
-			const includeGraph = params.includeSearchResultsOnly ? false : true;
-			const includeStatements = params.showGraphOnly ? false : true;
-
+			const includeGraph = params.includeGraph ? true : false;
+			const includeStatements = params.includeSearchResults ? true : false;
+			const showExtendedGraphInfo = params.showExtendedGraphInfo ? true : false;
+			const includeNodesAndEdges = params.includeNodesAndEdges ? true : false;
+			const includeSearchResultsOnly = params.includeSearchResultsOnly
+				? true
+				: false;
 			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
 				includeGraphSummary: "true",
-				extendedGraphSummary: "true",
-				includeGraph: includeGraph ? "false" : "true",
-				includeStatements: includeStatements ? "true" : "false",
+				extendedGraphSummary: showExtendedGraphInfo ? "true" : "false",
+				includeGraph: includeGraph ? "true" : "false",
+				includeStatements:
+					includeStatements || includeSearchResultsOnly ? "true" : "false",
 				compactGraph: "true",
 				compactStatements: "true",
 				aiTopics: "true",
@@ -40,8 +45,9 @@ export const generateGoogleSearchResultsGraphTool = {
 
 			const response = await makeInfraNodusRequest(endpoint, {
 				searchQuery: params.queries.join(","),
-				doNotAddGraph: params.includeSearchResultsOnly ? "true" : "false",
+				includeGraph: includeGraph ? "true" : "false",
 				aiTopics: "true",
+				includeSearchResultsOnly: includeSearchResultsOnly ? "true" : "false",
 				importLanguage: params.importLanguage || "EN",
 				importCountry: params.importCountry || "US",
 			});
@@ -61,8 +67,16 @@ export const generateGoogleSearchResultsGraphTool = {
 			const textOverview = transformToStructuredOutput(
 				response,
 				includeGraph,
-				includeStatements
+				includeNodesAndEdges
 			);
+
+			if (!includeStatements && !includeSearchResultsOnly) {
+				delete textOverview.statements;
+			}
+
+			if (showExtendedGraphInfo || includeGraph) {
+				delete textOverview.graphSummary;
+			}
 
 			return {
 				content: [

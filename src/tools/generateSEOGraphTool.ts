@@ -37,6 +37,18 @@ export const generateSEOGraphTool = {
 		context: ToolHandlerContext = {}
 	) => {
 		try {
+			const numberOfKeywordsToExtract = Math.min(
+				Number.isFinite(params.numberOfKeywordsToExtract)
+					? params.numberOfKeywordsToExtract
+					: 2,
+				4
+			);
+			const numberOfTopicsToExtract = Math.min(
+				Number.isFinite(params.numberOfTopicsToExtract)
+					? params.numberOfTopicsToExtract
+					: 2,
+				4
+			);
 			// Initialize progress reporter
 			const progress = new ProgressReporter(context);
 
@@ -123,8 +135,8 @@ export const generateSEOGraphTool = {
 
 			// Combine both keywords and topic names, removing duplicates
 			const combinedQueries = [
-				...(keywords.keywords?.slice(0, 3) || []),
-				...(topicNames.topicNames?.slice(0, 3) || []),
+				...(keywords.keywords?.slice(0, numberOfKeywordsToExtract) || []),
+				...(topicNames.topicNames?.slice(0, numberOfTopicsToExtract) || []),
 			];
 			const queries = [...new Set(combinedQueries)];
 

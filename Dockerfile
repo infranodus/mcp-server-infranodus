@@ -27,6 +27,10 @@ RUN npm ci --omit=dev
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
+# Copy LLM documentation files (llms.txt standard)
+COPY --from=builder /app/llms.txt ./llms.txt
+COPY --from=builder /app/llms-full.txt ./llms-full.txt
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000

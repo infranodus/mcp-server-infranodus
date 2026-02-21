@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-mcp-server",
-	"version": "1.2.4",
+	"version": "1.4.0",
 	"description": "InfraNodus MCP server - A Model Context Protocol server for network thinking and graph analysis",
 	"type": "module",
 	"module": "src/index.ts",
@@ -12,7 +12,9 @@
 		"dist/",
 		"bin/",
 		"README.md",
-		"LICENSE"
+		"LICENSE",
+		"llms.txt",
+		"llms-full.txt"
 	],
 	"keywords": [
 		"mcp",

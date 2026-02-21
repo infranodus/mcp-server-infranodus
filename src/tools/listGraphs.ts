@@ -32,14 +32,19 @@ interface GraphListItem {
 	revisions?: any[];
 }
 
-function generateListGraphsResult(graphs: GraphListItem[], filters: z.infer<typeof ListGraphsSchema>) {
+function generateListGraphsResult(
+	graphs: GraphListItem[],
+	filters: z.infer<typeof ListGraphsSchema>
+) {
 	const filterDescription = [];
-	if (filters.query) filterDescription.push(`query: "${filters.query}"`);
+	if (filters.nameContains)
+		filterDescription.push(`nameContains: "${filters.nameContains}"`);
 	if (filters.type) filterDescription.push(`type: ${filters.type}`);
 	if (filters.fromDate) filterDescription.push(`from: ${filters.fromDate}`);
 	if (filters.toDate) filterDescription.push(`to: ${filters.toDate}`);
 	if (filters.language) filterDescription.push(`language: ${filters.language}`);
-	if (filters.favorite !== undefined) filterDescription.push(`favorite: ${filters.favorite}`);
+	if (filters.favorite !== undefined)
+		filterDescription.push(`favorite: ${filters.favorite}`);
 
 	const simplifiedGraphs = graphs.map((graph) => ({
 		id: graph.id,
@@ -54,7 +59,10 @@ function generateListGraphsResult(graphs: GraphListItem[], filters: z.infer<type
 
 	return {
 		totalGraphs: graphs.length,
-		filters: filterDescription.length > 0 ? filterDescription.join(", ") : "none (all graphs)",
+		filters:
+			filterDescription.length > 0
+				? filterDescription.join(", ")
+				: "none (all graphs)",
 		graphs: simplifiedGraphs,
 	};
 }
@@ -78,8 +86,8 @@ export const listGraphsTool = {
 
 			const requestBody: Record<string, any> = {};
 
-			if (params.query) {
-				requestBody.query = params.query;
+			if (params.nameContains) {
+				requestBody.query = params.nameContains;
 			}
 			if (params.type) {
 				requestBody.type = params.type;
@@ -103,7 +111,10 @@ export const listGraphsTool = {
 
 			// The API returns an array of graphs directly
 			if (Array.isArray(response)) {
-				const structuredOutput = generateListGraphsResult(response as unknown as GraphListItem[], params);
+				const structuredOutput = generateListGraphsResult(
+					response as unknown as GraphListItem[],
+					params
+				);
 				return {
 					content: [
 						{

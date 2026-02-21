@@ -178,7 +178,7 @@ Provide a summary of the main similarities and differences.`,
 								type: "text" as const,
 								text: `Please generate research ideas for the graph "${graphName}":
 
-1. Use the generate_research_questions_from_graph tool to create research questions
+1. Use the generate_research_questions tool (with graphName parameter) to create research questions
 2. Use the generate_responses_from_graph tool to generate potential responses
 
 Provide a comprehensive research agenda based on the analysis.`,

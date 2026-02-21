@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GenerateGraphSchema } from "../schemas/index.js";
+import { AnalyzeTextSchema, AnalyzeTextSchemaBase } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
@@ -13,21 +13,40 @@ function errorContent(message: string) {
 	};
 }
 
-export const generateKnowledgeGraphTool = {
-	name: "generate_knowledge_graph",
+export const analyzeTextTool = {
+	name: "analyze_text",
 	definition: {
-		title: "Generate Knowledge Graph from Text",
+		title: "Analyze a Text, URL, or YouTube transcript",
 		description:
-			"Generate a knowledge graph with main topics, topical clusters, concepts, concepts (nodes) relations (edges) and structural gaps. Only use when explicitly asked to analyze a text or generate a knowledge graph. Do not use for short clarifying questions that you already have an answer to from the context of the conversation.",
-		inputSchema: GenerateGraphSchema.shape,
+			"Extract and analyze a graph from text, URL, YouTube video transcript, or an existing InfraNodus graph.",
+		inputSchema: AnalyzeTextSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
 		},
 	},
-	handler: async (params: z.infer<typeof GenerateGraphSchema>) => {
+	handler: async (params: z.infer<typeof AnalyzeTextSchema>) => {
 		try {
+			const includeNodesAndEdges = params.addNodesAndEdges;
+			const includeGraph = params.includeGraph;
+			const buildingEntitiesGraph =
+				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
+			const queryParams = new URLSearchParams({
+				doNotSave: "true",
+				addStats: "true",
+				includeStatements: params.includeStatements ? "true" : "false",
+				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
+				extendedGraphSummary: "true",
+				includeGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
+				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
+				compactStatements: params.includeStatements ? "true" : "false",
+				aiTopics: "true",
+				optimize: "develop",
+			});
+
+			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
+
 			let contentText: string;
 			if (params.url) {
 				const result = await fetchUrlContentAsText(params.url);
@@ -38,41 +57,10 @@ export const generateKnowledgeGraphTool = {
 			} else if (params.text?.trim()) {
 				contentText = params.text;
 			} else {
-				return errorContent("Provide either url or text for analysis");
+				return errorContent("Provide either text or url for analysis");
 			}
 
-			const includeNodesAndEdges = params.addNodesAndEdges;
-			const includeGraph = params.includeGraph;
-			const buildingEntitiesGraph =
-				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
-			// Build query parameters
-			const queryParams = new URLSearchParams({
-				doNotSave: "true",
-				addStats: "true",
-				includeStatements: params.includeStatements ? "true" : "false",
-				includeGraphSummary: "false",
-				extendedGraphSummary: "true",
-				includeGraph:
-					includeGraph || buildingEntitiesGraph || includeNodesAndEdges
-						? "true"
-						: "false",
-				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
-				compactStatements: params.includeStatements ? "true" : "false",
-				aiTopics: "true",
-				optimize: "develop",
-			});
-
-			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
-
-			const requestBody: any = {
-				text: contentText,
-				aiTopics: "true",
-			};
-
-			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {
-				requestBody.modifyAnalyzedText = params.modifyAnalyzedText;
-			}
-
+			const requestBody = { text: contentText, aiTopics: "true" };
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {
@@ -80,7 +68,7 @@ export const generateKnowledgeGraphTool = {
 					content: [
 						{
 							type: "text" as const,
-							text: `Error: ${response.error}`,
+							text: JSON.stringify({ error: response.error }),
 						},
 					],
 					isError: true,

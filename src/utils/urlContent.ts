@@ -22,17 +22,25 @@ export function parseUrlConvertResponse(
 	const firstPage = (raw.firstPage ?? raw) as {
 		title?: string;
 		statements?: Array<{ tag?: string; content?: string }>;
+		headers?: string[];
+		linksText?: string[];
 		text?: string;
 	};
 	const statements = firstPage?.statements ?? [];
-	const headers = statements
-		.filter((s) => HEADER_TAGS.includes((s.tag ?? "").toLowerCase()))
-		.map((s) => s.content ?? "")
-		.filter(Boolean);
-	const linksText = statements
-		.filter((s) => (s.tag ?? "").toLowerCase().includes("a"))
-		.map((s) => s.content ?? "")
-		.filter(Boolean);
+	const headers =
+		Array.isArray(firstPage?.headers) && firstPage.headers.length > 0
+			? firstPage.headers
+			: statements
+					.filter((s) => HEADER_TAGS.includes((s.tag ?? "").toLowerCase()))
+					.map((s) => s.content ?? "")
+					.filter(Boolean);
+	const linksText =
+		Array.isArray(firstPage?.linksText) && firstPage.linksText.length > 0
+			? firstPage.linksText
+			: statements
+					.filter((s) => (s.tag ?? "").toLowerCase().includes("a"))
+					.map((s) => s.content ?? "")
+					.filter(Boolean);
 	const text = typeof firstPage?.text === "string" ? firstPage.text : "";
 	return {
 		url,

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
-	GenerateDifferenceGraphFromTextsSchema,
-	GenerateDifferenceGraphFromTextsSchemaBase,
+	GenerateOverlapGraphFromTextsSchema,
+	GenerateOverlapGraphFromTextsSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
@@ -34,7 +34,7 @@ async function fetchGraphTextByName(
 		optimize: "develop",
 	});
 	const endpoint = `/graphAndStatements?${queryParams.toString()}`;
-	const requestBody = { name: graphName, aiTopics: "false" };
+	const requestBody = { name: graphName, aiTopics: "true" };
 	let response: GraphResponse;
 	try {
 		response = await makeInfraNodusRequest(endpoint, requestBody);
@@ -61,13 +61,13 @@ async function fetchGraphTextByName(
 	return { ok: true, text };
 }
 
-export const generateDifferenceGraphFromTextsTool = {
-	name: "difference_between_texts",
+export const generateMergedGraphFromTextsTool = {
+	name: "merged_graph_from_texts",
 	definition: {
-		title: "Generate Difference Knowledge Graph from Texts",
+		title: "Generate Merged Knowledge Graph from Texts",
 		description:
-			"Extract the conceptial relations that are missing in the first text, url, or InfraNodus graph but are present in the other texts",
-		inputSchema: GenerateDifferenceGraphFromTextsSchemaBase.shape,
+			"Build a graph of all the texts, URLs, and existing InfraNodus graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts.",
+		inputSchema: GenerateOverlapGraphFromTextsSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
@@ -75,7 +75,7 @@ export const generateDifferenceGraphFromTextsTool = {
 		},
 	},
 	handler: async (
-		params: z.infer<typeof GenerateDifferenceGraphFromTextsSchema>
+		params: z.infer<typeof GenerateOverlapGraphFromTextsSchema>
 	) => {
 		try {
 			const modifyAnalyzedText = params.modifyAnalyzedText ?? "none";
@@ -122,7 +122,7 @@ export const generateDifferenceGraphFromTextsTool = {
 
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
-			// Build query parameters
+			// Build query parameters (same shape as overlap tool, compareMode: merge)
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -134,7 +134,7 @@ export const generateDifferenceGraphFromTextsTool = {
 				compactStatements: "true",
 				aiTopics: "true",
 				optimize: "develop",
-				compareMode: "difference",
+				compareMode: "merge",
 			});
 
 			const endpoint = `/graphsAndStatements?${queryParams.toString()}`;

@@ -1,11 +1,11 @@
 import { z } from "zod";
 import {
-	generateContextualHintSchema,
-	generateContextualHintSchemaBase,
+	OptimizeTextStructureSchema,
+	OptimizeTextStructureSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
-import { generateContextualHint } from "../utils/transformers.js";
+import { generateOptimizationResult } from "../utils/transformers.js";
 
 function errorContent(message: string) {
 	return {
@@ -16,36 +16,50 @@ function errorContent(message: string) {
 	};
 }
 
-export const generateContextualHintTool = {
-	name: "generate_contextual_hint",
+export const optimizeTextStructureTool = {
+	name: "optimize_text_structure",
 	definition: {
-		title: "Generate Contextual Hint for Text or Graph",
+		title: "Optimize Text Structure",
 		description:
-			"Generate information about the main topics and concepts in a text to augment RAG retrieval and text analysis.",
-		inputSchema: generateContextualHintSchemaBase.shape,
+			"Analyze the level of bias and coherence in text. If it's too biased, develop the represented topics, if it's focused or diversified, develop the content gaps. If it's dispersed, focus the most common gap topics.",
+		inputSchema: OptimizeTextStructureSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
 		},
 	},
-	handler: async (params: z.infer<typeof generateContextualHintSchema>) => {
+	handler: async (params: z.infer<typeof OptimizeTextStructureSchema>) => {
 		try {
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
-				includeGraphSummary: "true",
-				extendedGraphSummary: "false",
-				includeGraph: "false",
+				optimize: "optimize",
 				includeStatements: "false",
+				includeGraphSummary: "false",
+				extendedGraphSummary: "true",
+				includeGraph: "true",
 				aiTopics: "true",
 			});
 
-			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
+			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
-			let requestBody: { text?: string; name?: string };
+			let requestBody: {
+				text?: string;
+				name?: string;
+				aiTopics: string;
+				requestMode: string;
+				modelToUse: string;
+			};
+			const requestMode = params.responseType ?? "response";
+
 			if (params.graphName?.trim()) {
-				requestBody = { name: params.graphName };
+				requestBody = {
+					name: params.graphName,
+					aiTopics: "true",
+					requestMode,
+					modelToUse: params.modelToUse ?? "gpt-4o",
+				};
 			} else {
 				let contentText: string;
 				if (params.url) {
@@ -61,7 +75,12 @@ export const generateContextualHintTool = {
 						"Provide either text, url, or graphName for analysis"
 					);
 				}
-				requestBody = { text: contentText };
+				requestBody = {
+					text: contentText,
+					aiTopics: "true",
+					requestMode,
+					modelToUse: params.modelToUse ?? "gpt-4o",
+				};
 			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
@@ -71,20 +90,20 @@ export const generateContextualHintTool = {
 					content: [
 						{
 							type: "text" as const,
-							text: JSON.stringify({ error: response.error }),
+							text: `Error: ${response.error}`,
 						},
 					],
 					isError: true,
 				};
 			}
 
-			const textOverview = generateContextualHint(response);
+			const optimizationResult = generateOptimizationResult(response);
 
 			return {
 				content: [
 					{
 						type: "text" as const,
-						text: JSON.stringify(textOverview, null, 2),
+						text: JSON.stringify(optimizationResult, null, 2),
 					},
 				],
 			};

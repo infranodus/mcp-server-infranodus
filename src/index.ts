@@ -8,17 +8,19 @@ import {
 	getMemoryTool,
 	createKnowledgeGraphTool,
 	analyzeExistingGraphTool,
+	analyzeTextTool,
 	generateContentGapsTool,
 	generateTopicalClustersTool,
 	generateResearchQuestionsTool,
 	generateResearchIdeasTool,
-	generateResearchQuestionsFromGraphTool,
+	optimizeTextStructureTool,
 	generateResponsesFromGraphTool,
 	generateContextualHintTool,
 	listGraphsTool,
 	searchExistingGraphsTool,
 	searchExistingGraphsFetchTool,
 	generateOverlapGraphFromTextsTool,
+	generateMergedGraphFromTextsTool,
 	generateDifferenceGraphFromTextsTool,
 	generateGoogleSearchResultsGraphTool,
 	generateGoogleSearchQueriesGraphTool,
@@ -30,7 +32,9 @@ import {
 	developTextTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
+import { llmsTxtResource, llmsFullTxtResource } from "./resources/llms-txt.js";
 import { prompts } from "./prompts/index.js";
+import { serverInstructions } from "./instructions.js";
 import * as dotenv from "dotenv";
 
 // Export the config schema for Smithery
@@ -45,8 +49,10 @@ export default function createServer({
 	// Store config globally for use in tools
 	(global as any).infranodusConfig = config;
 
-	// Create MCP server
-	const mcpServer = new McpServer(serverInfo);
+	// Create MCP server with instructions for LLM context
+	const mcpServer = new McpServer(serverInfo, {
+		instructions: serverInstructions,
+	});
 
 	// Helper function to wrap tool handlers with server context
 	const wrapHandler = (handler: any) => {
@@ -90,6 +96,12 @@ export default function createServer({
 	);
 
 	mcpServer.registerTool(
+		analyzeTextTool.name,
+		analyzeTextTool.definition,
+		wrapHandler(analyzeTextTool.handler)
+	);
+
+	mcpServer.registerTool(
 		generateContentGapsTool.name,
 		generateContentGapsTool.definition,
 		wrapHandler(generateContentGapsTool.handler)
@@ -114,9 +126,9 @@ export default function createServer({
 	);
 
 	mcpServer.registerTool(
-		generateResearchQuestionsFromGraphTool.name,
-		generateResearchQuestionsFromGraphTool.definition,
-		wrapHandler(generateResearchQuestionsFromGraphTool.handler)
+		optimizeTextStructureTool.name,
+		optimizeTextStructureTool.definition,
+		wrapHandler(optimizeTextStructureTool.handler)
 	);
 
 	mcpServer.registerTool(
@@ -153,6 +165,12 @@ export default function createServer({
 		generateOverlapGraphFromTextsTool.name,
 		generateOverlapGraphFromTextsTool.definition,
 		wrapHandler(generateOverlapGraphFromTextsTool.handler)
+	);
+
+	mcpServer.registerTool(
+		generateMergedGraphFromTextsTool.name,
+		generateMergedGraphFromTextsTool.definition,
+		wrapHandler(generateMergedGraphFromTextsTool.handler)
 	);
 
 	mcpServer.registerTool(
@@ -215,6 +233,20 @@ export default function createServer({
 		aboutResource.uri,
 		aboutResource.definition,
 		aboutResource.handler
+	);
+
+	mcpServer.registerResource(
+		llmsTxtResource.name,
+		llmsTxtResource.uri,
+		llmsTxtResource.definition,
+		llmsTxtResource.handler
+	);
+
+	mcpServer.registerResource(
+		llmsFullTxtResource.name,
+		llmsFullTxtResource.uri,
+		llmsFullTxtResource.definition,
+		llmsFullTxtResource.handler
 	);
 
 	// Register prompts

@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { DevelopTextToolSchema } from "../schemas/index.js";
+import {
+	DevelopTextToolSchema,
+	DevelopTextToolSchemaBase,
+} from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import {
@@ -21,10 +24,10 @@ function errorContent(message: string) {
 export const developTextTool = {
 	name: "develop_text_tool",
 	definition: {
-		title: "Develop a Text Based on Content Gaps and ",
+		title: "Develop a Text Based on Content Gaps and Latent Topics",
 		description:
-			"Analyze text to extract research questions, develop latent topics, and identify content gaps in a single workflow with progress tracking",
-		inputSchema: DevelopTextToolSchema.shape,
+			"Analyze text or an existing graph to extract research questions, develop latent topics, and identify content gaps in a single workflow with progress tracking. Provide either text, url, or graphName.",
+		inputSchema: DevelopTextToolSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
@@ -39,17 +42,22 @@ export const developTextTool = {
 		}
 	) => {
 		try {
-			let contentText: string;
-			if (params.url) {
-				const result = await fetchUrlContentAsText(params.url);
-				if (!result.ok) return errorContent(result.error);
-				contentText = result.contentText;
-				if (!contentText?.trim())
-					return errorContent("URL did not return any text content");
-			} else if (params.text?.trim()) {
-				contentText = params.text;
-			} else {
-				return errorContent("Provide either url or text for analysis");
+			const useGraph = params.graphName?.trim();
+			let contentText: string | undefined;
+			if (!useGraph) {
+				if (params.url) {
+					const result = await fetchUrlContentAsText(params.url);
+					if (!result.ok) return errorContent(result.error);
+					contentText = result.contentText;
+					if (!contentText?.trim())
+						return errorContent("URL did not return any text content");
+				} else if (params.text?.trim()) {
+					contentText = params.text;
+				} else {
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
+				}
 			}
 
 			// Create progress helper
@@ -72,13 +80,13 @@ export const developTextTool = {
 			// Step 1: Generate Research Questions
 			await progress.report(
 				10,
-				"🔍 Generating research questions and topical gaps from text..."
+				"🔍 Generating research questions and topical gaps from text based on its structure..."
 			);
 
 			const queryParamsResearch = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
-				optimize: "gap",
+				optimize: "optimize",
 				includeStatements: "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
@@ -90,12 +98,19 @@ export const developTextTool = {
 
 			const endpointResearch = `/graphAndAdvice?${queryParamsResearch.toString()}`;
 
-			const requestBodyResearch: any = {
-				text: contentText,
-				aiTopics: "true",
-				requestMode: params.transcendDiscourse ? "transcend" : "question",
-				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
-			};
+			const requestBodyResearch: any = useGraph
+				? {
+						name: params.graphName,
+						aiTopics: "true",
+						requestMode: params.transcendDiscourse ? "transcend" : "question",
+						modelToUse: params.modelToUse ?? "gpt-4o",
+				  }
+				: {
+						text: contentText,
+						aiTopics: "true",
+						requestMode: params.transcendDiscourse ? "transcend" : "question",
+						modelToUse: params.modelToUse ?? "gpt-4o",
+				  };
 
 			const researchResponse = await makeInfraNodusRequest(
 				endpointResearch,
@@ -130,12 +145,19 @@ export const developTextTool = {
 
 			const endpointLatent = `/graphAndAdvice?${queryParamsLatent.toString()}`;
 
-			const requestBodyLatent: any = {
-				text: contentText,
-				aiTopics: "true",
-				requestMode: params.transcendDiscourse ? "transcend" : "question",
-				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
-			};
+			const requestBodyLatent: any = useGraph
+				? {
+						name: params.graphName,
+						aiTopics: "true",
+						requestMode: params.transcendDiscourse ? "transcend" : "question",
+						modelToUse: params.modelToUse ?? "gpt-4o",
+				  }
+				: {
+						text: contentText,
+						aiTopics: "true",
+						requestMode: params.transcendDiscourse ? "transcend" : "question",
+						modelToUse: params.modelToUse ?? "gpt-4o",
+				  };
 
 			const latentResponse = await makeInfraNodusRequest(
 				endpointLatent,
@@ -170,13 +192,23 @@ export const developTextTool = {
 
 			const endpointBridges = `/graphAndAdvice?${queryParamsBridges.toString()}`;
 
+			const requestBodyBridges: any = useGraph
+				? {
+						name: params.graphName,
+						aiTopics: "true",
+						requestMode: params.transcendDiscourse ? "transcend" : "question",
+						modelToUse: params.modelToUse ?? "gpt-4o",
+				  }
+				: {
+						text: contentText,
+						aiTopics: "true",
+						requestMode: params.transcendDiscourse ? "transcend" : "question",
+						modelToUse: params.modelToUse ?? "gpt-4o",
+				  };
+
 			const conceptualBridgesResponse = await makeInfraNodusRequest(
 				endpointBridges,
-				{
-					text: contentText,
-					requestMode: params.transcendDiscourse ? "transcend" : "question",
-					modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
-				}
+				requestBodyBridges
 			);
 
 			const conceptualBridges = extractLatentConceptsIdeas(

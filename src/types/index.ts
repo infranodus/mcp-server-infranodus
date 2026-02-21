@@ -273,6 +273,30 @@ export interface ResponsesOutput {
 	responses?: string[];
 }
 
+export interface OptimizeTextOutput {
+	suggestions?: string[];
+	mainTopicalClusters?: string[];
+	contentGaps?: string[];
+	mainConcepts?: string[];
+	topicsToDevelop?: string[];
+	conceptualGateways?: string[];
+	topRelations?: string[];
+	topKeywordCombinations?: string[];
+	diversity_stats?: any;
+	diversityStatistics?: {
+		modularity: string;
+		diversity_score: string;
+		modularity_score: string;
+		too_focused_on_top_nodes: boolean;
+		too_focused_on_top_clusters: boolean;
+		ratio_of_top_nodes_influence_by_betweenness: number;
+		top_nodes_entropy: number;
+		ratio_of_top_cluster_influence_by_betweenness: number;
+		total_clusters: number;
+		fair_influence_by_cluster: number;
+	};
+}
+
 export interface InsightsOutput {
 	summary?: string;
 	topics?: Array<{

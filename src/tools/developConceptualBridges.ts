@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { DevelopLatentConceptsSchema } from "../schemas/index.js";
+import {
+	DevelopLatentConceptsSchema,
+	DevelopLatentConceptsSchemaBase,
+} from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { extractLatentConceptsIdeas } from "../utils/transformers.js";
@@ -16,10 +19,10 @@ function errorContent(message: string) {
 export const developConceptualBridgesTool = {
 	name: "develop_conceptual_bridges",
 	definition: {
-		title: "Develop Conceptual Bridges in Text",
+		title: "Develop Conceptual Bridges in Text or Graph",
 		description:
-			"Analyze text and get ideas on how to develop conceptual bridges in this text to link it to a broader discourse",
-		inputSchema: DevelopLatentConceptsSchema.shape,
+			"Analyze text or an existing graph and get ideas on how to develop conceptual bridges in this text to link it to a broader discourse. Provide either text, url, or graphName.",
+		inputSchema: DevelopLatentConceptsSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
 			idempotentHint: true,
@@ -28,20 +31,6 @@ export const developConceptualBridgesTool = {
 	},
 	handler: async (params: z.infer<typeof DevelopLatentConceptsSchema>) => {
 		try {
-			let contentText: string;
-			if (params.url) {
-				const result = await fetchUrlContentAsText(params.url);
-				if (!result.ok) return errorContent(result.error);
-				contentText = result.contentText;
-				if (!contentText?.trim())
-					return errorContent("URL did not return any text content");
-			} else if (params.text?.trim()) {
-				contentText = params.text;
-			} else {
-				return errorContent("Provide either url or text for analysis");
-			}
-
-			// Build query parameters
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -55,12 +44,42 @@ export const developConceptualBridgesTool = {
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
-			const requestBody: any = {
-				text: contentText,
-				aiTopics: "true",
-				requestMode: params.responseMode ? params.responseMode : "transcend",
-				modelToUse: params.modelToUse ? params.modelToUse : "gpt-4o",
+			let requestBody: {
+				text?: string;
+				name?: string;
+				aiTopics: string;
+				requestMode: string;
+				modelToUse: string;
 			};
+			if (params.graphName?.trim()) {
+				requestBody = {
+					name: params.graphName,
+					aiTopics: "true",
+					requestMode: params.requestMode ?? "transcend",
+					modelToUse: params.modelToUse ?? "gpt-4o",
+				};
+			} else {
+				let contentText: string;
+				if (params.url) {
+					const result = await fetchUrlContentAsText(params.url);
+					if (!result.ok) return errorContent(result.error);
+					contentText = result.contentText;
+					if (!contentText?.trim())
+						return errorContent("URL did not return any text content");
+				} else if (params.text?.trim()) {
+					contentText = params.text;
+				} else {
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
+				}
+				requestBody = {
+					text: contentText,
+					aiTopics: "true",
+					requestMode: params.requestMode ?? "transcend",
+					modelToUse: params.modelToUse ?? "gpt-4o",
+				};
+			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 

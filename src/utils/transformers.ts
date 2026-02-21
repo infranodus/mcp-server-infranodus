@@ -10,6 +10,7 @@ import {
 	ResearchQuestionsOutput,
 	ResearchIdeasOutput,
 	ResponsesOutput,
+	OptimizeTextOutput,
 	SearchOutput,
 	FetchOutput,
 	StatementsSearchOutput,
@@ -263,7 +264,22 @@ export function extractStatementStrings(
 	const statements: StatementStringsOutput = {};
 
 	if (data.statements) {
-		statements.statements = data.statements.map((statement) => {
+		const filterByCategory = (pattern: RegExp) =>
+			data.statements!.filter((statement) =>
+				statement.categories?.some((category) => pattern.test(category))
+			);
+
+		const thresholds: RegExp[] = [/1000/, /100/, /\d/];
+		let filtered = data.statements!;
+		for (const pattern of thresholds) {
+			const result = filterByCategory(pattern);
+			if (result.length > 0) {
+				filtered = result;
+				break;
+			}
+		}
+
+		statements.statements = filtered.map((statement) => {
 			const statementContent = statement.content;
 			const statementCategories =
 				statement.categories?.map((category) => category) || [];
@@ -337,6 +353,35 @@ export function generateResponses(data: GraphResponse): ResponsesOutput {
 	}
 
 	return responses;
+}
+
+export function generateOptimizationResult(
+	data: GraphResponse
+): OptimizeTextOutput {
+	const output: OptimizeTextOutput = {};
+
+	if (data.aiAdvice) {
+		output.suggestions = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.graph?.graphologyGraph?.attributes?.diversity_stats) {
+		output.diversity_stats =
+			data.graph.graphologyGraph.attributes.diversity_stats;
+	}
+
+	if (data.extendedGraphSummary) {
+		const ext = data.extendedGraphSummary;
+		if (ext.mainTopics) output.mainTopicalClusters = ext.mainTopics;
+		if (ext.contentGaps) output.contentGaps = ext.contentGaps;
+		if (ext.mainConcepts) output.mainConcepts = ext.mainConcepts;
+		if (ext.topicsToDevelop) output.topicsToDevelop = ext.topicsToDevelop;
+		if (ext.conceptualGateways)
+			output.conceptualGateways = ext.conceptualGateways;
+		if (ext.topRelations) output.topRelations = ext.topRelations;
+		if (ext.topBigrams) output.topKeywordCombinations = ext.topBigrams;
+	}
+
+	return output;
 }
 
 export function extractLatentConceptsIdeas(

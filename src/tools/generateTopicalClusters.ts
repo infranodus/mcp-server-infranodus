@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { GenerateTopicalClustersSchema } from "../schemas/index.js";
+import {
+	GenerateTopicalClustersSchema,
+	GenerateTopicalClustersSchemaBase,
+} from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { generateTopics } from "../utils/transformers.js";
@@ -18,30 +21,16 @@ export const generateTopicalClustersTool = {
 	definition: {
 		title: "Generate Topical Clusters",
 		description:
-			"Generate topics and clusters of keywords from text using knowledge graph analysis",
-		inputSchema: GenerateTopicalClustersSchema.shape,
+			"Generate topics and clusters of keywords from text, URL, or an existing graph using knowledge graph analysis. ",
+		inputSchema: GenerateTopicalClustersSchemaBase.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof GenerateTopicalClustersSchema>) => {
 		try {
-			let contentText: string;
-			if (params.url) {
-				const result = await fetchUrlContentAsText(params.url);
-				if (!result.ok) return errorContent(result.error);
-				contentText = result.contentText;
-				if (!contentText?.trim())
-					return errorContent("URL did not return any text content");
-			} else if (params.text?.trim()) {
-				contentText = params.text;
-			} else {
-				return errorContent("Provide either url or text for analysis");
-			}
-
-			// First generate the graph with focus on insights
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -54,9 +43,28 @@ export const generateTopicalClustersTool = {
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
-			const response = await makeInfraNodusRequest(endpoint, {
-				text: contentText,
-			});
+			let requestBody: { text?: string; name?: string };
+			if (params.graphName?.trim()) {
+				requestBody = { name: params.graphName };
+			} else {
+				let contentText: string;
+				if (params.url) {
+					const result = await fetchUrlContentAsText(params.url);
+					if (!result.ok) return errorContent(result.error);
+					contentText = result.contentText;
+					if (!contentText?.trim())
+						return errorContent("URL did not return any text content");
+				} else if (params.text?.trim()) {
+					contentText = params.text;
+				} else {
+					return errorContent(
+						"Provide either text, url, or graphName for analysis"
+					);
+				}
+				requestBody = { text: contentText };
+			}
+
+			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {
 				return {

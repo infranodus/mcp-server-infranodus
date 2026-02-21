@@ -11,26 +11,29 @@ export const generateGoogleResultsVsQueriesGraphTool = {
 			"Find the combinations of keywords and topics people search for that don't appear in the search results for the same queries",
 		inputSchema: GenerateGoogleResultsVsQueriesGraphSchema.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (
 		params: z.infer<typeof GenerateGoogleResultsVsQueriesGraphSchema>
 	) => {
 		try {
-			const includeGraph = params.showExtendedGraphInfo ? true : false;
-			const includeStatements = params.showGraphOnly ? false : true;
-
-			// First generate the graph with focus on insights
+			const showExtendedGraphInfo = params.showExtendedGraphInfo ? true : false;
+			const includeGraph = showExtendedGraphInfo ? true : false;
+			const includeStatements = params.includeSearchQueries ? true : false;
+			const includeSearchQueriesOnly = params.includeSearchQueriesOnly
+				? true
+				: false;
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
 				includeGraphSummary: "true",
-				extendedGraphSummary: "true",
+				extendedGraphSummary: showExtendedGraphInfo ? "true" : "false",
 				includeGraph: includeGraph ? "true" : "false",
-				includeStatements: includeStatements ? "true" : "false",
+				includeStatements:
+					includeStatements || includeSearchQueriesOnly ? "true" : "false",
 				compactGraph: "true",
 				compactStatements: "true",
 				aiTopics: "true",
@@ -60,9 +63,16 @@ export const generateGoogleResultsVsQueriesGraphTool = {
 			const textOverview = transformToStructuredOutput(
 				response,
 				includeGraph,
-				includeStatements
+				false
 			);
 
+			if (!includeStatements && !includeSearchQueriesOnly) {
+				delete textOverview.statements;
+			}
+
+			if (showExtendedGraphInfo || includeGraph) {
+				delete textOverview.graphSummary;
+			}
 			return {
 				content: [
 					{
