@@ -109,6 +109,11 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction): 
 
 	if (!authHeader || !authHeader.startsWith("Bearer ")) {
 		console.log(`[AUTH] Missing or invalid Authorization header`);
+		const baseUrl = `${req.protocol}://${req.get("host")}`;
+		res.setHeader(
+			"WWW-Authenticate",
+			`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
+		);
 		const error: ErrorResponse = {
 			error: "unauthorized",
 			error_description: "Missing or invalid Authorization header",
@@ -153,6 +158,11 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction): 
 	}
 
 	console.log(`[AUTH] All authentication methods failed`);
+	const baseUrl = `${req.protocol}://${req.get("host")}`;
+	res.setHeader(
+		"WWW-Authenticate",
+		`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
+	);
 	const error: ErrorResponse = {
 		error: "invalid_token",
 		error_description: "Access token is invalid or expired",
@@ -537,6 +547,23 @@ app.get("/.well-known/openid-configuration", (req: Request, res: Response) => {
 	});
 });
 
+/**
+ * GET /.well-known/oauth-protected-resource - OAuth2 Protected Resource Metadata (RFC 9728)
+ * MCP clients fetch this to discover the authorization server for this resource.
+ */
+app.get(
+	"/.well-known/oauth-protected-resource",
+	(req: Request, res: Response) => {
+		const baseUrl = `${req.protocol}://${req.get("host")}`;
+		res.json({
+			resource: baseUrl,
+			authorization_servers: [baseUrl],
+			scopes_supported: ["mcp", "read", "write"],
+			bearer_methods_supported: ["header"],
+		});
+	}
+);
+
 // ============================================================================
 // MCP Endpoints
 // ============================================================================
@@ -811,11 +838,15 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 /**
- * GET / - Server info (only when no auth header - otherwise it's MCP)
+ * GET / - Server info (only when no auth header and not an MCP/SSE client)
  */
 app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	// If auth header is present, treat as MCP request
 	if (req.headers.authorization) {
+		return next();
+	}
+	// If client wants SSE or MCP, let it fall through to authMiddleware (→ 401 triggers OAuth)
+	if (req.headers.accept?.includes("text/event-stream")) {
 		return next();
 	}
 	res.json({
