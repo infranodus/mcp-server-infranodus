@@ -119,7 +119,7 @@ async function authMiddleware(
 		const baseUrl = `${req.protocol}://${req.get("host")}`;
 		res.setHeader(
 			"WWW-Authenticate",
-			`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
+			`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
 		);
 		const error: ErrorResponse = {
 			error: "unauthorized",
@@ -168,7 +168,7 @@ async function authMiddleware(
 	const baseUrl = `${req.protocol}://${req.get("host")}`;
 	res.setHeader(
 		"WWW-Authenticate",
-		`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
+		`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
 	);
 	const error: ErrorResponse = {
 		error: "invalid_token",
@@ -815,11 +815,9 @@ app.post("/message", authMiddleware, async (req: Request, res: Response) => {
 
 	const transport = sseTransports.get(sessionId);
 	if (!transport) {
-		res
-			.status(404)
-			.json({
-				error: "Session not found. The SSE connection may have been closed.",
-			});
+		res.status(404).json({
+			error: "Session not found. The SSE connection may have been closed.",
+		});
 		return;
 	}
 
@@ -888,7 +886,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: "InfraNodus MCP Server",
-		version: "1.3.0",
+		version: "1.4.0",
 		description: "MCP server for InfraNodus knowledge graph analysis",
 		endpoints: {
 			oauth: {
