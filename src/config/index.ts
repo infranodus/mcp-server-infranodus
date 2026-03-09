@@ -7,6 +7,8 @@ export const configSchema = z.object({
 		.string()
 		.default("https://infranodus.com/api/v1")
 		.describe("InfraNodus API base URL"),
+	userId: z.number().optional().describe("Authenticated user ID"),
+	userName: z.string().optional().describe("Authenticated user name"),
 });
 
 // Export the type for use in other files

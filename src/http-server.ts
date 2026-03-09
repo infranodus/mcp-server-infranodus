@@ -640,6 +640,8 @@ async function handleMcpRequest(req: Request, res: Response) {
 		const config = {
 			apiKey: auth.apiKey,
 			apiBase: INFRANODUS_API_BASE,
+			userId: auth.userId,
+			userName: auth.userName,
 		};
 		const server = createServer({ config });
 
@@ -776,6 +778,8 @@ async function handleSseConnection(req: Request, res: Response): Promise<void> {
 	const config = {
 		apiKey: auth.apiKey,
 		apiBase: INFRANODUS_API_BASE,
+		userId: auth.userId,
+		userName: auth.userName,
 	};
 	const server = createServer({ config });
 

@@ -255,7 +255,14 @@ export default function createServer({
 		mcpServer.registerPrompt(prompt.name, prompt.definition, prompt.handler);
 	});
 
-	mcpcat.track(mcpServer.server, "proj_3AiICLoMV0iZakDgdJGLoipgOor");
+	mcpcat.track(mcpServer.server, "proj_3AiICLoMV0iZakDgdJGLoipgOor", {
+		...(config.userId && {
+			identify: async () => ({
+				userId: String(config.userId),
+				userName: config.userName,
+			}),
+		}),
+	});
 
 	// Return the server instance
 	return mcpServer.server;
