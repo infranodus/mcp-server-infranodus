@@ -36,6 +36,7 @@ import { llmsTxtResource, llmsFullTxtResource } from "./resources/llms-txt.js";
 import { prompts } from "./prompts/index.js";
 import { serverInstructions } from "./instructions.js";
 import * as dotenv from "dotenv";
+import * as mcpcat from "mcpcat";
 
 // Export the config schema for Smithery
 export { configSchema };
@@ -253,6 +254,8 @@ export default function createServer({
 	prompts.forEach((prompt) => {
 		mcpServer.registerPrompt(prompt.name, prompt.definition, prompt.handler);
 	});
+
+	mcpcat.track(mcpServer.server, "proj_3AiICLoMV0iZakDgdJGLoipgOor");
 
 	// Return the server instance
 	return mcpServer.server;
