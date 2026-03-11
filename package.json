@@ -1,0 +1,68 @@
+{
+	"name": "infranodus-mcp-server",
+	"version": "1.5.0",
+	"description": "InfraNodus MCP server - A Model Context Protocol server for network thinking and graph analysis",
+	"type": "module",
+	"module": "src/index.ts",
+	"main": "dist/index.js",
+	"bin": {
+		"infranodus-mcp-server": "./bin/infranodus-mcp-server.js"
+	},
+	"files": [
+		"dist/",
+		"bin/",
+		"README.md",
+		"LICENSE",
+		"llms.txt",
+		"llms-full.txt"
+	],
+	"keywords": [
+		"mcp",
+		"model-context-protocol",
+		"infranodus",
+		"knowledge-graph",
+		"network-analysis"
+	],
+	"author": "",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/infranodus/mcp-server-infranodus.git"
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"scripts": {
+		"build": "npx @smithery/cli build",
+		"build:inspect": "tsc",
+		"dev": "npx @smithery/cli dev",
+		"watch": "tsc --watch",
+		"inspect": "npm run build:inspect && npx @modelcontextprotocol/inspector node dist/index.js",
+		"start": "npm run build:inspect && node dist/index.js",
+		"start:http": "npm run build:inspect && node dist/http-server.js",
+		"dev:http": "npm run build:inspect && node --watch dist/http-server.js",
+		"prepublishOnly": "npm run build:inspect"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.18.0",
+		"cors": "^2.8.5",
+		"dotenv": "^16.6.1",
+		"express": "^5.2.1",
+		"helmet": "^8.1.0",
+		"jsonwebtoken": "^9.0.3",
+		"mcpcat": "^0.1.13",
+		"uuid": "^13.0.0"
+	},
+	"devDependencies": {
+		"@modelcontextprotocol/inspector": "latest",
+		"@smithery/cli": "^1.4.3",
+		"@smithery/sdk": "^1.6.7",
+		"@types/cors": "^2.8.19",
+		"@types/dotenv": "^6.1.1",
+		"@types/express": "^5.0.6",
+		"@types/jsonwebtoken": "^9.0.10",
+		"@types/node": "^20.0.0",
+		"@types/uuid": "^10.0.0",
+		"typescript": "^5.0.0"
+	}
+}

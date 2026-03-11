@@ -1,0 +1,6 @@
+.env
+node_modules
+dist
+.claude
+.smithery/index.cjs
+.npmrc

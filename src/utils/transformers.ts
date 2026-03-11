@@ -1,0 +1,653 @@
+import {
+	GraphResponse,
+	SearchResponse,
+	KnowledgeGraphOutput,
+	GapsOutput,
+	GraphOverview,
+	GraphRagOutput,
+	TopicsOutput,
+	InsightsOutput,
+	ResearchQuestionsOutput,
+	ResearchIdeasOutput,
+	ResponsesOutput,
+	OptimizeTextOutput,
+	SearchOutput,
+	FetchOutput,
+	StatementsSearchOutput,
+	KeywordsOutput,
+	TopicNamesOutput,
+	SummaryOutput,
+	StatementStringsOutput,
+	LatentConceptsOutput,
+	LatentTopicsOutput,
+} from "../types/index.js";
+
+export function transformToStructuredOutput(
+	data: GraphResponse,
+	includeGraph: boolean = false,
+	includeNodesAndEdges: boolean = false,
+	buildingEntitiesGraph: boolean = false
+): KnowledgeGraphOutput {
+	const output: KnowledgeGraphOutput = {
+		statistics: {
+			modularity: 0,
+			diversity_stats: {},
+			clusterCount: 0,
+		},
+	};
+
+	if (data.graphSummary) {
+		output.graphSummary = data.graphSummary;
+	}
+
+	if (data.extendedGraphSummary) {
+		output.contentGaps = data.extendedGraphSummary.contentGaps;
+		output.mainTopicalClusters = data.extendedGraphSummary.mainTopics;
+		output.mainConcepts = data.extendedGraphSummary.mainConcepts;
+		output.conceptualGateways = data.extendedGraphSummary.conceptualGateways;
+		output.topRelations = data.extendedGraphSummary.topRelations;
+		output.topBigrams = data.extendedGraphSummary.topBigrams;
+	}
+
+	if (data.graph?.graphologyGraph) {
+		const graph = data.graph.graphologyGraph;
+
+		// Statistics
+		output.statistics = {
+			modularity: graph.attributes?.modularity || 0,
+			clusterCount:
+				graph.attributes?.diversity_stats?.total_clusters ||
+				graph.attributes?.top_clusters?.length ||
+				0,
+		};
+
+		if (graph.nodes?.length > 0) {
+			output.statistics.nodeCount = graph.nodes?.length;
+		}
+		if (graph.edges?.length > 0) {
+			output.statistics.edgeCount = graph.edges?.length;
+		}
+
+		if (graph.attributes?.diversity_stats) {
+			output.statistics.diversity_stats = graph.attributes.diversity_stats;
+		}
+
+		if (graph.attributes?.top_influential_nodes) {
+			output.topInfluentialNodes = graph.attributes.top_influential_nodes;
+		}
+
+		if (graph.attributes?.dotGraphByCluster) {
+			output.knowledgeGraphByCluster = graph.attributes.dotGraphByCluster;
+			delete graph.attributes.dotGraphByCluster;
+		}
+
+		if (
+			graph.attributes?.top_clusters &&
+			!data.extendedGraphSummary?.mainTopics
+		) {
+			if (!buildingEntitiesGraph) {
+				output.topClusters = graph.attributes.top_clusters;
+			}
+		}
+
+		// Include raw graph if requested
+		if (includeGraph || includeNodesAndEdges) {
+			output.knowledgeGraph = graph;
+		}
+
+		// Include nodes and edges if requested
+		if (includeGraph && !includeNodesAndEdges) {
+			delete output.knowledgeGraph?.nodes;
+			delete output.knowledgeGraph?.edges;
+		}
+	}
+
+	// Statements
+	if (data.statements) {
+		output.statements = data.statements;
+	}
+
+	if (data.userName) {
+		output.userName = data.userName;
+	}
+
+	if (data.graphName) {
+		output.graphName = data.graphName;
+	}
+
+	if (data.graphUrl) {
+		output.graphUrl = data.graphUrl;
+	}
+
+	return output;
+}
+
+export function transformToGraphRagOutput(params: {
+	data: GraphResponse;
+	includeGraph: boolean;
+	compactStatements: boolean;
+	includeGraphSummary: boolean;
+	extendedGraphSummary: boolean;
+}): GraphRagOutput {
+	const {
+		data,
+		includeGraph,
+		compactStatements,
+		includeGraphSummary,
+		extendedGraphSummary,
+	} = params;
+	const output: GraphRagOutput = {};
+
+	// if (data.aiAdvice) {
+	// 	output.relatedStatements = data.aiAdvice.map((advice) => advice.text);
+	// }
+
+	// Statements
+	if (data.statements) {
+		output.retrievedStatements = compactStatements
+			? data.statements
+					.filter((statement) => statement.content !== undefined)
+					.map((statement) => ({ content: statement.content! }))
+			: data.statements
+					.filter((statement) => statement.content !== undefined)
+					.map((statement) => ({
+						content: statement.content!,
+						categories: statement.categories,
+						topStatementCommunity: statement.topStatementCommunity,
+						topStatementOfCommunity: statement.topStatementOfCommunity,
+						similarityScore: statement.similarityScore || 0,
+					}));
+	}
+
+	if (data.graphSummary && includeGraphSummary == true) {
+		output.graphSummary = data.graphSummary;
+	}
+
+	if (data.extendedGraphSummary && extendedGraphSummary == true) {
+		output.contentGaps = data.extendedGraphSummary.contentGaps;
+		output.mainTopicalClusters = data.extendedGraphSummary.mainTopics;
+		output.mainConcepts = data.extendedGraphSummary.mainConcepts;
+		output.conceptualGateways = data.extendedGraphSummary.conceptualGateways;
+		output.topRelations = data.extendedGraphSummary.topRelations;
+		output.topBigrams = data.extendedGraphSummary.topBigrams;
+	}
+
+	if (data.graph && data.graph.graphologyGraph && includeGraph == true) {
+		const graph = data.graph.graphologyGraph;
+		output.graph = graph;
+	}
+
+	if (data.userName) {
+		output.userName = data.userName;
+	}
+
+	if (data.graphName) {
+		output.graphName = data.graphName;
+	}
+
+	if (data.graphUrl) {
+		output.graphUrl = data.graphUrl;
+	}
+
+	return output;
+}
+
+export function generateGaps(data: GraphResponse): GapsOutput {
+	const gaps: GapsOutput = {};
+
+	if (data.extendedGraphSummary?.contentGaps) {
+		gaps.contentGaps = data.extendedGraphSummary.contentGaps;
+	}
+
+	return gaps;
+}
+
+export function generateContextualHint(data: GraphResponse): GraphOverview {
+	const graphOverview: GraphOverview = {};
+
+	if (data.graphSummary) {
+		graphOverview.textOverview = data.graphSummary;
+	}
+
+	return graphOverview;
+}
+
+export function generateTopics(data: GraphResponse): TopicsOutput {
+	const topicalClusters: TopicsOutput = {};
+
+	if (data.extendedGraphSummary?.mainTopics) {
+		topicalClusters.topicalClusters = data.extendedGraphSummary.mainTopics;
+	}
+
+	return topicalClusters;
+}
+
+export function generateSummaryFromTopicsAndGaps(
+	data: GraphResponse
+): SummaryOutput {
+	const summary: SummaryOutput = {};
+
+	if (
+		data.extendedGraphSummary?.mainTopics &&
+		data.extendedGraphSummary?.contentGaps
+	) {
+		summary.summary =
+			data.extendedGraphSummary.mainTopics.join("\n") +
+			"\n\n" +
+			data.extendedGraphSummary.contentGaps.join("\n");
+	}
+
+	return summary;
+}
+
+export function extractInsightsFromExtendedGraphSummary(
+	data: GraphResponse
+): InsightsOutput {
+	const mainTopics = data.extendedGraphSummary?.mainTopics || [];
+	const contentGaps = data.extendedGraphSummary?.contentGaps || [];
+	const mainConcepts = data.extendedGraphSummary?.mainConcepts || [];
+	const topKeywordCombinations = data.extendedGraphSummary?.topBigrams || [];
+	const conceptsToDevelop = data.extendedGraphSummary?.conceptualGateways || [];
+
+	return {
+		mainTopics,
+		contentGaps,
+		mainConcepts,
+		topKeywordCombinations,
+		conceptsToDevelop,
+	};
+}
+
+export function extractStatementStrings(
+	data: GraphResponse
+): StatementStringsOutput {
+	const statements: StatementStringsOutput = {};
+
+	if (data.statements) {
+		const filterByCategory = (pattern: RegExp) =>
+			data.statements!.filter((statement) =>
+				statement.categories?.some((category) => pattern.test(category))
+			);
+
+		const thresholds: RegExp[] = [/1000/, /100/, /\d/];
+		let filtered = data.statements!;
+		for (const pattern of thresholds) {
+			const result = filterByCategory(pattern);
+			if (result.length > 0) {
+				filtered = result;
+				break;
+			}
+		}
+
+		statements.statements = filtered.map((statement) => {
+			const statementContent = statement.content;
+			const statementCategories =
+				statement.categories?.map((category) => category) || [];
+			return `${statementContent} | ${statementCategories.join(", ")}`;
+		});
+	}
+
+	return statements;
+}
+
+export function generateKeywordsFromBigrams(
+	data: GraphResponse
+): KeywordsOutput {
+	const keywords: KeywordsOutput = {};
+
+	if (data.extendedGraphSummary?.topBigrams) {
+		keywords.keywords = data.extendedGraphSummary.topBigrams;
+	}
+
+	return keywords;
+}
+
+export function generateTopicNames(data: GraphResponse): TopicNamesOutput {
+	const topicNames: TopicNamesOutput = {};
+
+	if (
+		data.extendedGraphSummary?.mainTopicNames &&
+		Array.isArray(data.extendedGraphSummary.mainTopicNames)
+	) {
+		const mainTopicNames = data.extendedGraphSummary.mainTopicNames.map(
+			(topic) => {
+				const topicName = topic.split(". ") ? topic.split(". ")[1] : topic;
+				return topicName;
+			}
+		);
+		topicNames.topicNames = mainTopicNames;
+	}
+
+	return topicNames;
+}
+
+export function generateResearchQuestions(
+	data: GraphResponse
+): ResearchQuestionsOutput {
+	const researchQuestions: ResearchQuestionsOutput = { questions: [] };
+
+	if (data.aiAdvice) {
+		researchQuestions.questions = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	return researchQuestions;
+}
+
+export function generateResearchIdeas(
+	data: GraphResponse
+): ResearchIdeasOutput {
+	const researchIdeas: ResearchIdeasOutput = { ideas: [] };
+
+	if (data.aiAdvice) {
+		researchIdeas.ideas = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	return researchIdeas;
+}
+
+export function generateResponses(data: GraphResponse): ResponsesOutput {
+	const responses: ResponsesOutput = { responses: [] };
+
+	if (data.aiAdvice) {
+		responses.responses = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	return responses;
+}
+
+export function generateOptimizationResult(
+	data: GraphResponse
+): OptimizeTextOutput {
+	const output: OptimizeTextOutput = {};
+
+	if (data.aiAdvice) {
+		output.suggestions = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.graph?.graphologyGraph?.attributes?.diversity_stats) {
+		output.diversity_stats =
+			data.graph.graphologyGraph.attributes.diversity_stats;
+	}
+
+	if (data.extendedGraphSummary) {
+		const ext = data.extendedGraphSummary;
+		if (ext.mainTopics) output.mainTopicalClusters = ext.mainTopics;
+		if (ext.contentGaps) output.contentGaps = ext.contentGaps;
+		if (ext.mainConcepts) output.mainConcepts = ext.mainConcepts;
+		if (ext.topicsToDevelop) output.topicsToDevelop = ext.topicsToDevelop;
+		if (ext.conceptualGateways)
+			output.conceptualGateways = ext.conceptualGateways;
+		if (ext.topRelations) output.topRelations = ext.topRelations;
+		if (ext.topBigrams) output.topKeywordCombinations = ext.topBigrams;
+	}
+
+	return output;
+}
+
+export function extractLatentConceptsIdeas(
+	data: GraphResponse
+): LatentConceptsOutput {
+	const latentConcepts: LatentConceptsOutput = { ideas: [] };
+
+	if (data.aiAdvice) {
+		latentConcepts.ideas = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.extendedGraphSummary?.conceptualGateways) {
+		latentConcepts.latentConceptsToDevelop =
+			data.extendedGraphSummary.conceptualGateways;
+	}
+
+	if (data.extendedGraphSummary?.conceptualGatewaysGraph) {
+		latentConcepts.latentConceptsRelations =
+			data.extendedGraphSummary.conceptualGatewaysGraph;
+	}
+
+	return latentConcepts;
+}
+
+export function extractLatentTopicsIdeas(
+	data: GraphResponse
+): LatentTopicsOutput {
+	const latentConcepts: LatentTopicsOutput = {};
+
+	if (data.aiAdvice) {
+		latentConcepts.ideas = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.extendedGraphSummary?.mainTopics) {
+		latentConcepts.mainTopics = data.extendedGraphSummary.mainTopics;
+	}
+
+	if (data.extendedGraphSummary?.topicsToDevelop) {
+		latentConcepts.latentTopicsToDevelop =
+			data.extendedGraphSummary.topicsToDevelop;
+	}
+
+	return latentConcepts;
+}
+
+export function generateSearchResult(
+	data: SearchResponse,
+	query: string
+): SearchOutput {
+	const results: SearchOutput = { results: [] };
+
+	const userName = data.userName || "";
+
+	const searchQuery = query || "";
+
+	const searchResultsExist =
+		data.graphUrls &&
+		data.graphNames &&
+		data.graphUrls.length > 0 &&
+		data.graphNames.length > 0;
+
+	if (searchResultsExist) {
+		const graphNames = data.graphNames || [];
+		results.results = data.graphUrls?.map((url, index) => ({
+			id: `${userName}:${graphNames[index]}:${searchQuery}`,
+			title: graphNames[index],
+			url: url,
+		}));
+	}
+
+	return results;
+}
+
+export function generateFetchResult(
+	data: SearchResponse,
+	query: string
+): FetchOutput {
+	const fetchResults: FetchOutput = { id: "", title: "", text: "", url: "" };
+
+	const userName = data.userName || "";
+
+	const searchQuery = query || "";
+
+	const searchResultsExist =
+		data.graphUrls &&
+		data.graphNames &&
+		data.graphUrls.length > 0 &&
+		data.graphNames.length > 0;
+
+	const searchResultsTextArray = data.entriesAdded?.texts;
+
+	if (searchResultsExist) {
+		const graphNames = data.graphNames || [];
+		const graphUrls = data.graphUrls || [];
+		fetchResults.id = `${userName}:${graphNames[0]}:${searchQuery}`;
+		fetchResults.title = graphNames[0];
+		fetchResults.text = searchResultsTextArray?.join("\n") || "";
+		fetchResults.url = graphUrls[0];
+	}
+
+	return fetchResults;
+}
+
+export function extractStatementsFromGraphResponse(
+	data: GraphResponse,
+	memoryContextName: string
+): StatementsSearchOutput {
+	const results: StatementsSearchOutput = {
+		statements: [],
+		userName: "",
+		graphNames: [],
+		graphUrls: [],
+	};
+
+	if (data.statements) {
+		results.statements = data.statements
+			.map((statement) => statement.content)
+			.filter((content): content is string => content !== undefined);
+	}
+	if (data.userName) {
+		results.userName = data.userName;
+	}
+	if (data.graphName) {
+		results.graphNames = [memoryContextName];
+	}
+
+	return results;
+}
+
+export function extractStatementsFromSearchResponse(
+	data: SearchResponse
+): StatementsSearchOutput {
+	const results: StatementsSearchOutput = {
+		statements: [],
+		userName: "",
+		graphNames: [],
+		graphUrls: [],
+	};
+
+	const searchResultsExist =
+		data.entriesAdded?.texts && data.entriesAdded?.texts.length > 0;
+
+	if (data.userName) {
+		results.userName = data.userName;
+	}
+
+	if (data.graphNames) {
+		results.graphNames = data.graphNames;
+	}
+
+	if (data.graphUrls) {
+		results.graphUrls = data.graphUrls;
+	}
+
+	if (data.error) {
+		results.error = data.error;
+	}
+
+	const searchResultsTextArray = data.entriesAdded?.texts;
+
+	if (searchResultsExist && searchResultsTextArray) {
+		results.statements = searchResultsTextArray;
+	}
+
+	return results;
+}
+
+export function generateInsights(
+	data: GraphResponse,
+	insightType: string
+): InsightsOutput {
+	const insights: InsightsOutput = {};
+
+	if (insightType === "all" || insightType === "summary") {
+		insights.summary = data.graphSummary;
+	}
+
+	if (
+		(insightType === "all" || insightType === "topics") &&
+		data.graph?.graphologyGraph.attributes.top_clusters
+	) {
+		insights.topics = data.graph.graphologyGraph.attributes.top_clusters
+			.slice(0, 7)
+			.map((cluster) => ({
+				name: cluster.aiName || `Topic ${cluster.community}`,
+				concepts: cluster.nodes.slice(0, 10).map((n) => n.nodeName),
+			}));
+	}
+
+	if (
+		(insightType === "all" || insightType === "gaps") &&
+		data.graph?.graphologyGraph.attributes.gaps
+	) {
+		insights.gaps = data.graph.graphologyGraph.attributes.gaps
+			.slice(0, 7)
+			.map((gap) => ({
+				description: `Potential connection between "${gap.source}" and "${gap.target}"`,
+				concepts: [gap.source, gap.target],
+				bridges: gap.concepts,
+			}));
+	}
+
+	if (insightType === "all" || insightType === "questions") {
+		insights.questions = [];
+
+		if (data.graph?.graphologyGraph.attributes.gaps) {
+			data.graph.graphologyGraph.attributes.gaps.slice(0, 5).forEach((gap) => {
+				insights.questions!.push(
+					`How might "${gap.source}" relate to or influence "${gap.target}"?`
+				);
+			});
+		}
+
+		if (data.graph?.graphologyGraph.attributes.top_nodes) {
+			const topNodes = data.graph.graphologyGraph.attributes.top_nodes.slice(
+				0,
+				3
+			);
+			topNodes.forEach((node) => {
+				insights.questions!.push(
+					`What role does "${node}" play in connecting different aspects of this topic?`
+				);
+			});
+		}
+	}
+
+	// Generate key insights
+	if (insightType === "all") {
+		insights.keyInsights = [];
+
+		if (data.graph?.graphologyGraph.attributes) {
+			const attrs = data.graph.graphologyGraph.attributes;
+
+			if (attrs.modularity > 0.4) {
+				insights.keyInsights.push(
+					"The text has well-defined, distinct topic clusters"
+				);
+			} else if (attrs.modularity < 0.2) {
+				insights.keyInsights.push(
+					"The text is highly interconnected with overlapping themes"
+				);
+			}
+
+			if (attrs.gaps && attrs.gaps.length > 5) {
+				insights.keyInsights.push(
+					`Found ${attrs.gaps.length} potential connections between disparate topics`
+				);
+			}
+
+			if (attrs.top_clusters && attrs.top_clusters.length > 0) {
+				const dominantCluster = attrs.top_clusters[0];
+				const statementCount =
+					dominantCluster.statementIds?.length ||
+					dominantCluster.statements?.length ||
+					0;
+				const dominanceRatio = statementCount / (data.statements?.length || 1);
+				if (dominanceRatio > 0.5) {
+					insights.keyInsights.push(
+						`The text is strongly focused on "${
+							dominantCluster.aiName || "one main topic"
+						}"`
+					);
+				}
+			}
+		}
+	}
+
+	return insights;
+}

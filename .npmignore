@@ -1,0 +1,38 @@
+# Source files (we only want to publish the built files)
+src/
+tsconfig.json
+
+# Development files
+.env
+.env.sample
+*.log
+*.tgz
+
+# Editor directories
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Development dependencies
+node_modules/
+.claude/
+
+# Build tools config
+smithery.yaml
+
+# Tests
+test/
+tests/
+*.test.*
+*.spec.*
+
+# Documentation source (keep README.md as it's in files array)
+docs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
