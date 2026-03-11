@@ -1,4 +1,5 @@
 import { GraphResponse } from "../types/index.js";
+import { getConfig } from "./config-store.js";
 
 export async function makeInfraNodusRequest(
 	endpoint: string,
@@ -6,8 +7,7 @@ export async function makeInfraNodusRequest(
 	method: string = "POST"
 ): Promise<GraphResponse> {
 	try {
-		// Get config from global scope (set by Smithery)
-		const config = (global as any).infranodusConfig;
+		const config = getConfig();
 
 		const requestBody = { ...body, modal: "mcp_server" };
 

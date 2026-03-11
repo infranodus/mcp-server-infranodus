@@ -37,6 +37,7 @@ import { prompts } from "./prompts/index.js";
 import { serverInstructions } from "./instructions.js";
 import * as dotenv from "dotenv";
 import * as mcpcat from "mcpcat";
+import { runWithConfig } from "./api/config-store.js";
 
 // Export the config schema for Smithery
 export { configSchema };
@@ -47,7 +48,7 @@ export default function createServer({
 }: {
 	config: z.infer<typeof configSchema>;
 }) {
-	// Store config globally for use in tools
+	// Store config globally as fallback for STDIO mode (single-user)
 	(global as any).infranodusConfig = config;
 
 	// Create MCP server with instructions for LLM context
@@ -55,13 +56,15 @@ export default function createServer({
 		instructions: serverInstructions,
 	});
 
-	// Helper function to wrap tool handlers with server context
+	// Wrap tool handlers so each invocation runs in an AsyncLocalStorage
 	const wrapHandler = (handler: any) => {
 		return async (params: any, extra: any) => {
-			return handler(params, {
-				progressToken: extra?._meta?.progressToken,
-				sendNotification: extra?.sendNotification,
-			});
+			return runWithConfig(config, () =>
+				handler(params, {
+					progressToken: extra?._meta?.progressToken,
+					sendNotification: extra?.sendNotification,
+				}),
+			);
 		};
 	};
 
@@ -69,163 +72,163 @@ export default function createServer({
 	mcpServer.registerTool(
 		generateKnowledgeGraphTool.name,
 		generateKnowledgeGraphTool.definition,
-		wrapHandler(generateKnowledgeGraphTool.handler)
+		wrapHandler(generateKnowledgeGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		createKnowledgeGraphTool.name,
 		createKnowledgeGraphTool.definition,
-		wrapHandler(createKnowledgeGraphTool.handler)
+		wrapHandler(createKnowledgeGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		addMemoryTool.name,
 		addMemoryTool.definition,
-		wrapHandler(addMemoryTool.handler)
+		wrapHandler(addMemoryTool.handler),
 	);
 
 	mcpServer.registerTool(
 		getMemoryTool.name,
 		getMemoryTool.definition,
-		wrapHandler(getMemoryTool.handler)
+		wrapHandler(getMemoryTool.handler),
 	);
 
 	mcpServer.registerTool(
 		analyzeExistingGraphTool.name,
 		analyzeExistingGraphTool.definition,
-		wrapHandler(analyzeExistingGraphTool.handler)
+		wrapHandler(analyzeExistingGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		analyzeTextTool.name,
 		analyzeTextTool.definition,
-		wrapHandler(analyzeTextTool.handler)
+		wrapHandler(analyzeTextTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateContentGapsTool.name,
 		generateContentGapsTool.definition,
-		wrapHandler(generateContentGapsTool.handler)
+		wrapHandler(generateContentGapsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateTopicalClustersTool.name,
 		generateTopicalClustersTool.definition,
-		wrapHandler(generateTopicalClustersTool.handler)
+		wrapHandler(generateTopicalClustersTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateResearchQuestionsTool.name,
 		generateResearchQuestionsTool.definition,
-		wrapHandler(generateResearchQuestionsTool.handler)
+		wrapHandler(generateResearchQuestionsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateResearchIdeasTool.name,
 		generateResearchIdeasTool.definition,
-		wrapHandler(generateResearchIdeasTool.handler)
+		wrapHandler(generateResearchIdeasTool.handler),
 	);
 
 	mcpServer.registerTool(
 		optimizeTextStructureTool.name,
 		optimizeTextStructureTool.definition,
-		wrapHandler(optimizeTextStructureTool.handler)
+		wrapHandler(optimizeTextStructureTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateResponsesFromGraphTool.name,
 		generateResponsesFromGraphTool.definition,
-		wrapHandler(generateResponsesFromGraphTool.handler)
+		wrapHandler(generateResponsesFromGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		developConceptualBridgesTool.name,
 		developConceptualBridgesTool.definition,
-		wrapHandler(developConceptualBridgesTool.handler)
+		wrapHandler(developConceptualBridgesTool.handler),
 	);
 
 	mcpServer.registerTool(
 		developLatentTopicsTool.name,
 		developLatentTopicsTool.definition,
-		wrapHandler(developLatentTopicsTool.handler)
+		wrapHandler(developLatentTopicsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		developTextTool.name,
 		developTextTool.definition,
-		wrapHandler(developTextTool.handler)
+		wrapHandler(developTextTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateContextualHintTool.name,
 		generateContextualHintTool.definition,
-		wrapHandler(generateContextualHintTool.handler)
+		wrapHandler(generateContextualHintTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateOverlapGraphFromTextsTool.name,
 		generateOverlapGraphFromTextsTool.definition,
-		wrapHandler(generateOverlapGraphFromTextsTool.handler)
+		wrapHandler(generateOverlapGraphFromTextsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateMergedGraphFromTextsTool.name,
 		generateMergedGraphFromTextsTool.definition,
-		wrapHandler(generateMergedGraphFromTextsTool.handler)
+		wrapHandler(generateMergedGraphFromTextsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateDifferenceGraphFromTextsTool.name,
 		generateDifferenceGraphFromTextsTool.definition,
-		wrapHandler(generateDifferenceGraphFromTextsTool.handler)
+		wrapHandler(generateDifferenceGraphFromTextsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateGoogleSearchResultsGraphTool.name,
 		generateGoogleSearchResultsGraphTool.definition,
-		wrapHandler(generateGoogleSearchResultsGraphTool.handler)
+		wrapHandler(generateGoogleSearchResultsGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateGoogleSearchQueriesGraphTool.name,
 		generateGoogleSearchQueriesGraphTool.definition,
-		wrapHandler(generateGoogleSearchQueriesGraphTool.handler)
+		wrapHandler(generateGoogleSearchQueriesGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateGoogleResultsVsQueriesGraphTool.name,
 		generateGoogleResultsVsQueriesGraphTool.definition,
-		wrapHandler(generateGoogleResultsVsQueriesGraphTool.handler)
+		wrapHandler(generateGoogleResultsVsQueriesGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		generateSEOGraphTool.name,
 		generateSEOGraphTool.definition,
-		wrapHandler(generateSEOGraphTool.handler)
+		wrapHandler(generateSEOGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		retrieveContextForPromptFromGraphTool.name,
 		retrieveContextForPromptFromGraphTool.definition,
-		wrapHandler(retrieveContextForPromptFromGraphTool.handler)
+		wrapHandler(retrieveContextForPromptFromGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
 		listGraphsTool.name,
 		listGraphsTool.definition,
-		wrapHandler(listGraphsTool.handler)
+		wrapHandler(listGraphsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		searchExistingGraphsTool.name,
 		searchExistingGraphsTool.definition,
-		wrapHandler(searchExistingGraphsTool.handler)
+		wrapHandler(searchExistingGraphsTool.handler),
 	);
 
 	mcpServer.registerTool(
 		searchExistingGraphsFetchTool.name,
 		searchExistingGraphsFetchTool.definition,
-		wrapHandler(searchExistingGraphsFetchTool.handler)
+		wrapHandler(searchExistingGraphsFetchTool.handler),
 	);
 
 	// Register resources
@@ -233,21 +236,21 @@ export default function createServer({
 		aboutResource.name,
 		aboutResource.uri,
 		aboutResource.definition,
-		aboutResource.handler
+		aboutResource.handler,
 	);
 
 	mcpServer.registerResource(
 		llmsTxtResource.name,
 		llmsTxtResource.uri,
 		llmsTxtResource.definition,
-		llmsTxtResource.handler
+		llmsTxtResource.handler,
 	);
 
 	mcpServer.registerResource(
 		llmsFullTxtResource.name,
 		llmsFullTxtResource.uri,
 		llmsFullTxtResource.definition,
-		llmsFullTxtResource.handler
+		llmsFullTxtResource.handler,
 	);
 
 	// Register prompts
@@ -281,7 +284,7 @@ async function main() {
 	// Validate config
 	if (!config.apiKey) {
 		console.error(
-			"WARNING: Set INFRANODUS_API_KEY in environment variables to ensure you don't hit the rate limit"
+			"WARNING: Set INFRANODUS_API_KEY in environment variables to ensure you don't hit the rate limit",
 		);
 		// process.exit(1);
 	}
