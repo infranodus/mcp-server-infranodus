@@ -100,7 +100,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 const transports = new Map<string, StreamableHTTPServerTransport>();
 
 // Store SSE transports per session for legacy MCP clients
-const sseTransports = new Map<string, SSEServerTransport>();
+// userId is stored alongside the transport to prevent session hijacking
+const sseTransports = new Map<
+	string,
+	{ transport: SSEServerTransport; userId: number }
+>();
 
 /**
  * Auth middleware - validates Bearer token and attaches auth info to request.
@@ -773,7 +777,7 @@ async function handleSseConnection(req: Request, res: Response): Promise<void> {
 
 	const transport = new SSEServerTransport("/message", res);
 	const sessionId = transport.sessionId;
-	sseTransports.set(sessionId, transport);
+	sseTransports.set(sessionId, { transport, userId: auth.userId });
 
 	const config = {
 		apiKey: auth.apiKey,
@@ -817,17 +821,23 @@ app.post("/message", authMiddleware, async (req: Request, res: Response) => {
 		return;
 	}
 
-	const transport = sseTransports.get(sessionId);
-	if (!transport) {
+	const session = sseTransports.get(sessionId);
+	if (!session) {
 		res.status(404).json({
 			error: "Session not found. The SSE connection may have been closed.",
 		});
 		return;
 	}
 
+	const auth = getAuth(req);
+	if (!auth || auth.userId !== session.userId) {
+		res.status(403).json({ error: "Session belongs to a different user" });
+		return;
+	}
+
 	console.log(`[SSE] POST /message for session ${sessionId}`);
 	try {
-		await transport.handlePostMessage(req, res, req.body);
+		await session.transport.handlePostMessage(req, res, req.body);
 	} catch (error) {
 		console.error(`[SSE] Error handling message:`, error);
 		if (!res.headersSent) {
@@ -976,8 +986,8 @@ process.on("SIGINT", () => {
 	for (const transport of transports.values()) {
 		transport.close();
 	}
-	for (const transport of sseTransports.values()) {
-		transport.close();
+	for (const session of sseTransports.values()) {
+		session.transport.close();
 	}
 	process.exit(0);
 });
@@ -987,8 +997,8 @@ process.on("SIGTERM", () => {
 	for (const transport of transports.values()) {
 		transport.close();
 	}
-	for (const transport of sseTransports.values()) {
-		transport.close();
+	for (const session of sseTransports.values()) {
+		session.transport.close();
 	}
 	process.exit(0);
 });
