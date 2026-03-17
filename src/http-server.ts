@@ -24,6 +24,8 @@ import {
 	exchangeAuthorizationCode,
 	validateApiKey,
 } from "./auth/oauth-provider.js";
+import * as http from "http";
+import { Socket } from "net";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -42,6 +44,15 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const INFRANODUS_API_BASE =
 	process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1";
+
+function escapeHtml(str: string): string {
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
 
 // Allow HTTP only for localhost/127.0.0.1 (local dev); otherwise require HTTPS
 function isRedirectUriAllowed(redirectUri: string): boolean {
@@ -283,7 +294,13 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 
 	// Get client name from registration if available, otherwise use client_id
 	const client = getClient(client_id);
-	const clientName = client?.client_name || client_id;
+	const clientName = escapeHtml(client?.client_name || client_id);
+	const safeClientId = escapeHtml(client_id);
+	const safeRedirectUri = escapeHtml(redirect_uri);
+	const safeState = escapeHtml(String(state || ""));
+	const safeScope = escapeHtml(String(scope || ""));
+	const safeCodeChallenge = escapeHtml(String(code_challenge || ""));
+	const safeCodeChallengeMethod = escapeHtml(String(code_challenge_method || ""));
 
 	// Render a simple HTML authorization form
 	const html = `
@@ -310,15 +327,13 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		Enter your InfraNodus API key to authorize this application to access your InfraNodus data.
 	</div>
 	<form method="POST" action="/oauth/authorize">
-		<input type="hidden" name="client_id" value="${client_id}">
-		<input type="hidden" name="redirect_uri" value="${redirect_uri}">
+		<input type="hidden" name="client_id" value="${safeClientId}">
+		<input type="hidden" name="redirect_uri" value="${safeRedirectUri}">
 		<input type="hidden" name="response_type" value="code">
-		<input type="hidden" name="state" value="${state || ""}">
-		<input type="hidden" name="scope" value="${scope || ""}">
-		<input type="hidden" name="code_challenge" value="${code_challenge || ""}">
-		<input type="hidden" name="code_challenge_method" value="${
-			code_challenge_method || ""
-		}">
+		<input type="hidden" name="state" value="${safeState}">
+		<input type="hidden" name="scope" value="${safeScope}">
+		<input type="hidden" name="code_challenge" value="${safeCodeChallenge}">
+		<input type="hidden" name="code_challenge_method" value="${safeCodeChallengeMethod}">
 		<label for="api_key">InfraNodus API Key</label>
 		<input type="password" id="api_key" name="api_key" required placeholder="Enter your API key">
 		<button type="submit">Authorize</button>
@@ -580,6 +595,89 @@ app.get(
 // ============================================================================
 
 /**
+ * Send a synthetic MCP request through a transport (used for auto-initialization).
+ * Creates mock HTTP objects, passes the body, and discards the response.
+ */
+async function sendSyntheticRequest(
+	transport: StreamableHTTPServerTransport,
+	body: any,
+	headers: Record<string, string> = {},
+): Promise<void> {
+	const method = body?.method || "unknown";
+	console.log(`[MCP:auto-init] Sending synthetic "${method}" request`);
+
+	const socket = new Socket();
+	socket.on("error", (err) => {
+		console.log(`[MCP:auto-init] Socket error (ignored): ${err.message}`);
+	});
+	const mockReq = new http.IncomingMessage(socket);
+	mockReq.method = "POST";
+	mockReq.headers = {
+		"content-type": "application/json",
+		accept: "application/json, text/event-stream",
+		...headers,
+	};
+	const mockRes = new http.ServerResponse(mockReq);
+	const discardSocket = new Socket();
+	discardSocket.on("error", (err) => {
+		console.log(`[MCP:auto-init] Discard socket error (ignored): ${err.message}`);
+	});
+	mockRes.assignSocket(discardSocket);
+
+	let responseBody = "";
+	const originalEnd = mockRes.end.bind(mockRes);
+	mockRes.end = (chunk?: any, ...args: any[]) => {
+		if (chunk) {
+			responseBody += typeof chunk === "string" ? chunk : chunk.toString();
+		}
+		console.log(
+			`[MCP:auto-init] "${method}" response: status=${mockRes.statusCode} body=${responseBody.slice(0, 300)}`,
+		);
+		return (originalEnd as any)(chunk, ...args);
+	};
+
+	try {
+		await transport.handleRequest(mockReq, mockRes, body);
+		console.log(`[MCP:auto-init] "${method}" handleRequest completed`);
+	} catch (e) {
+		console.error(`[MCP:auto-init] "${method}" handleRequest threw:`, e);
+	}
+
+	socket.destroy();
+	discardSocket.destroy();
+}
+
+/**
+ * Auto-initialize a newly created transport by sending synthetic initialize
+ * and initialized messages. Used when a client resumes a stale session
+ * (e.g. after server restart) without re-sending initialize.
+ */
+async function autoInitializeTransport(
+	transport: StreamableHTTPServerTransport,
+	sessionId: string,
+): Promise<void> {
+	await sendSyntheticRequest(transport, {
+		jsonrpc: "2.0",
+		method: "initialize",
+		id: "auto-init",
+		params: {
+			protocolVersion: "2025-03-26",
+			clientInfo: { name: "auto-reinit", version: "1.0.0" },
+			capabilities: {},
+		},
+	});
+
+	await sendSyntheticRequest(
+		transport,
+		{
+			jsonrpc: "2.0",
+			method: "notifications/initialized",
+		},
+		{ "mcp-session-id": sessionId },
+	);
+}
+
+/**
  * Handle MCP requests with per-user sessions
  */
 async function handleMcpRequest(req: Request, res: Response) {
@@ -632,7 +730,6 @@ async function handleMcpRequest(req: Request, res: Response) {
 
 	if (!transport) {
 		console.log(`[MCP] Creating new transport for session ${sessionId}`);
-		// Create new transport for this session
 		transport = new StreamableHTTPServerTransport({
 			sessionIdGenerator: () => sessionId,
 			onsessioninitialized: (newSessionId) => {
@@ -640,7 +737,6 @@ async function handleMcpRequest(req: Request, res: Response) {
 			},
 		});
 
-		// Create MCP server with this user's API key
 		const config = {
 			apiKey: auth.apiKey,
 			apiBase: INFRANODUS_API_BASE,
@@ -649,18 +745,27 @@ async function handleMcpRequest(req: Request, res: Response) {
 		};
 		const server = createServer({ config });
 
-		// Connect transport to server
 		await server.connect(transport);
 		console.log(`[MCP] Server connected to transport`);
 
-		// Store transport
 		transports.set(sessionId, transport);
 
-		// Clean up on close
 		transport.onclose = () => {
 			console.log(`[MCP] Transport closed for session ${sessionId}`);
 			transports.delete(sessionId);
 		};
+
+		// If the client didn't send initialize (e.g. resuming a stale session after
+		// server restart), auto-initialize the transport so the real request succeeds.
+		if (!isInitializeRequest) {
+			console.log(`[MCP] Auto-initializing transport for stale session ${sessionId}`);
+			try {
+				await autoInitializeTransport(transport, sessionId);
+				console.log(`[MCP] Auto-initialization completed for session ${sessionId}`);
+			} catch (e) {
+				console.error(`[MCP] Auto-initialization failed for session ${sessionId}:`, e);
+			}
+		}
 	} else {
 		console.log(`[MCP] Reusing existing transport for session ${sessionId}`);
 	}

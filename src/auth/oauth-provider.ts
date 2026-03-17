@@ -290,8 +290,8 @@ interface AuthCodePayload {
 	code_challenge_method?: string;
 }
 
-// Track used codes to prevent replay (with TTL cleanup)
-const usedCodes = new Set<string>();
+// Track used codes to prevent replay — stores hash → timestamp for TTL cleanup
+const usedCodes = new Map<string, number>();
 
 /**
  * Exchange authorization code for token
@@ -316,7 +316,7 @@ export async function exchangeAuthorizationCode(
 		// Check if code was already used (replay protection)
 		const codeHash = crypto.createHash("sha256").update(code).digest("hex").slice(0, 16);
 		if (usedCodes.has(codeHash)) return null;
-		usedCodes.add(codeHash);
+		usedCodes.set(codeHash, Date.now());
 
 		// Validate PKCE if used
 		if (authCode.code_challenge) {
@@ -353,6 +353,15 @@ function cleanupExpiredAuthCodes(): number {
 	for (const [code, authCode] of authorizationCodes.entries()) {
 		if (authCode.expires_at < now) {
 			authorizationCodes.delete(code);
+			cleaned++;
+		}
+	}
+
+	// Clean up used code hashes older than the auth code expiry window
+	const usedCodeTtlMs = AUTH_CODE_EXPIRY_SECONDS * 1000;
+	for (const [hash, timestamp] of usedCodes.entries()) {
+		if (now - timestamp > usedCodeTtlMs) {
+			usedCodes.delete(hash);
 			cleaned++;
 		}
 	}
