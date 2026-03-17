@@ -300,7 +300,9 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 	const safeState = escapeHtml(String(state || ""));
 	const safeScope = escapeHtml(String(scope || ""));
 	const safeCodeChallenge = escapeHtml(String(code_challenge || ""));
-	const safeCodeChallengeMethod = escapeHtml(String(code_challenge_method || ""));
+	const safeCodeChallengeMethod = escapeHtml(
+		String(code_challenge_method || ""),
+	);
 
 	// Render a simple HTML authorization form
 	const html = `
@@ -620,7 +622,9 @@ async function sendSyntheticRequest(
 	const mockRes = new http.ServerResponse(mockReq);
 	const discardSocket = new Socket();
 	discardSocket.on("error", (err) => {
-		console.log(`[MCP:auto-init] Discard socket error (ignored): ${err.message}`);
+		console.log(
+			`[MCP:auto-init] Discard socket error (ignored): ${err.message}`,
+		);
 	});
 	mockRes.assignSocket(discardSocket);
 
@@ -758,12 +762,19 @@ async function handleMcpRequest(req: Request, res: Response) {
 		// If the client didn't send initialize (e.g. resuming a stale session after
 		// server restart), auto-initialize the transport so the real request succeeds.
 		if (!isInitializeRequest) {
-			console.log(`[MCP] Auto-initializing transport for stale session ${sessionId}`);
+			console.log(
+				`[MCP] Auto-initializing transport for stale session ${sessionId}`,
+			);
 			try {
 				await autoInitializeTransport(transport, sessionId);
-				console.log(`[MCP] Auto-initialization completed for session ${sessionId}`);
+				console.log(
+					`[MCP] Auto-initialization completed for session ${sessionId}`,
+				);
 			} catch (e) {
-				console.error(`[MCP] Auto-initialization failed for session ${sessionId}:`, e);
+				console.error(
+					`[MCP] Auto-initialization failed for session ${sessionId}:`,
+					e,
+				);
 			}
 		}
 	} else {
@@ -1005,7 +1016,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: "InfraNodus MCP Server",
-		version: "1.5.0",
+		version: "1.5.2",
 		description: "MCP server for InfraNodus knowledge graph analysis",
 		endpoints: {
 			oauth: {
