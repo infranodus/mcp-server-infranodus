@@ -413,12 +413,12 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
-			"gpt-5",
-			"gpt-5-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini",
+			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 
@@ -491,12 +491,12 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
-			"gpt-5",
-			"gpt-5-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini",
+			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const GenerateResearchIdeasSchema =
@@ -548,12 +548,12 @@ export const OptimizeTextStructureSchemaBase = z.object({
 			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
-			"gpt-5",
-			"gpt-5-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating optimization suggestions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini",
+			"AI model to use for generating optimization suggestions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const OptimizeTextStructureSchema =
@@ -605,12 +605,12 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
-			"gpt-5",
-			"gpt-5-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini",
+			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const DevelopLatentConceptsSchema =
@@ -709,12 +709,12 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
-			"gpt-5",
-			"gpt-5-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini",
+			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const GenerateResponsesFromGraphSchema =
@@ -1316,12 +1316,12 @@ export const DevelopTextToolSchemaBase = z.object({
 			"grok-4.1-fast-reasoning",
 			"gpt-4o",
 			"gpt-4o-mini",
-			"gpt-5",
-			"gpt-5-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating insights: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5, gpt-5-mini",
+			"AI model to use for generating insights: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
