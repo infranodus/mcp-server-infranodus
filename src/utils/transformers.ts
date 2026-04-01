@@ -26,7 +26,7 @@ export function transformToStructuredOutput(
 	data: GraphResponse,
 	includeGraph: boolean = false,
 	includeNodesAndEdges: boolean = false,
-	buildingEntitiesGraph: boolean = false
+	buildingEntitiesGraph: boolean = false,
 ): KnowledgeGraphOutput {
 	const output: KnowledgeGraphOutput = {
 		statistics: {
@@ -223,7 +223,7 @@ export function generateTopics(data: GraphResponse): TopicsOutput {
 }
 
 export function generateSummaryFromTopicsAndGaps(
-	data: GraphResponse
+	data: GraphResponse,
 ): SummaryOutput {
 	const summary: SummaryOutput = {};
 
@@ -241,7 +241,7 @@ export function generateSummaryFromTopicsAndGaps(
 }
 
 export function extractInsightsFromExtendedGraphSummary(
-	data: GraphResponse
+	data: GraphResponse,
 ): InsightsOutput {
 	const mainTopics = data.extendedGraphSummary?.mainTopics || [];
 	const contentGaps = data.extendedGraphSummary?.contentGaps || [];
@@ -259,14 +259,14 @@ export function extractInsightsFromExtendedGraphSummary(
 }
 
 export function extractStatementStrings(
-	data: GraphResponse
+	data: GraphResponse,
 ): StatementStringsOutput {
 	const statements: StatementStringsOutput = {};
 
 	if (data.statements) {
 		const filterByCategory = (pattern: RegExp) =>
 			data.statements!.filter((statement) =>
-				statement.categories?.some((category) => pattern.test(category))
+				statement.categories?.some((category) => pattern.test(category)),
 			);
 
 		const thresholds: RegExp[] = [/1000/, /100/, /\d/];
@@ -291,7 +291,7 @@ export function extractStatementStrings(
 }
 
 export function generateKeywordsFromBigrams(
-	data: GraphResponse
+	data: GraphResponse,
 ): KeywordsOutput {
 	const keywords: KeywordsOutput = {};
 
@@ -313,7 +313,7 @@ export function generateTopicNames(data: GraphResponse): TopicNamesOutput {
 			(topic) => {
 				const topicName = topic.split(". ") ? topic.split(". ")[1] : topic;
 				return topicName;
-			}
+			},
 		);
 		topicNames.topicNames = mainTopicNames;
 	}
@@ -322,41 +322,62 @@ export function generateTopicNames(data: GraphResponse): TopicNamesOutput {
 }
 
 export function generateResearchQuestions(
-	data: GraphResponse
+	data: GraphResponse,
 ): ResearchQuestionsOutput {
-	const researchQuestions: ResearchQuestionsOutput = { questions: [] };
+	const researchQuestions: ResearchQuestionsOutput = {
+		questions: [],
+		graphSummary: "",
+	};
 
 	if (data.aiAdvice) {
 		researchQuestions.questions = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.graphSummary) {
+		researchQuestions.graphSummary = data.graphSummary;
 	}
 
 	return researchQuestions;
 }
 
 export function generateResearchIdeas(
-	data: GraphResponse
+	data: GraphResponse,
 ): ResearchIdeasOutput {
-	const researchIdeas: ResearchIdeasOutput = { ideas: [] };
+	const researchIdeas: ResearchIdeasOutput = {
+		ideas: [],
+		graphSummary: "",
+	};
 
 	if (data.aiAdvice) {
 		researchIdeas.ideas = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.graphSummary) {
+		researchIdeas.graphSummary = data.graphSummary;
 	}
 
 	return researchIdeas;
 }
 
 export function generateResponses(data: GraphResponse): ResponsesOutput {
-	const responses: ResponsesOutput = { responses: [] };
+	const responses: ResponsesOutput = {
+		responses: [],
+		graphSummary: "",
+	};
 
 	if (data.aiAdvice) {
 		responses.responses = data.aiAdvice.map((advice) => advice.text);
+	}
+
+	if (data.graphSummary) {
+		responses.graphSummary = data.graphSummary;
 	}
 
 	return responses;
 }
 
 export function generateOptimizationResult(
-	data: GraphResponse
+	data: GraphResponse,
 ): OptimizeTextOutput {
 	const output: OptimizeTextOutput = {};
 
@@ -385,7 +406,7 @@ export function generateOptimizationResult(
 }
 
 export function extractLatentConceptsIdeas(
-	data: GraphResponse
+	data: GraphResponse,
 ): LatentConceptsOutput {
 	const latentConcepts: LatentConceptsOutput = { ideas: [] };
 
@@ -407,7 +428,7 @@ export function extractLatentConceptsIdeas(
 }
 
 export function extractLatentTopicsIdeas(
-	data: GraphResponse
+	data: GraphResponse,
 ): LatentTopicsOutput {
 	const latentConcepts: LatentTopicsOutput = {};
 
@@ -429,7 +450,7 @@ export function extractLatentTopicsIdeas(
 
 export function generateSearchResult(
 	data: SearchResponse,
-	query: string
+	query: string,
 ): SearchOutput {
 	const results: SearchOutput = { results: [] };
 
@@ -457,7 +478,7 @@ export function generateSearchResult(
 
 export function generateFetchResult(
 	data: SearchResponse,
-	query: string
+	query: string,
 ): FetchOutput {
 	const fetchResults: FetchOutput = { id: "", title: "", text: "", url: "" };
 
@@ -487,7 +508,7 @@ export function generateFetchResult(
 
 export function extractStatementsFromGraphResponse(
 	data: GraphResponse,
-	memoryContextName: string
+	memoryContextName: string,
 ): StatementsSearchOutput {
 	const results: StatementsSearchOutput = {
 		statements: [],
@@ -512,7 +533,7 @@ export function extractStatementsFromGraphResponse(
 }
 
 export function extractStatementsFromSearchResponse(
-	data: SearchResponse
+	data: SearchResponse,
 ): StatementsSearchOutput {
 	const results: StatementsSearchOutput = {
 		statements: [],
@@ -551,7 +572,7 @@ export function extractStatementsFromSearchResponse(
 
 export function generateInsights(
 	data: GraphResponse,
-	insightType: string
+	insightType: string,
 ): InsightsOutput {
 	const insights: InsightsOutput = {};
 
@@ -590,7 +611,7 @@ export function generateInsights(
 		if (data.graph?.graphologyGraph.attributes.gaps) {
 			data.graph.graphologyGraph.attributes.gaps.slice(0, 5).forEach((gap) => {
 				insights.questions!.push(
-					`How might "${gap.source}" relate to or influence "${gap.target}"?`
+					`How might "${gap.source}" relate to or influence "${gap.target}"?`,
 				);
 			});
 		}
@@ -598,11 +619,11 @@ export function generateInsights(
 		if (data.graph?.graphologyGraph.attributes.top_nodes) {
 			const topNodes = data.graph.graphologyGraph.attributes.top_nodes.slice(
 				0,
-				3
+				3,
 			);
 			topNodes.forEach((node) => {
 				insights.questions!.push(
-					`What role does "${node}" play in connecting different aspects of this topic?`
+					`What role does "${node}" play in connecting different aspects of this topic?`,
 				);
 			});
 		}
@@ -617,17 +638,17 @@ export function generateInsights(
 
 			if (attrs.modularity > 0.4) {
 				insights.keyInsights.push(
-					"The text has well-defined, distinct topic clusters"
+					"The text has well-defined, distinct topic clusters",
 				);
 			} else if (attrs.modularity < 0.2) {
 				insights.keyInsights.push(
-					"The text is highly interconnected with overlapping themes"
+					"The text is highly interconnected with overlapping themes",
 				);
 			}
 
 			if (attrs.gaps && attrs.gaps.length > 5) {
 				insights.keyInsights.push(
-					`Found ${attrs.gaps.length} potential connections between disparate topics`
+					`Found ${attrs.gaps.length} potential connections between disparate topics`,
 				);
 			}
 
@@ -642,7 +663,7 @@ export function generateInsights(
 					insights.keyInsights.push(
 						`The text is strongly focused on "${
 							dominantCluster.aiName || "one main topic"
-						}"`
+						}"`,
 					);
 				}
 			}

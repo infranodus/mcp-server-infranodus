@@ -400,6 +400,12 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.number()
 		.default(0)
 		.describe("Depth of content gaps to generate questions for"),
+	includeGraphSummary: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include graph summary string in the response to provide additional information about the text knowledge graph structure",
+		),
 	modelToUse: z
 		.enum([
 			"claude-opus-4.6",
@@ -475,6 +481,12 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.default("response")
 		.describe(
 			"Type of response to generate: 'response' — generates a response based on the gaps identified; 'idea' — generate an business idea that bridges the gap.",
+		),
+	includeGraphSummary: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include graph summary string in the response to provide additional information about the text knowledge graph structure",
 		),
 	modelToUse: z
 		.enum([

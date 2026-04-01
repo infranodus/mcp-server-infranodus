@@ -221,6 +221,15 @@ export interface GraphOverview {
 
 export interface ResearchQuestionsOutput {
 	questions?: string[];
+	graphSummary?: string;
+	extendedGraphSummary?: {
+		contentGaps?: string[];
+		mainTopics?: string[];
+		mainConcepts?: string[];
+		conceptualGateways?: string[];
+		topRelations?: string[];
+		topBigrams?: string[];
+	};
 }
 
 export interface GraphRagOutput {
@@ -255,6 +264,15 @@ export interface GraphRagOutput {
 
 export interface ResearchIdeasOutput {
 	ideas?: string[];
+	graphSummary?: string;
+	extendedGraphSummary?: {
+		contentGaps?: string[];
+		mainTopics?: string[];
+		mainConcepts?: string[];
+		conceptualGateways?: string[];
+		topRelations?: string[];
+		topBigrams?: string[];
+	};
 }
 
 export interface LatentConceptsOutput {
@@ -271,6 +289,15 @@ export interface LatentTopicsOutput {
 
 export interface ResponsesOutput {
 	responses?: string[];
+	graphSummary?: string;
+	extendedGraphSummary?: {
+		contentGaps?: string[];
+		mainTopics?: string[];
+		mainConcepts?: string[];
+		conceptualGateways?: string[];
+		topRelations?: string[];
+		topBigrams?: string[];
+	};
 }
 
 export interface OptimizeTextOutput {

@@ -40,7 +40,7 @@ export const generateResearchIdeasTool = {
 				addStats: "true",
 				optimize: "gap",
 				includeStatements: "false",
-				includeGraphSummary: "false",
+				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: "false",
 				includeGraph: "false",
 				aiTopics: "true",
