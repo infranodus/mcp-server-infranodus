@@ -1016,7 +1016,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: "InfraNodus MCP Server",
-		version: "1.6.0",
+		version: "1.6.1",
 		description: "MCP server for InfraNodus knowledge graph analysis",
 		endpoints: {
 			oauth: {
