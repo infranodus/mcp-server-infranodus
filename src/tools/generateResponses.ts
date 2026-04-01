@@ -47,6 +47,7 @@ export const generateResponsesFromGraphTool = {
 
 			let requestBody: {
 				name?: string;
+				userName?: string;
 				text?: string;
 				aiTopics: string;
 				requestMode: string;
@@ -56,6 +57,7 @@ export const generateResponsesFromGraphTool = {
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
+					userName: params.userName ?? "",
 					aiTopics: "true",
 					requestMode: "response",
 					prompt: params.prompt ?? "",
@@ -73,7 +75,7 @@ export const generateResponsesFromGraphTool = {
 					contentText = params.text;
 				} else {
 					return errorContent(
-						"Provide either text, url, or graphName for analysis"
+						"Provide either text, url, or graphName for analysis",
 					);
 				}
 				requestBody = {

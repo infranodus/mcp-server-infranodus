@@ -24,9 +24,9 @@ export const generateResearchQuestionsTool = {
 			"Analyze text or an existing graph and generate innovative research questions based on the content gaps identified between the topical clusters. Provide either text, url, or graphName. Can be used to improve the text and the discourse it relates to",
 		inputSchema: GenerateResearchQuestionsSchemaBase.shape,
 		annotations: {
-		   "readOnlyHint": true,
-		   "idempotentHint": true,
-		   "destructiveHint": false
+			readOnlyHint: true,
+			idempotentHint: true,
+			destructiveHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof GenerateResearchQuestionsSchema>) => {
@@ -47,11 +47,19 @@ export const generateResearchQuestionsTool = {
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
-			let requestBody: { text?: string; name?: string; aiTopics: string; requestMode: string; modelToUse: string };
+			let requestBody: {
+				text?: string;
+				name?: string;
+				userName?: string;
+				aiTopics: string;
+				requestMode: string;
+				modelToUse: string;
+			};
 
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
+					userName: params.userName ?? "",
 					aiTopics: "true",
 					requestMode: "question",
 					modelToUse: params.modelToUse ?? "gpt-4o",
@@ -67,7 +75,9 @@ export const generateResearchQuestionsTool = {
 				} else if (params.text?.trim()) {
 					contentText = params.text;
 				} else {
-					return errorContent("Provide either text, url, or graphName for analysis");
+					return errorContent(
+						"Provide either text, url, or graphName for analysis",
+					);
 				}
 				requestBody = {
 					text: contentText,

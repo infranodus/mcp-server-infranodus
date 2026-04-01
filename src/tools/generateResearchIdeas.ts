@@ -53,6 +53,7 @@ export const generateResearchIdeasTool = {
 			let requestBody: {
 				text?: string;
 				name?: string;
+				userName?: string;
 				aiTopics: string;
 				requestMode: string;
 				modelToUse: string;
@@ -60,6 +61,7 @@ export const generateResearchIdeasTool = {
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
+					userName: params.userName ?? "",
 					aiTopics: "true",
 					requestMode: params.shouldTranscend ? "transcend" : "response",
 					modelToUse: params.modelToUse ?? "gpt-4o",
@@ -76,7 +78,7 @@ export const generateResearchIdeasTool = {
 					contentText = params.text;
 				} else {
 					return errorContent(
-						"Provide either text, url, or graphName for analysis"
+						"Provide either text, url, or graphName for analysis",
 					);
 				}
 				requestBody = {
@@ -85,8 +87,8 @@ export const generateResearchIdeasTool = {
 					requestMode: params.shouldTranscend
 						? "transcend"
 						: responseType === "idea"
-						? "idea"
-						: "response",
+							? "idea"
+							: "response",
 					modelToUse: params.modelToUse ?? "gpt-4o",
 				};
 			}

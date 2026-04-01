@@ -48,7 +48,11 @@ export const analyzeExistingGraphTool = {
 			});
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
-			const requestBody = { name: params.graphName, aiTopics: "true" };
+			const requestBody = {
+				name: params.graphName,
+				aiTopics: "true",
+				userName: params.userName ?? "",
+			};
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {
@@ -67,7 +71,7 @@ export const analyzeExistingGraphTool = {
 				response,
 				includeGraph,
 				includeNodesAndEdges,
-				buildingEntitiesGraph
+				buildingEntitiesGraph,
 			);
 
 			return {

@@ -17,7 +17,7 @@ export const retrieveContextForPromptFromGraphTool = {
 		},
 	},
 	handler: async (
-		params: z.infer<typeof RetrieveContextForPromptFromGraphSchema>
+		params: z.infer<typeof RetrieveContextForPromptFromGraphSchema>,
 	) => {
 		try {
 			// Build query parameters
@@ -38,6 +38,7 @@ export const retrieveContextForPromptFromGraphTool = {
 				requestMode: "search",
 				prompt: params.prompt ? params.prompt : "",
 				modelToUse: "gpt-4o",
+				userName: params.userName ?? "",
 			};
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

@@ -43,9 +43,12 @@ export const generateTopicalClustersTool = {
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
-			let requestBody: { text?: string; name?: string };
+			let requestBody: { text?: string; name?: string; userName?: string };
 			if (params.graphName?.trim()) {
-				requestBody = { name: params.graphName };
+				requestBody = {
+					name: params.graphName,
+					userName: params.userName ?? "",
+				};
 			} else {
 				let contentText: string;
 				if (params.url) {
@@ -58,7 +61,7 @@ export const generateTopicalClustersTool = {
 					contentText = params.text;
 				} else {
 					return errorContent(
-						"Provide either text, url, or graphName for analysis"
+						"Provide either text, url, or graphName for analysis",
 					);
 				}
 				requestBody = { text: contentText };
