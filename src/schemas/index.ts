@@ -402,10 +402,8 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.describe("Depth of content gaps to generate questions for"),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.1",
-			"claude-opus-4.5",
-			"claude-sonnet-4",
-			"claude-sonnet-4.5",
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -418,7 +416,7 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 
@@ -480,10 +478,8 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.1",
-			"claude-opus-4.5",
-			"claude-sonnet-4",
-			"claude-sonnet-4.5",
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -496,7 +492,7 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const GenerateResearchIdeasSchema =
@@ -537,10 +533,8 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.1",
-			"claude-opus-4.5",
-			"claude-sonnet-4",
-			"claude-sonnet-4.5",
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -553,7 +547,7 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating optimization suggestions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating optimization suggestions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const OptimizeTextStructureSchema =
@@ -594,10 +588,8 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.1",
-			"claude-opus-4.5",
-			"claude-sonnet-4",
-			"claude-sonnet-4.5",
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -610,7 +602,7 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const DevelopLatentConceptsSchema =
@@ -698,10 +690,8 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.describe("Prompt to generate responses to from the graph"),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.1",
-			"claude-opus-4.5",
-			"claude-sonnet-4",
-			"claude-sonnet-4.5",
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -714,7 +704,7 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const GenerateResponsesFromGraphSchema =
@@ -1305,10 +1295,8 @@ export const DevelopTextToolSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.1",
-			"claude-opus-4.5",
-			"claude-sonnet-4",
-			"claude-sonnet-4.5",
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -1321,7 +1309,7 @@ export const DevelopTextToolSchemaBase = z.object({
 		])
 		.default("gpt-4o")
 		.describe(
-			"AI model to use for generating insights: claude-opus-4.1, claude-sonnet-4, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating insights: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
 });
 export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(

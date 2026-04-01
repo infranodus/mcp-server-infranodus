@@ -26,7 +26,7 @@ WORKFLOW PATTERNS:
 9. Memory: memory_add_relations to persist knowledge graphs, memory_get_relations to retrieve. Use [[wikilinks]] for entity marking.
 10. Graph management: list_graphs to discover existing graphs, search + fetch for content retrieval.
 
-AI MODELS: Tools that generate AI responses accept modelToUse parameter. Available: gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, claude-sonnet-4, claude-opus-4.1, gemini-2.5-flash, gemini-2.5-flash-lite. No additional API keys needed.
+AI MODELS: Tools that generate AI responses accept modelToUse parameter. Available: gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, claude-sonnet-4.6, claude-opus-4.6, gemini-2.5-flash, gemini-2.5-flash-lite. No additional API keys needed.
 
 RESPONSE TYPES: For idea-generating tools, responseType can be 'response' (default analytical), 'idea' (business-oriented), 'question' (research questions), or 'transcend' (broader discourse connection).
 
