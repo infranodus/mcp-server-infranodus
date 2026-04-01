@@ -1339,6 +1339,12 @@ export const ListGraphsSchema = z.object({
 		.describe(
 			"Values that should be matched to in the graph name. Use comma-separated values for OR logic (e.g., 'youtube,google,evernote'). Leave empty to list all graphs.",
 		),
+	userName: z
+		.string()
+		.optional()
+		.describe(
+			"Show public graphs belonging to a certain user. Only provide if explicitly requested by the user.",
+		),
 	type: z
 		.string()
 		.optional()

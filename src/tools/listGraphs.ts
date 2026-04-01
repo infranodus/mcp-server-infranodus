@@ -34,7 +34,7 @@ interface GraphListItem {
 
 function generateListGraphsResult(
 	graphs: GraphListItem[],
-	filters: z.infer<typeof ListGraphsSchema>
+	filters: z.infer<typeof ListGraphsSchema>,
 ) {
 	const filterDescription = [];
 	if (filters.nameContains)
@@ -45,6 +45,7 @@ function generateListGraphsResult(
 	if (filters.language) filterDescription.push(`language: ${filters.language}`);
 	if (filters.favorite !== undefined)
 		filterDescription.push(`favorite: ${filters.favorite}`);
+	if (filters.userName) filterDescription.push(`userName: ${filters.userName}`);
 
 	const simplifiedGraphs = graphs.map((graph) => ({
 		id: graph.id,
@@ -106,6 +107,9 @@ export const listGraphsTool = {
 			if (params.favorite !== undefined) {
 				requestBody.favorite = params.favorite;
 			}
+			if (params.userName) {
+				requestBody.userName = params.userName;
+			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
@@ -113,7 +117,7 @@ export const listGraphsTool = {
 			if (Array.isArray(response)) {
 				const structuredOutput = generateListGraphsResult(
 					response as unknown as GraphListItem[],
-					params
+					params,
 				);
 				return {
 					content: [
