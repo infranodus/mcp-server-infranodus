@@ -205,6 +205,7 @@ export interface GapsOutput {
 
 export interface TopicsOutput {
 	topicalClusters?: string[];
+	topicalClusterSummaries?: string[];
 }
 
 export interface KeywordsOutput {

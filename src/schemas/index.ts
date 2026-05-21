@@ -355,6 +355,13 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 		.describe(
 			"Name of the user who created the public graph. Provide only if username is explicitly requested by the user and their public graph is requested, otherwise do not provide.",
 		),
+	generateTopicalSummaries: z
+		.boolean()
+		.optional()
+		.default(false)
+		.describe(
+			"Use when AI-generated topical cluster overviews are needed and for SEO-optimized content creation. When true, an additional AI request is made to summarize the discourse represented by the topical clusters, and the result is returned as topicalClusterSummaries. False by default.",
+		),
 });
 export const GenerateTopicalClustersSchema =
 	GenerateTopicalClustersSchemaBase.refine(

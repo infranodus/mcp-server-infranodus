@@ -212,11 +212,20 @@ export function generateContextualHint(data: GraphResponse): GraphOverview {
 	return graphOverview;
 }
 
-export function generateTopics(data: GraphResponse): TopicsOutput {
+export function generateTopics(
+	data: GraphResponse,
+	summaryData?: GraphResponse,
+): TopicsOutput {
 	const topicalClusters: TopicsOutput = {};
 
 	if (data.extendedGraphSummary?.mainTopics) {
 		topicalClusters.topicalClusters = data.extendedGraphSummary.mainTopics;
+	}
+
+	if (summaryData?.aiAdvice) {
+		topicalClusters.topicalClusterSummaries = summaryData.aiAdvice.map(
+			(advice) => advice.text,
+		);
 	}
 
 	return topicalClusters;
