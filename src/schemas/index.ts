@@ -358,9 +358,9 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 	generateTopicalSummaries: z
 		.boolean()
 		.optional()
-		.default(false)
+		.default(true)
 		.describe(
-			"Use when AI-generated topical cluster overviews are needed and for SEO-optimized content creation. When true, an additional AI request is made to summarize the discourse represented by the topical clusters, and the result is returned as topicalClusterSummaries. False by default.",
+			"Generates AI-powered summaries of each topical cluster (returned as topicalClusterSummaries), summarizing the discourse each cluster represents — useful for SEO-optimized content creation. True by default. Set to false to increase processing speed or if the summary request fails.",
 		),
 });
 export const GenerateTopicalClustersSchema =
