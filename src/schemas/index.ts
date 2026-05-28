@@ -364,9 +364,9 @@ export const GenerateOntologyGraphSchema = z.object({
 		.int()
 		.min(1)
 		.max(40)
-		.default(10)
+		.default(40)
 		.describe(
-			"Approximate number of ontology statements / relations to generate (1-40).",
+			"Approximate number of ontology statements / relations to generate. Default: 40 (the maximum), so you get a rich ontology. Hard-capped at 40 — higher values are silently clamped by the backend. Reduce this (e.g. to 20 or 10) if generation takes too long, the request times out, or the model returns errors on complex topics.",
 		),
 	saveGraph: z
 		.boolean()

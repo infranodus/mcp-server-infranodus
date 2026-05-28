@@ -69,7 +69,7 @@ export const generateOntologyGraphTool = {
 				mode: "gptchat",
 				modelToUse: params.modelToUse ?? "claude-opus-4.6",
 				prompt: [{ role: "user", content: params.prompt }],
-				numberOfResults: String(params.numberOfResults ?? 10),
+				numberOfResults: String(params.numberOfResults ?? 40),
 				modifyAnalyzedText: "extractEntitiesOnly",
 				contextType: "ONTOLOGY",
 				replaceEntities: false,
