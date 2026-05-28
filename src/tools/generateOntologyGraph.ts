@@ -2,7 +2,10 @@ import { z } from "zod";
 import { GenerateOntologyGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { getConfig } from "../api/config-store.js";
-import { extractOntologyStatements } from "../utils/transformers.js";
+import {
+	extractOntologyStatements,
+	transformToStructuredOutput,
+} from "../utils/transformers.js";
 import { OntologyGraphOutput } from "../types/index.js";
 
 function errorContent(message: string) {
@@ -54,6 +57,8 @@ export const generateOntologyGraphTool = {
 	handler: async (params: z.infer<typeof GenerateOntologyGraphSchema>) => {
 		try {
 			const saveGraph = params.saveGraph !== false;
+			const includeGraph = params.includeGraph !== false;
+			const includeAnalytics = params.includeAnalytics !== false;
 			const graphName =
 				params.graphName?.trim() || defaultOntologyName(params.prompt);
 
@@ -62,7 +67,7 @@ export const generateOntologyGraphTool = {
 				contextName: graphName,
 				aiQueryType: "ontology graph",
 				mode: "gptchat",
-				modelToUse: params.modelToUse ?? "gpt-5.4",
+				modelToUse: params.modelToUse ?? "claude-opus-4.6",
 				prompt: [{ role: "user", content: params.prompt }],
 				numberOfResults: String(params.numberOfResults ?? 10),
 				modifyAnalyzedText: "extractEntitiesOnly",
@@ -82,6 +87,8 @@ export const generateOntologyGraphTool = {
 						: String(response.error),
 				);
 			}
+
+			const ontologyStatements = extractOntologyStatements(response);
 
 			let output: OntologyGraphOutput;
 
@@ -105,7 +112,6 @@ export const generateOntologyGraphTool = {
 					message: `Ontology graph "${graphName}" generated and saved.`,
 				};
 			} else {
-				const ontologyStatements = extractOntologyStatements(response);
 				output = {
 					saved: false,
 					ontologyStatements,
@@ -114,6 +120,62 @@ export const generateOntologyGraphTool = {
 							? "Ontology generated (not saved). Use saveGraph: true to persist it as an InfraNodus graph."
 							: "The AI did not return any ontology statements. Try a more specific prompt or a more capable model.",
 				};
+			}
+
+			// Optional follow-up: fetch the analyzed graph for compact structure
+			// and/or analytics. Skip entirely if both are disabled.
+			if (includeGraph || includeAnalytics) {
+				const graphQuery = new URLSearchParams({
+					doNotSave: "true",
+					addStats: "true",
+					includeStatements: "false",
+					includeGraphSummary: "false",
+					extendedGraphSummary: includeAnalytics ? "true" : "false",
+					includeGraph: includeGraph ? "true" : "false",
+					compactGraph: includeGraph ? "true" : "false",
+					aiTopics: "true",
+					optimize: "develop",
+				});
+				const graphEndpoint = `/graphAndStatements?${graphQuery.toString()}`;
+
+				const graphRequestBody: any = saveGraph
+					? { name: graphName, aiTopics: "true", userName: "" }
+					: {
+							text: ontologyStatements.join("\n"),
+							aiTopics: "true",
+							modifyAnalyzedText: "extractEntitiesOnly",
+					  };
+
+				const graphResponse = await makeInfraNodusRequest(
+					graphEndpoint,
+					graphRequestBody,
+				);
+
+				if (!graphResponse.error) {
+					const structured = transformToStructuredOutput(
+						graphResponse,
+						includeGraph,
+						false,
+						true,
+					);
+
+					if (includeAnalytics) {
+						output.statistics = structured.statistics;
+						output.graphSummary = structured.graphSummary;
+						output.contentGaps = structured.contentGaps;
+						output.mainTopicalClusters = structured.mainTopicalClusters;
+						output.mainConcepts = structured.mainConcepts;
+						output.conceptualGateways = structured.conceptualGateways;
+						output.topRelations = structured.topRelations;
+						output.topBigrams = structured.topBigrams;
+						output.topInfluentialNodes = structured.topInfluentialNodes;
+						output.topClusters = structured.topClusters;
+						output.knowledgeGraphByCluster = structured.knowledgeGraphByCluster;
+					}
+					if (includeGraph) {
+						output.knowledgeGraph = structured.knowledgeGraph;
+					}
+				}
 			}
 
 			return {

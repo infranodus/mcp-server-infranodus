@@ -32,7 +32,7 @@ Available Tools:
 12. develop_latent_topics - Analyze text and extract underdeveloped topics with ideas on how to develop them
 13. develop_text_tool - Comprehensive text analysis combining research questions, latent topics, and content gaps with progress tracking
 14. create_knowledge_graph - Create a knowledge graph in InfraNodus from text and provide a link to it
-15. generate_ontology_graph - Use AI to generate a reasoning ontology graph (entities + relations) from a topic, prompt, or text. Saved as an InfraNodus graph by default; set saveGraph: false to get a one-off ontology overview without persisting
+15. generate_ontology_graph - Use AI to generate a reasoning ontology graph (entities + relations) from a topic, prompt, or text; default model is claude-opus-4.6. Saved as an InfraNodus graph by default (saveGraph: false for a one-off overview). Returns compact graph + analytics (topics, gaps, top nodes) by default — set includeGraph: false to save context space, or includeAnalytics: false if you don't need graph-derived insights
 16. overlap_between_texts - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
 17. merged_graph_from_texts - Build a graph of all the texts, URLs, and existing graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
 18. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others

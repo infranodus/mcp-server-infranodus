@@ -355,9 +355,9 @@ export const GenerateOntologyGraphSchema = z.object({
 			"gpt-5.4",
 			"gpt-5.4-mini",
 		])
-		.default("gpt-5.4")
+		.default("claude-opus-4.6")
 		.describe(
-			"AI model used to generate the ontology. More capable models (claude-opus-4.6, gpt-5.4) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper.",
+			"AI model used to generate the ontology. More capable models (claude-opus-4.6, gpt-5.4) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-4.6.",
 		),
 	numberOfResults: z
 		.number()
@@ -373,6 +373,18 @@ export const GenerateOntologyGraphSchema = z.object({
 		.default(true)
 		.describe(
 			"Whether to save the generated ontology as a persistent InfraNodus graph (true by default). When true, the graph is stored under your account and a link is returned. Set to false if the user explicitly asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later — in that case the generated ontology statements are returned directly without being persisted.",
+		),
+	includeGraph: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include the compact graph structure (nodes, edges, clusters) in the response. True by default. Set to false to save context space when only the ontology statements or analytical insights are needed.",
+		),
+	includeAnalytics: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the generated ontology. True by default. Use this to get insights from the graph: keep it on when you need to understand the structure, gaps, or key concepts; turn off only if you just need the raw ontology statements.",
 		),
 });
 

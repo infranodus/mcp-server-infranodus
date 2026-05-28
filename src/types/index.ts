@@ -217,14 +217,37 @@ export interface TopicsOutput {
 }
 
 export interface OntologyGraphOutput {
-	// When saved
+	// Core
+	saved?: boolean;
+	message?: string;
 	graphName?: string;
 	graphUrl?: string;
 	editUrl?: string;
-	saved?: boolean;
-	message?: string;
 	// When not saved (preview): the generated ontology statements
 	ontologyStatements?: string[];
+	// Optional graph + analytics (from a follow-up /graphAndStatements call)
+	statistics?: {
+		modularity: number;
+		diversity_stats?: any;
+		nodeCount?: number;
+		edgeCount?: number;
+		clusterCount?: number;
+	};
+	graphSummary?: string;
+	contentGaps?: string[];
+	mainTopicalClusters?: string[];
+	mainConcepts?: string[];
+	topInfluentialNodes?: Array<{
+		node: string;
+		degree: number;
+		bc: number;
+	}>;
+	conceptualGateways?: string[];
+	topRelations?: string[];
+	topBigrams?: string[];
+	topClusters?: any;
+	knowledgeGraph?: any;
+	knowledgeGraphByCluster?: any;
 }
 
 export interface KeywordsOutput {

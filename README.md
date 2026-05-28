@@ -105,7 +105,8 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 15. **generate_ontology_graph**
     - Use AI to generate a reasoning ontology graph (entities and the relations between them) from a topic, prompt, or text — e.g. "build an ontology on AI attention mechanisms"
     - Saved as a persistent InfraNodus graph by default and a link is returned; set `saveGraph: false` if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later (the generated statements are returned directly without persisting)
-    - Pick a more capable `modelToUse` (e.g. `claude-opus-4.6`, `gpt-5.4`) for richer ontologies; the `-mini`/`-lite` variants are faster and cheaper
+    - `modelToUse` defaults to `claude-opus-4.6` for richer ontologies; pick `-mini`/`-lite` variants (or `gpt-4o-mini`) for faster, cheaper generation
+    - Returns the compact graph structure (`knowledgeGraph`) and analytics (main topical clusters, content gaps, top influential nodes, top relations, statistics) by default. Set `includeGraph: false` to save context space when only the ontology statements or insights are needed. Set `includeAnalytics: false` if you just need the raw ontology without graph-derived insights — keep it on whenever you want to understand the structure, gaps, or key concepts
 
 16. **overlap_between_texts**
     - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
