@@ -152,10 +152,13 @@ export const generateOntologyGraphTool = {
 				);
 
 				if (!graphResponse.error) {
+					// For an ontology graph, nodes (entities) and edges (relations) are
+					// the point — tie includeNodesAndEdges to includeGraph so the
+					// transformer keeps them instead of stripping them.
 					const structured = transformToStructuredOutput(
 						graphResponse,
 						includeGraph,
-						false,
+						includeGraph,
 						true,
 					);
 

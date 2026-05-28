@@ -378,7 +378,7 @@ export const GenerateOntologyGraphSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe(
-			"Include the compact graph structure (nodes, edges, clusters) in the response. True by default. Set to false to save context space when only the ontology statements or analytical insights are needed.",
+			"Include the compact graph structure — nodes (entities), edges (relations between them), and clusters — in the response. True by default, since nodes and edges are the point of an ontology graph. Set to false to save context space when only the ontology statements or analytical insights are needed.",
 		),
 	includeAnalytics: z
 		.boolean()
