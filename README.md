@@ -102,63 +102,68 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Create a knowledge graph in InfraNodus from text and provide a link to it
     - Use it to create a knowledge graph in InfraNodus from text
 
-15. **overlap_between_texts**
+15. **generate_ontology_graph**
+    - Use AI to generate a reasoning ontology graph (entities and the relations between them) from a topic, prompt, or text — e.g. "build an ontology on AI attention mechanisms"
+    - Saved as a persistent InfraNodus graph by default and a link is returned; set `saveGraph: false` if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later (the generated statements are returned directly without persisting)
+    - Pick a more capable `modelToUse` (e.g. `claude-opus-4.6`, `gpt-5.4`) for richer ontologies; the `-mini`/`-lite` variants are faster and cheaper
+
+16. **overlap_between_texts**
     - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
     - Use it to find similar topics and keywords across different texts
 
-16. **merged_graph_from_texts**
+17. **merged_graph_from_texts**
     - Build a graph of all the texts and URLs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
     - Use it to combine multiple sources into one graph and see clusters and content gaps across the merged content
 
-17. **difference_between_texts**
+18. **difference_between_texts**
     - Compare knowledge graphs from two or more texts and find what's not present in the first graph that's present in the others
     - Use it to find how one text can be enriched with the others
 
-18. **analyze_google_search_results**
+19. **analyze_google_search_results**
     - Generate a graph with keywords and topics for Google search results for a certain query
     - Use it to understand the current informational supply (what people find)
 
-19. **analyze_related_search_queries**
+20. **analyze_related_search_queries**
     - Generate a graph from the search queries suggested by Google for a certain query
     - Use it to understand the current informational demand (what people are looking for)
 
-20. **search_queries_vs_search_results**
+21. **search_queries_vs_search_results**
     - Generate a graph of keyword combinations and topics people tend to search for that do not readily appear in the search results for the same queries
     - Use it to understand what people search for but don't yet find
 
-21. **generate_seo_report**
+22. **generate_seo_report**
     - Analyze content for SEO optimization by comparing it with Google search results and search queries
     - Identify content gaps and opportunities for better search visibility
     - Get comprehensive analysis of what's in search results but not in your text
     - Discover what people search for but don't find in current results
 
-22. **memory_add_relations**
+23. **memory_add_relations**
     - Add relations to the InfraNodus memory from text
     - Automatically detect entities or use [[wikilinks]] syntax to mark them
     - Save memory to a specified graph name for future retrieval
     - Support automatic entity extraction or manual entity marking
     - Provide links to created memory graphs for easy access
 
-23. **memory_get_relations**
+24. **memory_get_relations**
     - Retrieve relations from InfraNodus memory for specific entities
     - Search for entity relations using [[wikilinks]] syntax
     - Query specific memory contexts or search across all memory graphs
     - Extract statements and relationships from stored knowledge graphs
     - Support both entity-specific searches and full context retrieval
 
-24. **retrieve_from_knowledge_base**
+25. **retrieve_from_knowledge_base**
     - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG
     - Query your knowledge base with a natural language prompt to get relevant statements
     - Include graph summaries for quick overviews of the knowledge structure
     - Optionally retrieve the full graph, statements, or extended analysis
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
-25. **search**
+26. **search**
     - Search through existing InfraNodus graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-26. **fetch**
+27. **fetch**
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 

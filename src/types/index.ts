@@ -126,6 +126,14 @@ export interface GraphResponse {
 		text: string;
 		finish_reason?: string;
 	}[];
+	// Returned by the /aiAdvice endpoint when saveToGraphAndRedirect is true
+	redirectUrl?: string;
+	// Returned by the /aiAdvice endpoint when saveToGraphAndRedirect is false
+	// (raw AI output; each choice's `text` is set to message.content server-side)
+	choices?: {
+		message?: { content?: string };
+		text?: string;
+	}[];
 	error?: string;
 }
 
@@ -206,6 +214,17 @@ export interface GapsOutput {
 export interface TopicsOutput {
 	topicalClusters?: string[];
 	topicalClusterSummaries?: string[];
+}
+
+export interface OntologyGraphOutput {
+	// When saved
+	graphName?: string;
+	graphUrl?: string;
+	editUrl?: string;
+	saved?: boolean;
+	message?: string;
+	// When not saved (preview): the generated ontology statements
+	ontologyStatements?: string[];
 }
 
 export interface KeywordsOutput {

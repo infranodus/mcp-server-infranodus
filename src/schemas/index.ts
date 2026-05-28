@@ -328,6 +328,54 @@ export const generateContextualHintSchema =
 		{ message: "Provide either text, url, or graphName for analysis." },
 	);
 
+export const GenerateOntologyGraphSchema = z.object({
+	prompt: z
+		.string()
+		.min(1, "Provide a topic, prompt, or text to generate an ontology for")
+		.describe(
+			"The topic, prompt, or text to generate a reasoning ontology graph for. For example: 'build an ontology on AI attention mechanisms' or 'the main principles of Ray Dalio applied to investment'. The AI generates entities and the relations between them.",
+		),
+	graphName: z
+		.string()
+		.optional()
+		.describe(
+			"Name of the InfraNodus graph to save the ontology to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.",
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
+		])
+		.default("gpt-5.4")
+		.describe(
+			"AI model used to generate the ontology. More capable models (claude-opus-4.6, gpt-5.4) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper.",
+		),
+	numberOfResults: z
+		.number()
+		.int()
+		.min(1)
+		.max(40)
+		.default(10)
+		.describe(
+			"Approximate number of ontology statements / relations to generate (1-40).",
+		),
+	saveGraph: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Whether to save the generated ontology as a persistent InfraNodus graph (true by default). When true, the graph is stored under your account and a link is returned. Set to false if the user explicitly asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later — in that case the generated ontology statements are returned directly without being persisted.",
+		),
+});
+
 export const GenerateTopicalClustersSchemaBase = z.object({
 	text: z
 		.string()

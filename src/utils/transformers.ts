@@ -212,6 +212,18 @@ export function generateContextualHint(data: GraphResponse): GraphOverview {
 	return graphOverview;
 }
 
+export function extractOntologyStatements(data: GraphResponse): string[] {
+	if (!data.choices || !data.choices.length) return [];
+
+	return data.choices
+		.flatMap((choice) => {
+			const content = choice.text ?? choice.message?.content ?? "";
+			return content.split("\n");
+		})
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0);
+}
+
 export function generateTopics(
 	data: GraphResponse,
 	summaryData?: GraphResponse,

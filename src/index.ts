@@ -7,6 +7,7 @@ import {
 	addMemoryTool,
 	getMemoryTool,
 	createKnowledgeGraphTool,
+	generateOntologyGraphTool,
 	analyzeExistingGraphTool,
 	analyzeTextTool,
 	generateContentGapsTool,
@@ -79,6 +80,12 @@ export default function createServer({
 		createKnowledgeGraphTool.name,
 		createKnowledgeGraphTool.definition,
 		wrapHandler(createKnowledgeGraphTool.handler),
+	);
+
+	mcpServer.registerTool(
+		generateOntologyGraphTool.name,
+		generateOntologyGraphTool.definition,
+		wrapHandler(generateOntologyGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
