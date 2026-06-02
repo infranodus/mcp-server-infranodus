@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import { AnalyzeTextSchema, AnalyzeTextSchemaBase } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
@@ -18,7 +19,7 @@ export const analyzeTextTool = {
 	definition: {
 		title: "Analyze a Text, URL, or YouTube transcript",
 		description:
-			"Extract and analyze a graph from text, URL, YouTube video transcript, or an existing graph.",
+			`Extract and analyze a graph from text, URL, YouTube video transcript, or an existing ${brand.name} graph.`,
 		inputSchema: AnalyzeTextSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

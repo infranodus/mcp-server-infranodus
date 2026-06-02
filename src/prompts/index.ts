@@ -1,4 +1,6 @@
 // Prompts for common use cases
+import { brand } from "../config/brand.js";
+
 export const prompts = [
 	{
 		name: "analyze-text",
@@ -22,7 +24,7 @@ export const prompts = [
 						role: "user" as const,
 						content: {
 							type: "text" as const,
-							text: `Please analyze the following text to generate a knowledge graph. Show me the main topics, topical clusters, key concepts, relationships, and any structural gaps you identify:
+							text: `Please analyze the following text using ${brand.name} to generate a knowledge graph. Show me the main topics, topical clusters, key concepts, relationships, and any structural gaps you identify:
 
 ${text}
 
@@ -55,7 +57,7 @@ Use the generate_knowledge_graph tool to get a detailed analysis.`,
 						role: "user" as const,
 						content: {
 							type: "text" as const,
-							text: `Please analyze the following text to find the gaps within it that could be bridged to improve the content and generate new ideas:
+							text: `Please analyze the following text using ${brand.name} to find the gaps within it that could be bridged to improve the content and generate new ideas:
 
 ${text}
 
@@ -88,7 +90,7 @@ Use the generate_content_gaps tool to get a detailed analysis.`,
 						role: "user" as const,
 						content: {
 							type: "text" as const,
-							text: `Please analyze the following text to find the gaps within it that could be bridged to improve the content and generate new ideas:
+							text: `Please analyze the following text using ${brand.name} to find the gaps within it that could be bridged to improve the content and generate new ideas:
 
 ${text}
 
@@ -129,7 +131,7 @@ Use the generate_topical_clusters tool to get a detailed analysis.`,
 						role: "user" as const,
 						content: {
 							type: "text" as const,
-							text: `Please compare these two texts :
+							text: `Please compare these two texts using ${brand.name}:
 
 Text 1:
 ${text1}
@@ -352,7 +354,7 @@ Provide insights about the main topics for topical authority, high-volume search
 		handler: async (args: { [key: string]: string | undefined }) => {
 			const text = args.text as string;
 			const focus = args.focus;
-			let prompt = `Please help me develop and expand this text :
+			let prompt = `Please help me develop and expand this text using ${brand.name}:
 
 ${text}
 
@@ -375,9 +377,9 @@ Use the develop_text tool to generate research ideas based on the content gaps, 
 	{
 		name: "save-memory",
 		definition: {
-			title: "Save text to memory",
+			title: `Save text to ${brand.name} memory`,
 			description:
-				"Save important information to your knowledge base",
+				`Save important information to your ${brand.name} knowledge base`,
 			arguments: [
 				{
 					name: "graphName",
@@ -400,7 +402,7 @@ Use the develop_text tool to generate research ideas based on the content gaps, 
 						role: "user" as const,
 						content: {
 							type: "text" as const,
-							text: `Please save the following text to my memory with the name "${graphName}":
+							text: `Please save the following text to my ${brand.name} memory with the name "${graphName}":
 
 ${text}
 

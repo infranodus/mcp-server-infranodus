@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import {
 	GenerateResponsesFromGraphSchema,
 	GenerateResponsesFromGraphSchemaBase,
@@ -21,7 +22,7 @@ export const generateResponsesFromGraphTool = {
 	definition: {
 		title: "Generate Responses and Expert Advice from Text or Graph",
 		description:
-			"Use text, URL, or an existing knowledge graph and generate responses and expert advice based on a prompt provided.",
+			`Use text, URL, or an existing ${brand.name} knowledge graph and generate responses and expert advice based on a prompt provided.`,
 		inputSchema: GenerateResponsesFromGraphSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

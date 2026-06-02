@@ -2,7 +2,7 @@ import { z } from "zod";
 import { AnalyzeLlmResultsSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { getConfig } from "../api/config-store.js";
-import { brandApiBase } from "../config/brand.js";
+import { brand, brandApiBase } from "../config/brand.js";
 import {
 	extractAiChoiceTexts,
 	transformToStructuredOutput,
@@ -96,7 +96,7 @@ export const analyzeLlmResultsTool = {
 				const redirectUrl = response.redirectUrl;
 				if (!redirectUrl) {
 					return errorContent(
-						"The LLM overview was generated but no graph link was returned, so it may not have been saved. Check that your API key is valid (an anonymous/demo key does not persist graphs).",
+						`The LLM overview was generated but no graph link was returned, so it may not have been saved. Check that your ${brand.name} API key is valid (an anonymous/demo key does not persist graphs).`,
 					);
 				}
 
@@ -116,7 +116,7 @@ export const analyzeLlmResultsTool = {
 					llmStatements,
 					message:
 						llmStatements.length > 0
-							? `LLM overview generated (not saved): ${llmStatements.length} completion(s) returned. Use saveGraph: true to persist it as a graph.`
+							? `LLM overview generated (not saved): ${llmStatements.length} completion(s) returned. Use saveGraph: true to persist it as a ${brand.name} graph.`
 							: "The LLM did not return any statements. Try a more specific prompt or a different model.",
 				};
 			}

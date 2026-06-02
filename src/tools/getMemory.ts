@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import { getMemorySchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import {
@@ -9,9 +10,9 @@ import {
 export const getMemoryTool = {
 	name: "memory_get_relations",
 	definition: {
-		title: "Get Relations from Memory",
+		title: `Get Relations from the ${brand.name} Memory`,
 		description:
-			"Provide a list of relations from the memory for a given concept or entity",
+			`Provide a list of relations from the ${brand.name} memory for a given concept or entity`,
 		inputSchema: getMemorySchema.shape,
 		annotations: {
 			readOnlyHint: true,

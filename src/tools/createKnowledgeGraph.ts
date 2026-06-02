@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import { CreateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
@@ -16,9 +17,9 @@ function errorContent(message: string) {
 export const createKnowledgeGraphTool = {
 	name: "create_knowledge_graph",
 	definition: {
-		title: "Create a Knowledge Graph from Text",
+		title: `Create a Knowledge Graph in ${brand.name} from Text`,
 		description:
-			"Create a knowledge graph from text or from a URL, save it, and provide its name and a link to it for future use. ",
+			`Create a knowledge graph in ${brand.name} from text or from a URL, save it, and provide its name and a link to it for future use. `,
 		inputSchema: CreateGraphSchema.shape,
 		annotations: {
 			readOnlyHint: false,
