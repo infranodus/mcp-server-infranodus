@@ -388,6 +388,72 @@ export const GenerateOntologyGraphSchema = z.object({
 		),
 });
 
+export const AnalyzeLlmResultsSchema = z.object({
+	prompt: z
+		.string()
+		.min(1, "Provide a topic or question to analyze")
+		.describe(
+			"The topic or question to analyze. The LLM is asked to describe it, and the resulting text is turned into a knowledge graph that reveals how the LLM 'sees' the topic — main concepts, clusters, gaps, relations. Useful for probing LLM bias, surfacing the implicit structure of a model's view on a subject, or comparing how different models frame the same topic.",
+		),
+	graphName: z
+		.string()
+		.optional()
+		.describe(
+			"Name of the InfraNodus graph to save the LLM overview to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.",
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
+		])
+		.default("claude-opus-4.6")
+		.describe(
+			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-4.6.",
+		),
+	numberOfResults: z
+		.number()
+		.int()
+		.min(1)
+		.max(40)
+		.default(20)
+		.describe(
+			"Number of separate LLM completions to generate (NOT statements per completion). Each completion becomes one statement in the graph — together they form the multi-angle view of how the model frames the topic. Default: 20 (matches InfraNodus' built-in UI). This directly drives cost and latency: 20 = 20 separate model calls (some models like gpt-5.4/gpt-5.4-mini are internally capped at 8). Lower it (e.g. to 10) if the user is cost-sensitive or generation times out; raise it (up to 40) for a richer overview when the model is fast/cheap.",
+		),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("detectEntities")
+		.describe(
+			"How the LLM output is parsed into the graph. 'none' = plain word co-occurrence (contextType STANDARD); 'detectEntities' = mix named entities with words (contextType WIKILINKS, default — best balanced overview); 'extractEntitiesOnly' = entity-only graph (contextType WIKILINKS, cleanest entity view).",
+		),
+	saveGraph: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Whether to save the LLM overview as a persistent InfraNodus graph (true by default). Set to false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.",
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include the compact graph structure — nodes, edges, clusters — in the response. False by default for this tool to keep the response small (the LLM overview is typically about insights, not the raw graph). Set to true when you also want to inspect the node/edge structure or render it.",
+		),
+	includeAnalytics: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the LLM output. True by default, because the whole point of this tool is the insights about how the LLM frames the topic. Turn off only if you just need the raw text statements.",
+		),
+});
+
 export const GenerateTopicalClustersSchemaBase = z.object({
 	text: z
 		.string()

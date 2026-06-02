@@ -108,63 +108,70 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - `modelToUse` defaults to `claude-opus-4.6` for richer ontologies; pick `-mini`/`-lite` variants (or `gpt-4o-mini`) for faster, cheaper generation
     - Returns the compact graph structure (`knowledgeGraph`) and analytics (main topical clusters, content gaps, top influential nodes, top relations, statistics) by default. Set `includeGraph: false` to save context space when only the ontology statements or insights are needed. Set `includeAnalytics: false` if you just need the raw ontology without graph-derived insights — keep it on whenever you want to understand the structure, gaps, or key concepts
 
-16. **overlap_between_texts**
+16. **analyze_llm_results**
+    - Ask an LLM to describe a topic and turn its response into a knowledge graph that reveals how the model frames it — main concepts, clusters, content gaps, and the relations between them
+    - Use it to probe model bias, surface the implicit structure of an LLM's view on a subject, or compare how different models describe the same topic
+    - `modelToUse` defaults to `claude-opus-4.6`; pick the model you actually want to study
+    - `modifyAnalyzedText` controls how the LLM output is parsed: `'detectEntities'` (default — mixed entities + words), `'extractEntitiesOnly'` (entity-only graph), or `'none'` (plain co-occurrence)
+    - Saves the graph by default; set `saveGraph: false` for a one-off probe. Returns analytics by default and omits the raw graph (`includeGraph: false`) to keep responses compact — enable `includeGraph` when you also need nodes/edges
+
+17. **overlap_between_texts**
     - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
     - Use it to find similar topics and keywords across different texts
 
-17. **merged_graph_from_texts**
+18. **merged_graph_from_texts**
     - Build a graph of all the texts and URLs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
     - Use it to combine multiple sources into one graph and see clusters and content gaps across the merged content
 
-18. **difference_between_texts**
+19. **difference_between_texts**
     - Compare knowledge graphs from two or more texts and find what's not present in the first graph that's present in the others
     - Use it to find how one text can be enriched with the others
 
-19. **analyze_google_search_results**
+20. **analyze_google_search_results**
     - Generate a graph with keywords and topics for Google search results for a certain query
     - Use it to understand the current informational supply (what people find)
 
-20. **analyze_related_search_queries**
+21. **analyze_related_search_queries**
     - Generate a graph from the search queries suggested by Google for a certain query
     - Use it to understand the current informational demand (what people are looking for)
 
-21. **search_queries_vs_search_results**
+22. **search_queries_vs_search_results**
     - Generate a graph of keyword combinations and topics people tend to search for that do not readily appear in the search results for the same queries
     - Use it to understand what people search for but don't yet find
 
-22. **generate_seo_report**
+23. **generate_seo_report**
     - Analyze content for SEO optimization by comparing it with Google search results and search queries
     - Identify content gaps and opportunities for better search visibility
     - Get comprehensive analysis of what's in search results but not in your text
     - Discover what people search for but don't find in current results
 
-23. **memory_add_relations**
+24. **memory_add_relations**
     - Add relations to the InfraNodus memory from text
     - Automatically detect entities or use [[wikilinks]] syntax to mark them
     - Save memory to a specified graph name for future retrieval
     - Support automatic entity extraction or manual entity marking
     - Provide links to created memory graphs for easy access
 
-24. **memory_get_relations**
+25. **memory_get_relations**
     - Retrieve relations from InfraNodus memory for specific entities
     - Search for entity relations using [[wikilinks]] syntax
     - Query specific memory contexts or search across all memory graphs
     - Extract statements and relationships from stored knowledge graphs
     - Support both entity-specific searches and full context retrieval
 
-25. **retrieve_from_knowledge_base**
+26. **retrieve_from_knowledge_base**
     - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG
     - Query your knowledge base with a natural language prompt to get relevant statements
     - Include graph summaries for quick overviews of the knowledge structure
     - Optionally retrieve the full graph, statements, or extended analysis
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
-26. **search**
+27. **search**
     - Search through existing InfraNodus graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-27. **fetch**
+28. **fetch**
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 

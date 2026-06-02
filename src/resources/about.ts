@@ -33,19 +33,20 @@ Available Tools:
 13. develop_text_tool - Comprehensive text analysis combining research questions, latent topics, and content gaps with progress tracking
 14. create_knowledge_graph - Create a knowledge graph in InfraNodus from text and provide a link to it
 15. generate_ontology_graph - Use AI to generate a reasoning ontology graph (entities + relations) from a topic, prompt, or text; default model is claude-opus-4.6. Saved as an InfraNodus graph by default (saveGraph: false for a one-off overview). Returns compact graph + analytics (topics, gaps, top nodes) by default — set includeGraph: false to save context space, or includeAnalytics: false if you don't need graph-derived insights
-16. overlap_between_texts - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
-17. merged_graph_from_texts - Build a graph of all the texts, URLs, and existing graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
-18. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
-19. analyze_google_search_results - Generate a Google search results graph from search queries
-20. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
-21. search_queries_vs_search_results - Find what people search for but don't yet find
-22. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
-23. memory_add_relations - Add relations to InfraNodus memory from text with entity detection and save for future retrieval
-24. memory_get_relations - Retrieve relations from InfraNodus memory for specific entities or contexts
-25. retrieve_from_knowledge_base - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG for prompt augmentation
-26. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
-27. search - Search through existing InfraNodus graphs
-28. fetch - Fetch a specific search result from an InfraNodus graph
+16. analyze_llm_results - Ask an LLM to describe a topic and turn its answer into a knowledge graph that reveals how the model frames it (main concepts, clusters, content gaps, relations). Useful for probing model bias or comparing how different models describe the same topic. Default model: claude-opus-4.6. Saves by default; returns analytics by default and omits raw graph (includeGraph: false) to keep responses compact
+17. overlap_between_texts - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
+18. merged_graph_from_texts - Build a graph of all the texts, URLs, and existing graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
+19. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
+20. analyze_google_search_results - Generate a Google search results graph from search queries
+21. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
+22. search_queries_vs_search_results - Find what people search for but don't yet find
+23. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
+24. memory_add_relations - Add relations to InfraNodus memory from text with entity detection and save for future retrieval
+25. memory_get_relations - Retrieve relations from InfraNodus memory for specific entities or contexts
+26. retrieve_from_knowledge_base - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG for prompt augmentation
+27. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
+28. search - Search through existing InfraNodus graphs
+29. fetch - Fetch a specific search result from an InfraNodus graph
 
 Key Features:
 - Topic modeling and clustering

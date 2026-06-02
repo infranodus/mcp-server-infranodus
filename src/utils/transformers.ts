@@ -224,6 +224,22 @@ export function extractOntologyStatements(data: GraphResponse): string[] {
 		.filter((line) => line.length > 0);
 }
 
+// For intro-search style responses: each "choice" is one full LLM completion
+// (typically a paragraph), and the graph treats each completion as a single
+// statement. Don't split by newline; just normalize internal whitespace so each
+// choice fits on one line (matches how the host app's convertGPTResponsesToArray
+// collapses newlines for non-ontology aiQueryTypes).
+export function extractAiChoiceTexts(data: GraphResponse): string[] {
+	if (!data.choices || !data.choices.length) return [];
+
+	return data.choices
+		.map((choice) => {
+			const content = choice.text ?? choice.message?.content ?? "";
+			return content.replace(/\s*\n+\s*/g, " ").trim();
+		})
+		.filter((text) => text.length > 0);
+}
+
 export function generateTopics(
 	data: GraphResponse,
 	summaryData?: GraphResponse,

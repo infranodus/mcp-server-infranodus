@@ -225,6 +225,8 @@ export interface OntologyGraphOutput {
 	editUrl?: string;
 	// When not saved (preview): the generated ontology statements
 	ontologyStatements?: string[];
+	// When not saved (preview): the raw LLM completions, one per item (for analyze_llm_results)
+	llmStatements?: string[];
 	// Optional graph + analytics (from a follow-up /graphAndStatements call)
 	statistics?: {
 		modularity: number;
