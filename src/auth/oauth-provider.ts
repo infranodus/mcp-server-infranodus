@@ -1,10 +1,11 @@
 /**
  * OAuth2-style authentication provider for the MCP HTTP server
- * Validates KeywordGraph API keys and issues JWT access tokens
+ * Validates API keys and issues JWT access tokens
  */
 
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { brandApiBase } from "../config/brand.js";
 import {
 	InfraNodusUserInfo,
 	TokenPayload,
@@ -25,7 +26,7 @@ const authorizationCodes = new Map<string, AuthorizationCode>();
 // Configuration
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
 const TOKEN_EXPIRY_SECONDS = 86400 * 365 * 100; // 100 years - effectively never expires
-const KEYWORDGRAPH_API_BASE = process.env.KEYWORDGRAPH_API_BASE || "https://keywordgraph.com/api/v1";
+const BRAND_API_BASE = brandApiBase();
 
 /**
  * Hash an API key for storage in JWT (we don't store the actual key in the token)
@@ -35,12 +36,12 @@ function hashApiKey(apiKey: string): string {
 }
 
 /**
- * Validate an KeywordGraph API key by calling the /api/v1/userId endpoint
+ * Validate an API key by calling the /api/v1/userId endpoint
  * Returns user info if valid, null if invalid
  */
 export async function validateApiKey(apiKey: string): Promise<InfraNodusUserInfo | null> {
 	try {
-		const response = await fetch(`${KEYWORDGRAPH_API_BASE}/userId`, {
+		const response = await fetch(`${BRAND_API_BASE}/userId`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -76,10 +77,10 @@ export async function validateApiKey(apiKey: string): Promise<InfraNodusUserInfo
 }
 
 /**
- * Exchange an KeywordGraph API key for a JWT access token
+ * Exchange an API key for a JWT access token
  */
 export async function exchangeApiKeyForToken(apiKey: string): Promise<TokenResponse | null> {
-	// Validate the API key against KeywordGraph
+	// Validate the API key against the brand API
 	const userInfo = await validateApiKey(apiKey);
 	if (!userInfo) {
 		return null;

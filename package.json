@@ -14,7 +14,11 @@
 		"README.md",
 		"LICENSE",
 		"llms.txt",
-		"llms-full.txt"
+		"llms-full.txt",
+		"llms.infranodus.txt",
+		"llms-full.infranodus.txt",
+		"llms.keywordgraph.txt",
+		"llms-full.keywordgraph.txt"
 	],
 	"keywords": [
 		"mcp",
@@ -39,8 +43,12 @@
 		"watch": "tsc --watch",
 		"inspect": "npm run build:inspect && npx @modelcontextprotocol/inspector node dist/index.js",
 		"start": "npm run build:inspect && node dist/index.js",
+		"start:in": "BRAND=infranodus npm run start",
+		"start:kg": "BRAND=keywordgraph npm run start",
 		"start:http": "npm run build:inspect && node dist/http-server.js",
 		"dev:http": "npm run build:inspect && node --watch dist/http-server.js",
+		"deploy:in": "fly deploy -c fly.infranodus.toml",
+		"deploy:kg": "fly deploy -c fly.keywordgraph.toml",
 		"prepublishOnly": "npm run build:inspect"
 	},
 	"dependencies": {

@@ -10,6 +10,8 @@ services:
     plan: starter  # or standard, pro
     healthCheckPath: /health
     envVars:
+      - key: BRAND
+        value: keywordgraph
       - key: NODE_ENV
         value: production
       - key: KEYWORDGRAPH_API_BASE

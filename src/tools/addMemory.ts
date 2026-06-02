@@ -6,9 +6,9 @@ import { transformToStructuredOutput } from "../utils/transformers.js";
 export const addMemoryTool = {
 	name: "memory_add_relations",
 	definition: {
-		title: "Add Relations to the KeywordGraph Memory",
+		title: "Add Relations to Memory",
 		description:
-			"Add relations to the KeywordGraph memory from text, save it, and provide its name and a link to it for future use. ",
+			"Add relations to the memory from text, save it, and provide its name and a link to it for future use. ",
 		inputSchema: AddMemorySchema.shape,
 		annotations: {
 			readOnlyHint: false,

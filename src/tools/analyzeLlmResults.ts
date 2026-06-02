@@ -2,6 +2,7 @@ import { z } from "zod";
 import { AnalyzeLlmResultsSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { getConfig } from "../api/config-store.js";
+import { brandApiBase } from "../config/brand.js";
 import {
 	extractAiChoiceTexts,
 	transformToStructuredOutput,
@@ -18,7 +19,7 @@ function errorContent(message: string) {
 }
 
 function appBaseUrl(): string {
-	const apiBase = getConfig().apiBase || "https://keywordgraph.com/api/v1";
+	const apiBase = getConfig().apiBase || brandApiBase();
 	return apiBase.replace(/\/api\/v1\/?$/, "");
 }
 
@@ -95,7 +96,7 @@ export const analyzeLlmResultsTool = {
 				const redirectUrl = response.redirectUrl;
 				if (!redirectUrl) {
 					return errorContent(
-						"The LLM overview was generated but no graph link was returned, so it may not have been saved. Check that your KeywordGraph API key is valid (an anonymous/demo key does not persist graphs).",
+						"The LLM overview was generated but no graph link was returned, so it may not have been saved. Check that your API key is valid (an anonymous/demo key does not persist graphs).",
 					);
 				}
 
@@ -115,7 +116,7 @@ export const analyzeLlmResultsTool = {
 					llmStatements,
 					message:
 						llmStatements.length > 0
-							? `LLM overview generated (not saved): ${llmStatements.length} completion(s) returned. Use saveGraph: true to persist it as an KeywordGraph graph.`
+							? `LLM overview generated (not saved): ${llmStatements.length} completion(s) returned. Use saveGraph: true to persist it as a graph.`
 							: "The LLM did not return any statements. Try a more specific prompt or a different model.",
 				};
 			}

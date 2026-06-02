@@ -105,7 +105,7 @@ export type FetchUrlContentAsTextResult =
 	| { ok: false; error: string };
 
 /**
- * Fetches content from a URL via KeywordGraph /convert/url, optionally retrying
+ * Fetches content from a URL via the /convert/url, optionally retrying
  * with proxy if the initial response has no usable text. Returns extracted text
  * by content type (all, header tags, link tags).
  */

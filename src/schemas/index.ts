@@ -44,7 +44,7 @@ export const CreateGraphSchema = z.object({
 	graphName: z
 		.string()
 		.min(1, "Graph name is required")
-		.describe("Name of the graph to create in KeywordGraph"),
+		.describe("Name of the graph to create in your account"),
 	text: z
 		.string()
 		.optional()
@@ -90,7 +90,7 @@ export const AddMemorySchema = z.object({
 		.min(1, "Graph name is required")
 		.max(28, "Graph name must be less than 28 characters")
 		.describe(
-			"Name of the graph to add the memory to in KeywordGraph - lowercase, dashes for spaces, no special characters. Auto-generate from the context of the conversation (if previously available) or use the nanme of the LLM client or project, or use the name the user explicitly provided or requested.",
+			"Name of the graph to add the memory to in your account - lowercase, dashes for spaces, no special characters. Auto-generate from the context of the conversation (if previously available) or use the nanme of the LLM client or project, or use the name the user explicitly provided or requested.",
 		),
 	text: z
 		.string()
@@ -179,7 +179,7 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.string()
 		.min(1, "Graph name is required")
 		.describe(
-			"Name of an existing KeywordGraph graph in your account to retrieve",
+			"Name of an existing graph in your account to retrieve",
 		),
 	userName: z
 		.string()
@@ -222,18 +222,18 @@ export const SearchExistingGraphsSchema = z.object({
 	query: z
 		.string()
 		.min(1, "Search query is required")
-		.describe("Query to search for in existing KeywordGraph graphs"),
+		.describe("Query to search for in existing graphs"),
 	contextNames: z
 		.array(z.string())
 		.default([])
 		.describe(
-			"Names of the existing KeywordGraph graphs to search in (array of strings, empty for all)",
+			"Names of the existing graphs to search in (array of strings, empty for all)",
 		),
 	contextTypes: z
 		.array(z.string())
 		.default([])
 		.describe(
-			"Types of the existing KeywordGraph graphs to search in (array of strings, empty for all)",
+			"Types of the existing graphs to search in (array of strings, empty for all)",
 		),
 });
 
@@ -242,13 +242,13 @@ export const getMemorySchema = z.object({
 		.string()
 		.default("")
 		.describe(
-			"Name of the entity to get relations for from the KeywordGraph memory, use [[wikilinks]] syntax to mark the entity, replace spaces with underscores. Leave if contextMemoryName is provided.",
+			"Name of the entity to get relations for from the memory, use [[wikilinks]] syntax to mark the entity, replace spaces with underscores. Leave if contextMemoryName is provided.",
 		),
 	memoryContextName: z
 		.string()
 		.default("")
 		.describe(
-			"Name of the existing KeywordGraph memory graph to search in if requested or needed from the context (can be left empty to search in all memory graphs)",
+			"Name of the existing memory graph to search in if requested or needed from the context (can be left empty to search in all memory graphs)",
 		),
 });
 
@@ -280,7 +280,7 @@ export const GenerateContentGapsSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph to use. Provide one of: text, url, or graphName.",
+			"Name of an existing graph to use. Provide one of: text, url, or graphName.",
 		),
 });
 export const GenerateContentGapsSchema = GenerateContentGapsSchemaBase.refine(
@@ -310,7 +310,7 @@ export const generateContextualHintSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph to use. Provide one of: text, url, or graphName.",
+			"Name of an existing graph to use. Provide one of: text, url, or graphName.",
 		),
 	userName: z
 		.string()
@@ -339,7 +339,7 @@ export const GenerateOntologyGraphSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			"Name of the KeywordGraph graph to save the ontology to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.",
+			"Name of the graph to save the ontology to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.",
 		),
 	modelToUse: z
 		.enum([
@@ -372,7 +372,7 @@ export const GenerateOntologyGraphSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe(
-			"Whether to save the generated ontology as a persistent KeywordGraph graph (true by default). When true, the graph is stored under your account and a link is returned. Set to false if the user explicitly asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later — in that case the generated ontology statements are returned directly without being persisted.",
+			"Whether to save the generated ontology as a persistent graph (true by default). When true, the graph is stored under your account and a link is returned. Set to false if the user explicitly asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later — in that case the generated ontology statements are returned directly without being persisted.",
 		),
 	includeGraph: z
 		.boolean()
@@ -399,7 +399,7 @@ export const AnalyzeLlmResultsSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			"Name of the KeywordGraph graph to save the LLM overview to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.",
+			"Name of the graph to save the LLM overview to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.",
 		),
 	modelToUse: z
 		.enum([
@@ -426,7 +426,7 @@ export const AnalyzeLlmResultsSchema = z.object({
 		.max(40)
 		.default(20)
 		.describe(
-			"Number of separate LLM completions to generate (NOT statements per completion). Each completion becomes one statement in the graph — together they form the multi-angle view of how the model frames the topic. Default: 20 (matches KeywordGraph' built-in UI). This directly drives cost and latency: 20 = 20 separate model calls (some models like gpt-5.4/gpt-5.4-mini are internally capped at 8). Lower it (e.g. to 10) if the user is cost-sensitive or generation times out; raise it (up to 40) for a richer overview when the model is fast/cheap.",
+			"Number of separate LLM completions to generate (NOT statements per completion). Each completion becomes one statement in the graph — together they form the multi-angle view of how the model frames the topic. Default: 20 (matches the built-in UI). This directly drives cost and latency: 20 = 20 separate model calls (some models like gpt-5.4/gpt-5.4-mini are internally capped at 8). Lower it (e.g. to 10) if the user is cost-sensitive or generation times out; raise it (up to 40) for a richer overview when the model is fast/cheap.",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -438,7 +438,7 @@ export const AnalyzeLlmResultsSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe(
-			"Whether to save the LLM overview as a persistent KeywordGraph graph (true by default). Set to false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.",
+			"Whether to save the LLM overview as a persistent graph (true by default). Set to false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.",
 		),
 	includeGraph: z
 		.boolean()
@@ -473,7 +473,7 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph to use. Provide one of: text, url, or graphName.",
+			"Name of an existing graph to use. Provide one of: text, url, or graphName.",
 		),
 	userName: z
 		.string()
@@ -517,7 +517,7 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph in your account to generate research questions from. Provide one of: text, url, or graphName.",
+			"Name of an existing graph in your account to generate research questions from. Provide one of: text, url, or graphName.",
 		),
 	userName: z
 		.string()
@@ -587,7 +587,7 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph to use. Provide one of: text, url, or graphName.",
+			"Name of an existing graph to use. Provide one of: text, url, or graphName.",
 		),
 	userName: z
 		.string()
@@ -668,7 +668,7 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph to use. Provide one of: text, url, or graphName.",
+			"Name of an existing graph to use. Provide one of: text, url, or graphName.",
 		),
 	responseType: z
 		.enum(["response", "idea", "question", "transcend"])
@@ -723,7 +723,7 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph to use. Provide one of: text, url, or graphName.",
+			"Name of an existing graph to use. Provide one of: text, url, or graphName.",
 		),
 	requestMode: z
 		.enum(["question", "transcend"])
@@ -764,7 +764,7 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		.string()
 		.min(1, "Graph name is required")
 		.describe(
-			"Name of the existing KeywordGraph graph in your account to retrieve",
+			"Name of the existing graph in your account to retrieve",
 		),
 	userName: z
 		.string()
@@ -808,7 +808,7 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph in your account to retrieve. Provide one of: text, url, or graphName.",
+			"Name of an existing graph in your account to retrieve. Provide one of: text, url, or graphName.",
 		),
 	userName: z
 		.string()
@@ -872,7 +872,7 @@ export const GenerateGeneralGraphSchema = z.object({
 	doNotSave: z
 		.boolean()
 		.default(true)
-		.describe("Don't save the text to the KeywordGraph graph"),
+		.describe("Don't save the text to the graph"),
 	addStats: z.boolean().default(true).describe("Include network statistics"),
 	includeStatements: z
 		.boolean()
@@ -939,10 +939,10 @@ const contextItemTextUrlOrGraphSchema = z.union([
 				.string()
 				.min(1, "Graph name is required when provided")
 				.describe(
-					"Name of an existing KeywordGraph graph; its statements are retrieved and used as text.",
+					"Name of an existing graph; its statements are retrieved and used as text.",
 				),
 		})
-		.describe("Context from an existing KeywordGraph graph by name."),
+		.describe("Context from an existing graph by name."),
 ]);
 
 const GenerateOverlapGraphFromTextsSchemaBase = z.object({
@@ -1422,7 +1422,7 @@ export const DevelopTextToolSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing KeywordGraph graph to use. Provide one of: text, url, or graphName.",
+			"Name of an existing graph to use. Provide one of: text, url, or graphName.",
 		),
 	useSeveralGaps: z
 		.boolean()

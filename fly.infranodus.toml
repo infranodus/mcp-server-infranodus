@@ -1,17 +1,19 @@
-# fly.toml app configuration file generated for keywordgraph-mcp-server on 2025-12-30T19:19:39+01:00
+# Fly config for the InfraNodus brand.
+# Deploy with: fly deploy -c fly.infranodus.toml
 #
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# Same image/Dockerfile as the KeywordGraph app — only BRAND (and the per-app
+# secrets set via `fly secrets set ... -a infranodus-mcp-server`) differ.
 
-app = 'keywordgraph-mcp-server'
+app = 'infranodus-mcp-server'
 primary_region = 'fra'
 
 [build]
   dockerfile = 'Dockerfile'
 
 [env]
+  BRAND = 'infranodus'
   CORS_ORIGIN = '*'
-  KEYWORDGRAPH_API_BASE = 'https://keywordgraph.com/api/v1'
+  INFRANODUS_API_BASE = 'https://infranodus.com/api/v1'
   NODE_ENV = 'production'
 
 [http_service]

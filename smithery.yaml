@@ -2,5 +2,6 @@ runtime: "typescript"
 build:
   command: "npm run build"
 env:
+  BRAND: "keywordgraph"
   NODE_ENV: "production"
   KEYWORDGRAPH_API_KEY: "your-keywordgraph-api-key"

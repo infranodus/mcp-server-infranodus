@@ -3,21 +3,23 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as dotenv from 'dotenv';
 import createServer from '../dist/index.js';
+import { brand, brandApiKey, brandApiBase } from '../dist/config/brand.js';
 
 // Main function for CLI execution
 async function main() {
     // Load environment variables
     dotenv.config();
 
+    // Brand (and thus API env vars / tool set) is selected by the BRAND env var.
     const config = {
-        apiKey: process.env.KEYWORDGRAPH_API_KEY || "",
-        apiBase: process.env.KEYWORDGRAPH_API_BASE || "https://keywordgraph.com/api/v1",
+        apiKey: brandApiKey(),
+        apiBase: brandApiBase(),
     };
 
     // Validate config
     if (!config.apiKey) {
         console.error(
-            "WARNING: Set KEYWORDGRAPH_API_KEY in environment variables to ensure you don't hit the rate limit"
+            `WARNING: Set ${brand.envPrefix}_API_KEY in environment variables to ensure you don't hit the rate limit`
         );
     }
 

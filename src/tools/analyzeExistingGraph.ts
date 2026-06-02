@@ -18,9 +18,9 @@ function errorContent(message: string) {
 export const analyzeExistingGraphTool = {
 	name: "analyze_existing_graph_by_name",
 	definition: {
-		title: "Analyze the Content ofan Existing KeywordGraph Graph by Name",
+		title: "Analyze the Content of an Existing Graph by Name",
 		description:
-			"Extract and analyze the content of an existing KeywordGraph graph from your account.",
+			"Extract and analyze the content of an existing graph from your account.",
 		inputSchema: AnalyzeExistingGraphSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
