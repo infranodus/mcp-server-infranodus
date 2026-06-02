@@ -8,9 +8,9 @@
  * See: https://blog.modelcontextprotocol.io/posts/2025-11-03-using-server-instructions/
  */
 
-export const serverInstructions = `InfraNodus MCP server for knowledge graph generation and text network analysis using graph theory algorithms.
+export const serverInstructions = `KeywordGraph MCP server for knowledge graph generation and text network analysis using graph theory algorithms.
 
-INPUT TYPES: All analysis tools accept text (string), url (webpage or YouTube video URL — automatically transcribed), or graphName (existing InfraNodus graph). Provide exactly one input type per call.
+INPUT TYPES: All analysis tools accept text (string), url (webpage or YouTube video URL — automatically transcribed), or graphName (existing KeywordGraph graph). Provide exactly one input type per call.
 
 ENTITY DETECTION MODES: Use modifyAnalyzedText parameter — 'none' (default, word co-occurrence graph), 'detectEntities' (mix entities and words), 'extractEntitiesOnly' (entity-only graph, best for ontologies and knowledge graphs).
 

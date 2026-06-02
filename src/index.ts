@@ -3,21 +3,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { configSchema, serverInfo } from "./config/index.js";
 import {
-	generateKnowledgeGraphTool,
-	addMemoryTool,
-	getMemoryTool,
 	createKnowledgeGraphTool,
-	generateOntologyGraphTool,
 	analyzeLlmResultsTool,
 	analyzeExistingGraphTool,
 	analyzeTextTool,
 	generateContentGapsTool,
 	generateTopicalClustersTool,
-	generateResearchQuestionsTool,
-	generateResearchIdeasTool,
 	optimizeTextStructureTool,
-	generateResponsesFromGraphTool,
-	generateContextualHintTool,
 	listGraphsTool,
 	searchExistingGraphsTool,
 	searchExistingGraphsFetchTool,
@@ -28,9 +20,6 @@ import {
 	generateGoogleSearchQueriesGraphTool,
 	generateGoogleResultsVsQueriesGraphTool,
 	generateSEOGraphTool,
-	retrieveContextForPromptFromGraphTool,
-	developConceptualBridgesTool,
-	developLatentTopicsTool,
 	developTextTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
@@ -72,39 +61,15 @@ export default function createServer({
 
 	// Register tools
 	mcpServer.registerTool(
-		generateKnowledgeGraphTool.name,
-		generateKnowledgeGraphTool.definition,
-		wrapHandler(generateKnowledgeGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
 		createKnowledgeGraphTool.name,
 		createKnowledgeGraphTool.definition,
 		wrapHandler(createKnowledgeGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
-		generateOntologyGraphTool.name,
-		generateOntologyGraphTool.definition,
-		wrapHandler(generateOntologyGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
 		analyzeLlmResultsTool.name,
 		analyzeLlmResultsTool.definition,
 		wrapHandler(analyzeLlmResultsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		addMemoryTool.name,
-		addMemoryTool.definition,
-		wrapHandler(addMemoryTool.handler),
-	);
-
-	mcpServer.registerTool(
-		getMemoryTool.name,
-		getMemoryTool.definition,
-		wrapHandler(getMemoryTool.handler),
 	);
 
 	mcpServer.registerTool(
@@ -132,51 +97,15 @@ export default function createServer({
 	);
 
 	mcpServer.registerTool(
-		generateResearchQuestionsTool.name,
-		generateResearchQuestionsTool.definition,
-		wrapHandler(generateResearchQuestionsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateResearchIdeasTool.name,
-		generateResearchIdeasTool.definition,
-		wrapHandler(generateResearchIdeasTool.handler),
-	);
-
-	mcpServer.registerTool(
 		optimizeTextStructureTool.name,
 		optimizeTextStructureTool.definition,
 		wrapHandler(optimizeTextStructureTool.handler),
 	);
 
 	mcpServer.registerTool(
-		generateResponsesFromGraphTool.name,
-		generateResponsesFromGraphTool.definition,
-		wrapHandler(generateResponsesFromGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		developConceptualBridgesTool.name,
-		developConceptualBridgesTool.definition,
-		wrapHandler(developConceptualBridgesTool.handler),
-	);
-
-	mcpServer.registerTool(
-		developLatentTopicsTool.name,
-		developLatentTopicsTool.definition,
-		wrapHandler(developLatentTopicsTool.handler),
-	);
-
-	mcpServer.registerTool(
 		developTextTool.name,
 		developTextTool.definition,
 		wrapHandler(developTextTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateContextualHintTool.name,
-		generateContextualHintTool.definition,
-		wrapHandler(generateContextualHintTool.handler),
 	);
 
 	mcpServer.registerTool(
@@ -219,12 +148,6 @@ export default function createServer({
 		generateSEOGraphTool.name,
 		generateSEOGraphTool.definition,
 		wrapHandler(generateSEOGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		retrieveContextForPromptFromGraphTool.name,
-		retrieveContextForPromptFromGraphTool.definition,
-		wrapHandler(retrieveContextForPromptFromGraphTool.handler),
 	);
 
 	mcpServer.registerTool(
@@ -291,14 +214,14 @@ async function main() {
 	dotenv.config();
 
 	const config = {
-		apiKey: process.env.INFRANODUS_API_KEY || "",
-		apiBase: process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1",
+		apiKey: process.env.KEYWORDGRAPH_API_KEY || "",
+		apiBase: process.env.KEYWORDGRAPH_API_BASE || "https://keywordgraph.com/api/v1",
 	};
 
 	// Validate config
 	if (!config.apiKey) {
 		console.error(
-			"WARNING: Set INFRANODUS_API_KEY in environment variables to ensure you don't hit the rate limit",
+			"WARNING: Set KEYWORDGRAPH_API_KEY in environment variables to ensure you don't hit the rate limit",
 		);
 		// process.exit(1);
 	}

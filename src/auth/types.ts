@@ -29,7 +29,7 @@ export interface TokenRequest {
 export interface SessionData {
 	userId: number;
 	userName: string;
-	apiKey: string; // The actual API key for making InfraNodus requests
+	apiKey: string; // The actual API key for making KeywordGraph requests
 	createdAt: number;
 }
 
@@ -91,7 +91,7 @@ export interface AuthorizationCode {
 	code: string;
 	client_id: string;
 	redirect_uri: string;
-	api_key: string; // The InfraNodus API key provided during authorization
+	api_key: string; // The KeywordGraph API key provided during authorization
 	scope?: string;
 	code_challenge?: string;
 	code_challenge_method?: string;

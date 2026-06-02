@@ -1,5 +1,5 @@
 /**
- * HTTP Server entry point for InfraNodus MCP Server
+ * HTTP Server entry point for KeywordGraph MCP Server
  * Exposes the MCP server over HTTP with OAuth2-style authentication
  */
 
@@ -42,8 +42,8 @@ dotenv.config();
 // Configuration
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
-const INFRANODUS_API_BASE =
-	process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1";
+const KEYWORDGRAPH_API_BASE =
+	process.env.KEYWORDGRAPH_API_BASE || "https://keywordgraph.com/api/v1";
 
 function escapeHtml(str: string): string {
 	return str
@@ -119,7 +119,7 @@ const sseTransports = new Map<
 
 /**
  * Auth middleware - validates Bearer token and attaches auth info to request.
- * Supports both JWT access tokens (from OAuth flow) and raw InfraNodus API keys.
+ * Supports both JWT access tokens (from OAuth flow) and raw KeywordGraph API keys.
  */
 async function authMiddleware(
 	req: Request,
@@ -158,7 +158,7 @@ async function authMiddleware(
 		return;
 	}
 
-	// JWT failed — try treating the token as a raw InfraNodus API key
+	// JWT failed — try treating the token as a raw KeywordGraph API key
 	console.log(`[AUTH] JWT verification failed, trying as raw API key...`);
 	try {
 		const userInfo = await validateApiKey(token);
@@ -309,7 +309,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 <!DOCTYPE html>
 <html>
 <head>
-	<title>InfraNodus MCP - Authorize</title>
+	<title>KeywordGraph MCP - Authorize</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
 		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
@@ -326,7 +326,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 	<h1>Authorize Access</h1>
 	<p class="client-name">Application: <strong>${clientName}</strong></p>
 	<div class="info">
-		Enter your InfraNodus API key to authorize this application to access your InfraNodus data.
+		Enter your KeywordGraph API key to authorize this application to access your KeywordGraph data.
 	</div>
 	<form method="POST" action="/oauth/authorize">
 		<input type="hidden" name="client_id" value="${safeClientId}">
@@ -336,7 +336,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		<input type="hidden" name="scope" value="${safeScope}">
 		<input type="hidden" name="code_challenge" value="${safeCodeChallenge}">
 		<input type="hidden" name="code_challenge_method" value="${safeCodeChallengeMethod}">
-		<label for="api_key">InfraNodus API Key</label>
+		<label for="api_key">KeywordGraph API Key</label>
 		<input type="password" id="api_key" name="api_key" required placeholder="Enter your API key">
 		<button type="submit">Authorize</button>
 	</form>
@@ -462,7 +462,7 @@ app.post(
 
 				// Note: We skip strict client validation here because:
 				// 1. Multiple server instances don't share client registration state
-				// 2. The real authentication is via the InfraNodus API key in the auth code
+				// 2. The real authentication is via the KeywordGraph API key in the auth code
 				// 3. The authorization code itself validates the client_id and redirect_uri
 
 				const tokenResponse = await exchangeAuthorizationCode(
@@ -491,7 +491,7 @@ app.post(
 				if (!tokenResponse) {
 					res.status(401).json({
 						error: "invalid_grant",
-						error_description: "Invalid InfraNodus API key",
+						error_description: "Invalid KeywordGraph API key",
 					});
 					return;
 				}
@@ -743,7 +743,7 @@ async function handleMcpRequest(req: Request, res: Response) {
 
 		const config = {
 			apiKey: auth.apiKey,
-			apiBase: INFRANODUS_API_BASE,
+			apiBase: KEYWORDGRAPH_API_BASE,
 			userId: auth.userId,
 			userName: auth.userName,
 		};
@@ -897,7 +897,7 @@ async function handleSseConnection(req: Request, res: Response): Promise<void> {
 
 	const config = {
 		apiKey: auth.apiKey,
-		apiBase: INFRANODUS_API_BASE,
+		apiBase: KEYWORDGRAPH_API_BASE,
 		userId: auth.userId,
 		userName: auth.userName,
 	};
@@ -1015,9 +1015,9 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 		return next();
 	}
 	res.json({
-		name: "InfraNodus MCP Server",
+		name: "KeywordGraph MCP Server",
 		version: "1.6.1",
-		description: "MCP server for InfraNodus knowledge graph analysis",
+		description: "MCP server for KeywordGraph knowledge graph analysis",
 		endpoints: {
 			oauth: {
 				token: "POST /oauth/token",
@@ -1121,7 +1121,7 @@ process.on("SIGTERM", () => {
 
 // Start the server
 app.listen(PORT, () => {
-	console.log(`InfraNodus MCP HTTP Server running on port ${PORT}`);
+	console.log(`KeywordGraph MCP HTTP Server running on port ${PORT}`);
 	console.log(`  - Health: http://localhost:${PORT}/health`);
 	console.log(`  - OAuth token: POST http://localhost:${PORT}/oauth/token`);
 	console.log(`  - MCP endpoint: http://localhost:${PORT}/mcp`);
@@ -1129,7 +1129,7 @@ app.listen(PORT, () => {
 	console.log("");
 	console.log("Environment:");
 	console.log(`  - CORS_ORIGIN: ${CORS_ORIGIN}`);
-	console.log(`  - INFRANODUS_API_BASE: ${INFRANODUS_API_BASE}`);
+	console.log(`  - KEYWORDGRAPH_API_BASE: ${KEYWORDGRAPH_API_BASE}`);
 	console.log(
 		`  - JWT_SECRET: ${process.env.JWT_SECRET ? "[set]" : "[generated]"}`,
 	);

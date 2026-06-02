@@ -17,10 +17,10 @@ function errorContent(message: string) {
 	};
 }
 
-// Derive the InfraNodus app base URL (e.g. https://infranodus.com) from the
-// API base URL (e.g. https://infranodus.com/api/v1) so we can build graph links.
+// Derive the KeywordGraph app base URL (e.g. https://keywordgraph.com) from the
+// API base URL (e.g. https://keywordgraph.com/api/v1) so we can build graph links.
 function appBaseUrl(): string {
-	const apiBase = getConfig().apiBase || "https://infranodus.com/api/v1";
+	const apiBase = getConfig().apiBase || "https://keywordgraph.com/api/v1";
 	return apiBase.replace(/\/api\/v1\/?$/, "");
 }
 
@@ -46,7 +46,7 @@ export const generateOntologyGraphTool = {
 	definition: {
 		title: "Generate an AI Ontology Graph from a Topic or Prompt",
 		description:
-			"Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) for a topic, prompt, or text, and optionally save it as an InfraNodus graph. By default the graph is saved and a link is returned. Set saveGraph to false if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later.",
+			"Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) for a topic, prompt, or text, and optionally save it as an KeywordGraph graph. By default the graph is saved and a link is returned. Set saveGraph to false if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later.",
 		inputSchema: GenerateOntologyGraphSchema.shape,
 		annotations: {
 			readOnlyHint: false,
@@ -96,7 +96,7 @@ export const generateOntologyGraphTool = {
 				const redirectUrl = response.redirectUrl;
 				if (!redirectUrl) {
 					return errorContent(
-						"The ontology was generated but no graph link was returned, so it may not have been saved. Check that your InfraNodus API key is valid (an anonymous/demo key does not persist graphs).",
+						"The ontology was generated but no graph link was returned, so it may not have been saved. Check that your KeywordGraph API key is valid (an anonymous/demo key does not persist graphs).",
 					);
 				}
 
@@ -117,7 +117,7 @@ export const generateOntologyGraphTool = {
 					ontologyStatements,
 					message:
 						ontologyStatements.length > 0
-							? "Ontology generated (not saved). Use saveGraph: true to persist it as an InfraNodus graph."
+							? "Ontology generated (not saved). Use saveGraph: true to persist it as an KeywordGraph graph."
 							: "The AI did not return any ontology statements. Try a more specific prompt or a more capable model.",
 				};
 			}

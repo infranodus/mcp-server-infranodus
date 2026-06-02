@@ -16,9 +16,9 @@ function errorContent(message: string) {
 export const createKnowledgeGraphTool = {
 	name: "create_knowledge_graph",
 	definition: {
-		title: "Create a Knowledge Graph in InfraNodus from Text",
+		title: "Create a Knowledge Graph in KeywordGraph from Text",
 		description:
-			"Create a knowledge graph in InfraNodus from text or from a URL, save it, and provide its name and a link to it for future use. ",
+			"Create a knowledge graph in KeywordGraph from text or from a URL, save it, and provide its name and a link to it for future use. ",
 		inputSchema: CreateGraphSchema.shape,
 		annotations: {
 			readOnlyHint: false,

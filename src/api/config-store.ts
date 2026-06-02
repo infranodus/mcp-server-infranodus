@@ -11,6 +11,6 @@ export function getConfig(): Config {
 	return (
 		configStorage.getStore() ??
 		(global as any).infranodusConfig ??
-		{ apiKey: "", apiBase: "https://infranodus.com/api/v1" }
+		{ apiKey: "", apiBase: "https://keywordgraph.com/api/v1" }
 	);
 }

@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for infranodus-mcp-server on 2025-12-30T19:19:39+01:00
+# fly.toml app configuration file generated for keywordgraph-mcp-server on 2025-12-30T19:19:39+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'infranodus-mcp-server'
+app = 'keywordgraph-mcp-server'
 primary_region = 'fra'
 
 [build]
@@ -11,7 +11,7 @@ primary_region = 'fra'
 
 [env]
   CORS_ORIGIN = '*'
-  INFRANODUS_API_BASE = 'https://infranodus.com/api/v1'
+  KEYWORDGRAPH_API_BASE = 'https://keywordgraph.com/api/v1'
   NODE_ENV = 'production'
 
 [http_service]

@@ -8,7 +8,7 @@ export const searchExistingGraphsFetchTool = {
 	definition: {
 		title: "Fetch a Search Result",
 		description:
-			"Fetch a specific search result for an InfraNodus knowledge graph",
+			"Fetch a specific search result for an KeywordGraph knowledge graph",
 		inputSchema: SearchExistingGraphsFetchSchema.shape,
 		annotations: {
 		   "readOnlyHint": true,

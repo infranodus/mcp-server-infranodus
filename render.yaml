@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: infranodus-mcp-server
+    name: keywordgraph-mcp-server
     runtime: docker
     dockerfilePath: ./Dockerfile
     region: frankfurt  # or oregon, singapore, ohio
@@ -12,8 +12,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: INFRANODUS_API_BASE
-        value: https://infranodus.com/api/v1
+      - key: KEYWORDGRAPH_API_BASE
+        value: https://keywordgraph.com/api/v1
       - key: CORS_ORIGIN
         value: "*"
       - key: JWT_SECRET

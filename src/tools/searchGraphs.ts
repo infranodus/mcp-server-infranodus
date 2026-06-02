@@ -6,8 +6,8 @@ import { generateSearchResult } from "../utils/transformers.js";
 export const searchExistingGraphsTool = {
 	name: "search",
 	definition: {
-		title: "Search through Existing InfraNodus Graphs",
-		description: "Find the concepts and terms in existing InfraNodus graphs",
+		title: "Search through Existing KeywordGraph Graphs",
+		description: "Find the concepts and terms in existing KeywordGraph graphs",
 		inputSchema: SearchExistingGraphsSchema.shape,
 		annotations: {
 			readOnlyHint: true,

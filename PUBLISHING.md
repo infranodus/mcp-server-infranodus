@@ -1,4 +1,4 @@
-# Publishing and Using infranodus-mcp-server with npx
+# Publishing and Using keywordgraph-mcp-server with npx
 
 ## Publishing to npm
 
@@ -33,15 +33,15 @@ Users can add this to their Claude Desktop config file (`claude_desktop_config.j
 ```json
 {
   "mcpServers": {
-    "infranodus": {
+    "keywordgraph": {
       "command": "npx",
       "args": [
         "-y",
-        "infranodus-mcp-server"
+        "keywordgraph-mcp-server"
       ],
       "env": {
-        "INFRANODUS_API_KEY": "your-api-key-here",
-        "INFRANODUS_API_BASE": "https://infranodus.com/api/v1"
+        "KEYWORDGRAPH_API_KEY": "your-api-key-here",
+        "KEYWORDGRAPH_API_BASE": "https://keywordgraph.com/api/v1"
       }
     }
   }
@@ -54,10 +54,10 @@ After publishing, test your package:
 
 ```bash
 # Run directly (will exit immediately as it expects MCP protocol)
-npx -y infranodus-mcp-server
+npx -y keywordgraph-mcp-server
 
 # Set environment variables if needed
-INFRANODUS_API_KEY=your-key npx -y infranodus-mcp-server
+KEYWORDGRAPH_API_KEY=your-key npx -y keywordgraph-mcp-server
 ```
 
 ## Version Updates
@@ -93,14 +93,14 @@ To test the npx behavior locally before publishing:
 
 3. Test the command with a simple initialize message:
    ```bash
-   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | infranodus-mcp-server
+   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | keywordgraph-mcp-server
    ```
 
    You should see a JSON response with server capabilities.
 
 4. Unlink when done:
    ```bash
-   npm unlink -g infranodus-mcp-server
+   npm unlink -g keywordgraph-mcp-server
    ```
 
 ## Troubleshooting
@@ -129,7 +129,7 @@ Files excluded (via `.npmignore`):
 
 ## Deploying to Fly.io (HTTP Server)
 
-The MCP server can be deployed as an HTTP server with OAuth2 authentication at a public URL (e.g., `mcp.infranodus.com`).
+The MCP server can be deployed as an HTTP server with OAuth2 authentication at a public URL (e.g., `mcp.keywordgraph.com`).
 
 ### Prerequisites
 
@@ -179,18 +179,18 @@ fly deploy
 
 ### Custom Domain Setup
 
-To use a custom domain like `mcp.infranodus.com`:
+To use a custom domain like `mcp.keywordgraph.com`:
 
 1. **Add the domain**:
    ```bash
-   fly certs add mcp.infranodus.com
+   fly certs add mcp.keywordgraph.com
    ```
 
-2. **Configure DNS** - Add the records shown by Fly.io to your domain's DNS settings (typically a CNAME to `infranodus-mcp-server.fly.dev`).
+2. **Configure DNS** - Add the records shown by Fly.io to your domain's DNS settings (typically a CNAME to `keywordgraph-mcp-server.fly.dev`).
 
 3. **Verify**:
    ```bash
-   fly certs show mcp.infranodus.com
+   fly certs show mcp.keywordgraph.com
    ```
 
 ### Configuration
@@ -205,7 +205,7 @@ Environment variables set in `fly.toml`:
 ```toml
 [env]
   CORS_ORIGIN = '*'
-  INFRANODUS_API_BASE = 'https://infranodus.com/api/v1'
+  KEYWORDGRAPH_API_BASE = 'https://keywordgraph.com/api/v1'
   NODE_ENV = 'production'
 ```
 

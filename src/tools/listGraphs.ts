@@ -71,7 +71,7 @@ function generateListGraphsResult(
 export const listGraphsTool = {
 	name: "list_graphs",
 	definition: {
-		title: "List User's InfraNodus Graphs",
+		title: "List User's KeywordGraph Graphs",
 		description:
 			"List all graphs (contexts) for the currently logged in user with optional filtering by name, type, date, language, or favorite status. Use this to discover available graphs before analyzing or searching them.",
 		inputSchema: ListGraphsSchema.shape,

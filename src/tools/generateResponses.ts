@@ -21,7 +21,7 @@ export const generateResponsesFromGraphTool = {
 	definition: {
 		title: "Generate Responses and Expert Advice from Text or Graph",
 		description:
-			"Use text, URL, or an existing InfraNodus knowledge graph and generate responses and expert advice based on a prompt provided.",
+			"Use text, URL, or an existing KeywordGraph knowledge graph and generate responses and expert advice based on a prompt provided.",
 		inputSchema: GenerateResponsesFromGraphSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

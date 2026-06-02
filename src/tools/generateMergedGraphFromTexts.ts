@@ -66,7 +66,7 @@ export const generateMergedGraphFromTextsTool = {
 	definition: {
 		title: "Generate Merged Knowledge Graph from Texts",
 		description:
-			"Build a graph of all the texts, URLs, and existing InfraNodus graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts.",
+			"Build a graph of all the texts, URLs, and existing KeywordGraph graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts.",
 		inputSchema: GenerateOverlapGraphFromTextsSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

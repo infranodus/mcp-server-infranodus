@@ -1,6 +1,6 @@
-# InfraNodus MCP Server — Full Documentation for LLMs
+# KeywordGraph MCP Server — Full Documentation for LLMs
 
-> MCP server for knowledge graph generation, text network analysis, content gap detection, and SEO optimization powered by InfraNodus API and graph theory algorithms. All tools accept text, URLs (including YouTube for automatic transcription), or existing InfraNodus graph names as input.
+> MCP server for knowledge graph generation, text network analysis, content gap detection, and SEO optimization powered by KeywordGraph API and graph theory algorithms. All tools accept text, URLs (including YouTube for automatic transcription), or existing KeywordGraph graph names as input.
 
 ## Quick Start
 
@@ -9,20 +9,20 @@ Install via npx (Claude Desktop / Cursor IDE):
 ```json
 {
   "mcpServers": {
-    "infranodus": {
+    "keywordgraph": {
       "command": "npx",
-      "args": ["-y", "infranodus-mcp-server"],
+      "args": ["-y", "keywordgraph-mcp-server"],
       "env": {
-        "INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
+        "KEYWORDGRAPH_API_KEY": "YOUR_KEYWORDGRAPH_API_KEY"
       }
     }
   }
 }
 ```
 
-Or use the remote HTTP server: https://mcp.infranodus.com (OAuth authentication).
+Or use the remote HTTP server: https://mcp.keywordgraph.com (OAuth authentication).
 
-Get API key at: https://infranodus.com/api-access
+Get API key at: https://keywordgraph.com/api-access
 
 ---
 
@@ -46,7 +46,7 @@ Get API key at: https://infranodus.com/api-access
 **Input types** (provide exactly one per call):
 - `text` (string): Raw text to analyze
 - `url` (string): Webpage or YouTube video URL (auto-transcribed)
-- `graphName` (string): Name of an existing InfraNodus graph
+- `graphName` (string): Name of an existing KeywordGraph graph
 
 **Entity detection** (`modifyAnalyzedText` parameter):
 - `none` (default): Word co-occurrence graph
@@ -93,7 +93,7 @@ Generates a knowledge graph from text using network analysis. Shows main concept
 
 ### create_knowledge_graph
 
-Creates and saves a knowledge graph in InfraNodus from text or URL. Returns the same analysis as `generate_knowledge_graph` plus a link to the saved graph.
+Creates and saves a knowledge graph in KeywordGraph from text or URL. Returns the same analysis as `generate_knowledge_graph` plus a link to the saved graph.
 
 **Parameters**:
 - `graphName` (string, required): Name for the new graph
@@ -233,7 +233,7 @@ Analyzes text bias/coherence and generates development suggestions. Automaticall
 
 ### analyze_existing_graph_by_name
 
-Retrieves and analyzes an existing graph from your InfraNodus account.
+Retrieves and analyzes an existing graph from your KeywordGraph account.
 
 **Parameters**:
 - `graphName` (string, required): Name of existing graph
@@ -257,7 +257,7 @@ General text analysis. Similar to `generate_knowledge_graph` but focuses on anal
 
 ### generate_responses_from_graph
 
-Generate AI responses from an existing InfraNodus graph or ontology using a custom prompt.
+Generate AI responses from an existing KeywordGraph graph or ontology using a custom prompt.
 
 **Parameters**:
 - `text` / `url` / `graphName`: Input source
@@ -299,7 +299,7 @@ Lists all graphs in the user's account with optional filtering.
 
 ### search
 
-Search through existing InfraNodus graphs for statements containing a search term.
+Search through existing KeywordGraph graphs for statements containing a search term.
 
 **Parameters**:
 - `query` (string, required): Search term
@@ -337,7 +337,7 @@ Add relations to a knowledge graph memory. Creates the graph if it doesn't exist
 
 ### memory_get_relations
 
-Retrieve relations from InfraNodus memory for a specific entity or context.
+Retrieve relations from KeywordGraph memory for a specific entity or context.
 
 **Parameters**:
 - `entityName` (string): Entity to search for (use `[[wikilinks]]` syntax, underscores for spaces)

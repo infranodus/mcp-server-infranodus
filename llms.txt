@@ -1,14 +1,14 @@
-# InfraNodus MCP Server
+# KeywordGraph MCP Server
 
-> MCP server for knowledge graph generation, text network analysis, content gap detection, and SEO optimization powered by InfraNodus API and graph theory algorithms.
+> MCP server for knowledge graph generation, text network analysis, content gap detection, and SEO optimization powered by KeywordGraph API and graph theory algorithms.
 
 ## Documentation
 
-- [README](https://github.com/infranodus/mcp-server-infranodus/blob/main/README.md): Installation, setup, and feature overview
-- [Tool Examples](https://github.com/infranodus/mcp-server-infranodus/blob/main/EXAMPLES.md): Detailed examples for every tool with request/response formats
-- [Full LLM Documentation](https://github.com/infranodus/mcp-server-infranodus/blob/main/llms-full.txt): Comprehensive tool documentation optimized for LLMs
-- [API Access](https://infranodus.com/api-access): Get your InfraNodus API key
-- [InfraNodus MCP](https://infranodus.com/mcp): MCP integration overview
+- [README](https://github.com/keywordgraph/mcp-server-keywordgraph/blob/main/README.md): Installation, setup, and feature overview
+- [Tool Examples](https://github.com/keywordgraph/mcp-server-keywordgraph/blob/main/EXAMPLES.md): Detailed examples for every tool with request/response formats
+- [Full LLM Documentation](https://github.com/keywordgraph/mcp-server-keywordgraph/blob/main/llms-full.txt): Comprehensive tool documentation optimized for LLMs
+- [API Access](https://keywordgraph.com/api-access): Get your KeywordGraph API key
+- [KeywordGraph MCP](https://keywordgraph.com/mcp): MCP integration overview
 
 ## Tools
 
@@ -16,7 +16,7 @@
 
 - generate_knowledge_graph: Convert text into a knowledge graph with topics, concepts, relations, and structural analysis
 - analyze_text: Analyze text, URL, or YouTube transcript for topics, clusters, and structural insights
-- analyze_existing_graph_by_name: Retrieve and analyze existing graphs from your InfraNodus account
+- analyze_existing_graph_by_name: Retrieve and analyze existing graphs from your KeywordGraph account
 - generate_topical_clusters: Extract compact topical clusters from text
 - generate_content_gaps: Identify missing connections between topic clusters
 - generate_contextual_hint: Generate structural summary for RAG/LLM augmentation
@@ -46,7 +46,7 @@
 
 ### Memory & Storage
 
-- create_knowledge_graph: Save text as a knowledge graph in InfraNodus
+- create_knowledge_graph: Save text as a knowledge graph in KeywordGraph
 - memory_add_relations: Persist entity relations to knowledge graph memory
 - memory_get_relations: Retrieve relations from memory
 - retrieve_from_knowledge_base: GraphRAG retrieval from existing knowledge base
@@ -54,11 +54,11 @@
 ### Utility
 
 - list_graphs: List all graphs with filtering by name, type, date, language
-- search: Search through existing InfraNodus graphs
+- search: Search through existing KeywordGraph graphs
 - fetch: Fetch specific search results from a graph
 
 ## Optional
 
-- [npm Package](https://www.npmjs.com/package/infranodus-mcp-server): NPM package for local installation
-- [Smithery](https://smithery.ai/server/@infranodus/mcp-server-infranodus): Alternative installation via Smithery
-- [InfraNodus Research](https://noduslabs.com/research/): Graph theory concepts and methodology
+- [npm Package](https://www.npmjs.com/package/keywordgraph-mcp-server): NPM package for local installation
+- [Smithery](https://smithery.ai/server/@keywordgraph/mcp-server-keywordgraph): Alternative installation via Smithery
+- [KeywordGraph Research](https://noduslabs.com/research/): Graph theory concepts and methodology

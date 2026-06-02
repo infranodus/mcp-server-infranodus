@@ -66,7 +66,7 @@ export const generateDifferenceGraphFromTextsTool = {
 	definition: {
 		title: "Generate Difference Knowledge Graph from Texts",
 		description:
-			"Extract the conceptial relations that are missing in the first text, url, or InfraNodus graph but are present in the other texts",
+			"Extract the conceptial relations that are missing in the first text, url, or KeywordGraph graph but are present in the other texts",
 		inputSchema: GenerateDifferenceGraphFromTextsSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

@@ -10,14 +10,14 @@ async function main() {
     dotenv.config();
 
     const config = {
-        apiKey: process.env.INFRANODUS_API_KEY || "",
-        apiBase: process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1",
+        apiKey: process.env.KEYWORDGRAPH_API_KEY || "",
+        apiBase: process.env.KEYWORDGRAPH_API_BASE || "https://keywordgraph.com/api/v1",
     };
 
     // Validate config
     if (!config.apiKey) {
         console.error(
-            "WARNING: Set INFRANODUS_API_KEY in environment variables to ensure you don't hit the rate limit"
+            "WARNING: Set KEYWORDGRAPH_API_KEY in environment variables to ensure you don't hit the rate limit"
         );
     }
 

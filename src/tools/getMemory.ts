@@ -9,9 +9,9 @@ import {
 export const getMemoryTool = {
 	name: "memory_get_relations",
 	definition: {
-		title: "Get Relations from the InfraNodus Memory",
+		title: "Get Relations from the KeywordGraph Memory",
 		description:
-			"Provide a list of relations from the InfraNodus memory for a given concept or entity",
+			"Provide a list of relations from the KeywordGraph memory for a given concept or entity",
 		inputSchema: getMemorySchema.shape,
 		annotations: {
 			readOnlyHint: true,

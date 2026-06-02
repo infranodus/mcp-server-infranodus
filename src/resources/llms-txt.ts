@@ -16,9 +16,9 @@ export const llmsTxtResource = {
 	name: "llms-txt",
 	uri: "info://llms.txt",
 	definition: {
-		name: "llms.txt — InfraNodus MCP Server",
+		name: "llms.txt — KeywordGraph MCP Server",
 		description:
-			"Concise index of InfraNodus MCP server documentation, tools, and links following the llms.txt standard for LLM-accessible documentation.",
+			"Concise index of KeywordGraph MCP server documentation, tools, and links following the llms.txt standard for LLM-accessible documentation.",
 		mimeType: "text/markdown",
 	},
 	handler: async () => {
@@ -38,9 +38,9 @@ export const llmsFullTxtResource = {
 	name: "llms-full-txt",
 	uri: "info://llms-full.txt",
 	definition: {
-		name: "llms-full.txt — InfraNodus MCP Server",
+		name: "llms-full.txt — KeywordGraph MCP Server",
 		description:
-			"Comprehensive documentation of all InfraNodus MCP tools with parameters, return values, workflow patterns, and key concepts. Optimized for LLM consumption.",
+			"Comprehensive documentation of all KeywordGraph MCP tools with parameters, return values, workflow patterns, and key concepts. Optimized for LLM consumption.",
 		mimeType: "text/markdown",
 	},
 	handler: async () => {
