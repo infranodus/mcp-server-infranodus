@@ -12,6 +12,7 @@ primary_region = 'fra'
 
 [env]
   BRAND = 'keywordgraph'
+  MCP_SOURCE = 'keywordgraph'
   CORS_ORIGIN = '*'
   KEYWORDGRAPH_API_BASE = 'https://keywordgraph.com/api/v1'
   NODE_ENV = 'production'

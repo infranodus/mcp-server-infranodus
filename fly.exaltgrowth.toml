@@ -1,20 +1,19 @@
-# Fly config for the InfraNodus brand.
-# Deploy with: fly deploy -c fly.infranodus.toml
-#
-# Same image/Dockerfile as the KeywordGraph app — only BRAND (and the per-app
-# secrets set via `fly secrets set ... -a infranodus-mcp-server`) differ.
+# Fly config for the ExaltGrowth instance (KeywordGraph brand).
+# A separate, isolated app — its own machines, secrets, and domain —
+# running the same KeywordGraph brand as keywordgraph-mcp-server.
+# Deploy with: fly deploy -c fly.exaltgrowth.toml   (or: npm run deploy:exalt)
 
-app = 'infranodus-mcp-server'
+app = 'exaltgrowth-mcp-server'
 primary_region = 'fra'
 
 [build]
   dockerfile = 'Dockerfile'
 
 [env]
-  BRAND = 'infranodus'
-  MCP_SOURCE = 'infranodus'
+  BRAND = 'keywordgraph'
+  MCP_SOURCE = 'exaltgrowth'
   CORS_ORIGIN = '*'
-  INFRANODUS_API_BASE = 'https://infranodus.com/api/v1'
+  KEYWORDGRAPH_API_BASE = 'https://keywordgraph.com/api/v1'
   NODE_ENV = 'production'
 
 [http_service]

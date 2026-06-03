@@ -49,6 +49,7 @@
 		"dev:http": "npm run build:inspect && node --watch dist/http-server.js",
 		"deploy:in": "fly deploy -c fly.infranodus.toml",
 		"deploy:kg": "fly deploy -c fly.keywordgraph.toml",
+		"deploy:exalt": "fly deploy -c fly.exaltgrowth.toml",
 		"publish:in": "npm run build:inspect && node scripts/publish-brand.mjs infranodus",
 		"publish:kg": "npm run build:inspect && node scripts/publish-brand.mjs keywordgraph",
 		"prepublishOnly": "npm run build:inspect"

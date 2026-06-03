@@ -136,6 +136,28 @@ export function brandApiBase(): string {
 	return process.env[`${brand.envPrefix}_API_BASE`] || brand.apiBase;
 }
 
+/**
+ * Per-instance source tag sent to the API (as `source`) so analytics can tell
+ * deploys apart. Brand alone is not enough: e.g. the ExaltGrowth and
+ * KeywordGraph apps both run BRAND=keywordgraph, so they share a brand but are
+ * distinct instances.
+ *
+ * Resolution order:
+ *   1. MCP_SOURCE        — explicit per-deploy override (set in each fly.*.toml).
+ *   2. FLY_APP_NAME      — auto-injected by Fly; the trailing `-mcp-server` is
+ *                          stripped so e.g. `exaltgrowth-mcp-server` → `exaltgrowth`.
+ *   3. brand.id          — final fallback for local/npm/smithery runs.
+ */
+export function brandSource(): string {
+	const explicit = process.env.MCP_SOURCE?.trim();
+	if (explicit) return explicit;
+
+	const flyApp = process.env.FLY_APP_NAME?.trim();
+	if (flyApp) return flyApp.replace(/-mcp-server$/, "");
+
+	return brand.id;
+}
+
 /** Whether a tool (by its MCP `name`) is exposed for the active brand. */
 export function isToolEnabled(name: string): boolean {
 	return !brand.excludedTools.includes(name);
