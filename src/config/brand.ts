@@ -32,6 +32,19 @@ export interface BrandDef {
 	 * here.
 	 */
 	excludedTools: string[];
+	/**
+	 * npm publish identity. The committed package.json holds one brand; the
+	 * publish script (scripts/publish-brand.mjs) rewrites these fields for the
+	 * brand being published, then restores. `binName` must match a launcher in
+	 * bin/ that bakes in this brand's BRAND value.
+	 */
+	npm: {
+		packageName: string;
+		binName: string;
+		description: string;
+		repository: string;
+		keywords: string[];
+	};
 }
 
 const BRANDS: Record<BrandId, BrandDef> = {
@@ -43,6 +56,20 @@ const BRANDS: Record<BrandId, BrandDef> = {
 		envPrefix: "INFRANODUS",
 		serverName: "infranodus-mcp-server",
 		excludedTools: [],
+		npm: {
+			packageName: "infranodus-mcp-server",
+			binName: "infranodus-mcp-server",
+			description:
+				"InfraNodus MCP server - A Model Context Protocol server for network thinking and graph analysis",
+			repository: "https://github.com/infranodus/mcp-server-infranodus.git",
+			keywords: [
+				"mcp",
+				"model-context-protocol",
+				"infranodus",
+				"knowledge-graph",
+				"network-analysis",
+			],
+		},
 	},
 	keywordgraph: {
 		id: "keywordgraph",
@@ -66,6 +93,20 @@ const BRANDS: Record<BrandId, BrandDef> = {
 			"generate_contextual_hint",
 			"retrieve_from_knowledge_base",
 		],
+		npm: {
+			packageName: "keywordgraph-mcp-server",
+			binName: "keywordgraph-mcp-server",
+			description:
+				"KeywordGraph MCP server - A Model Context Protocol server for network thinking and graph analysis",
+			repository: "https://github.com/keywordgraph/mcp-server-keywordgraph.git",
+			keywords: [
+				"mcp",
+				"model-context-protocol",
+				"keywordgraph",
+				"knowledge-graph",
+				"network-analysis",
+			],
+		},
 	},
 };
 
