@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import { RetrieveContextForPromptFromGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToGraphRagOutput } from "../utils/transformers.js";
@@ -6,9 +7,9 @@ import { transformToGraphRagOutput } from "../utils/transformers.js";
 export const retrieveContextForPromptFromGraphTool = {
 	name: "retrieve_from_knowledge_base",
 	definition: {
-		title: "Retrieve Context for a Prompt from an Existing InfraNodus Graph",
+		title: `Retrieve Context for a Prompt from an Existing ${brand.name} Graph`,
 		description:
-			"Retrieve the statements and general overview of an existing InfraNodus knowledge graph based on the user's prompt for GraphRAG based retrieval.",
+			`Retrieve the statements and general overview of an existing ${brand.name} knowledge graph based on the user's prompt for GraphRAG based retrieval.`,
 		inputSchema: RetrieveContextForPromptFromGraphSchema.shape,
 		annotations: {
 			readOnlyHint: true,

@@ -1,8 +1,8 @@
-# InfraNodus MCP Tools — Examples
+# KeywordGraph MCP Tools — Examples
 
 This file demonstrates how each tool is used for a particular purpose. The same **example text** is used throughout so you can compare how different tools analyze it and the results they produce.
 
-You can also use the tools with URL links (including YouTube videos which will be automatically transcribed) as well as exisitng InfraNodus graphs.
+You can also use the tools with URL links (including YouTube videos which will be automatically transcribed) as well as exisitng KeywordGraph graphs.
 
 ---
 
@@ -16,13 +16,13 @@ You can also use the tools with URL links (including YouTube videos which will b
 
 ## Analysis examples (per tool)
 
-Below you will find descriptions of every tool that is available in the InfraNodus MCP, its typical use case, the data it receives, and the structure of the response generated.
+Below you will find descriptions of every tool that is available in the KeywordGraph MCP, its typical use case, the data it receives, and the structure of the response generated.
 
 Note, that exact schemas may change, so it's better to avoid hard-coding the tool names or fields and to instead rely on your LLM reading through all available tool descriptions and request parameters. In this case, even if the server is updated, you'll always get the best possible results.
 
 ### generate_knowledge_graph
 
-Generates a knowledge graph from a text, URL (including YouTube video), or an existing InfraNodus graph based on network analysis. Shows the main concepts (nodes), and relations, as well as the topical clusters and gaps.
+Generates a knowledge graph from a text, URL (including YouTube video), or an existing KeywordGraph graph based on network analysis. Shows the main concepts (nodes), and relations, as well as the topical clusters and gaps.
 
 Can be used to get structural insights into text, estimate bias (through diversity), find content gaps, main topical clusters, and relations between them.
 
@@ -298,9 +298,9 @@ Additional structure insights provided in the compact DOT graph format provide a
 
 ### create_knowledge_graph
 
-Create a knowledge graph from text or URL (including YouTube videos) and save it in InfraNodus.
+Create a knowledge graph from text or URL (including YouTube videos) and save it in KeywordGraph.
 
-Useful for saving the text in InfraNodus for future reference or using it as a knowledge base.
+Useful for saving the text in KeywordGraph for future reference or using it as a knowledge base.
 
 - **Parameters (JSON):**
 
@@ -321,13 +321,13 @@ Same JSON object as in `generate_knowledge_graph` with additional parameters:
     ...,
 	"userName": "deemeetree",
 	"graphName": "test_bible",
-	"graphUrl": "https://infranodus.com/deemeetree/test_bible/edit"
+	"graphUrl": "https://keywordgraph.com/deemeetree/test_bible/edit"
 }
 ```
 
 ### generate_topical_clusters
 
-Extracts topical clusters from a text, URL, YouTube video, or an existing InfraNodus graph. Compact delivery of the most important topics identified in a text. Can be used to generate compact topical summaries of text and improve the structure of LLM output and reasoning workflows.
+Extracts topical clusters from a text, URL, YouTube video, or an existing KeywordGraph graph. Compact delivery of the most important topics identified in a text. Can be used to generate compact topical summaries of text and improve the structure of LLM output and reasoning workflows.
 
 - **Parameters (JSON):**
 
@@ -353,7 +353,7 @@ Extracts topical clusters from a text, URL, YouTube video, or an existing InfraN
 
 ### generate_content_gaps
 
-Retrieves content gaps from a text, URL (including YouTube video), or an existing InfraNodus graph.
+Retrieves content gaps from a text, URL (including YouTube video), or an existing KeywordGraph graph.
 
 It can be used to identify areas of discourse that could be further developed, as well as potential opportunities for generating insights by linking topics that are not well connected.
 
@@ -381,7 +381,7 @@ It can be used to identify areas of discourse that could be further developed, a
 
 ### generate_research_questions
 
-Generates three research questions based on a text, URL (or YouTube video), or an existing InfraNodus graph.
+Generates three research questions based on a text, URL (or YouTube video), or an existing KeywordGraph graph.
 
 Useful for generating ideas for research and LLM prompts that bridge content gaps found in text.
 
@@ -442,7 +442,7 @@ You can use the `responseType` parameter and set it to `idea` to make the model 
 
 Generates a structural summary of a text for an LLM to have an general overview of the context. Can be useful for GraphRAG-augmented retrieval where in addition to retrieving statements based on vector similarity (RAG), the system can also have a general understanding of the whole knowledge base, the main topical clusters, concepts, and gaps inside.
 
-Can be generated from text, URL (including YouTube videos), or an existing InfraNodus graph that contains a knowledge base.
+Can be generated from text, URL (including YouTube videos), or an existing KeywordGraph graph that contains a knowledge base.
 
 - **Parameters (JSON):**
 
@@ -478,7 +478,7 @@ Additionally provides information about the latent topical clusters used for gen
 
 Useful for finding latent topics in text and focusing on developing them further.
 
-Can be used for text, URLs (including YouTube videos), existing InfraNodus graphs.
+Can be used for text, URLs (including YouTube videos), existing KeywordGraph graphs.
 
 **Parameters (JSON):**
 
@@ -514,7 +514,7 @@ Similar to the `develop_latent_topics` tool. However, in this case, instead of f
 
 Can be used to nudge the model to think "outside of the box" and link a discourse to a different context or expand its perspective.
 
-Can be used for text, URLs (including YouTube videos), existing InfraNodus graphs.
+Can be used for text, URLs (including YouTube videos), existing KeywordGraph graphs.
 
 **Parameters (JSON):**
 
@@ -551,7 +551,7 @@ Can be used for text, URLs (including YouTube videos), existing InfraNodus graph
 
 ### analyze_existing_graph_by_name
 
-Extract an existing graph from InfraNodus and provide full graph analysis: main topical clusters, concepts, gaps, as well as the structure of the discourse and its diversity.
+Extract an existing graph from KeywordGraph and provide full graph analysis: main topical clusters, concepts, gaps, as well as the structure of the discourse and its diversity.
 
 **Parameters (JSON):**
 
@@ -784,7 +784,7 @@ Useful for general text analysis. Similar to `generate_knowledge_graph` however 
 
 ### develop_text_tool
 
-Uses a combination of InfraNodus tools to develop a text based on content gaps and underrepresented topical clusters.
+Uses a combination of KeywordGraph tools to develop a text based on content gaps and underrepresented topical clusters.
 
 This tool can be used to improve your writing or to develop research ideas. It's also useful for SEO where it can be used to make sure that a text or a web page has the highest topical authority.
 
@@ -963,7 +963,7 @@ Get the existing graph provided (by name) and retrieve statements relevant to th
 
 Use it for augmented RAG with GraphRAG capabilities (that retrieves not only the most similar statements to the prompt but also related connections that are connected to the nodes you require).
 
-Additionally, you can ask InfraNodus MCP to include a graph summary to augment your RAG flows with additional information about the general context from where the data was extracted using the `includeGraphSummary` parameter.
+Additionally, you can ask KeywordGraph MCP to include a graph summary to augment your RAG flows with additional information about the general context from where the data was extracted using the `includeGraphSummary` parameter.
 
 **Parameters (JSON)**
 
@@ -1100,7 +1100,7 @@ Fetches the statements found using the `search` tool above using the ID provided
 
 ## Knowledge-Graph Based Memory
 
-InfraNodus has a set of tools for generating "memories" in InfraNodus that have the structure of knowledge graphs.
+KeywordGraph has a set of tools for generating "memories" in KeywordGraph that have the structure of knowledge graphs.
 
 In the default setting, entities identified in text are converted to [[wikilinks]] which are then represented as nodes. Relations between the entities are described by the statement where they appear.
 
@@ -1206,7 +1206,7 @@ By default, entities will be detected as marked with [[wikilinks]], so the resul
 
 ### memory_get_relations
 
-Retrieves memory from your InfraNodus account that contains the entity or, if the entity is empty, all the statements that exist in a certain graph.
+Retrieves memory from your KeywordGraph account that contains the entity or, if the entity is empty, all the statements that exist in a certain graph.
 
 ```json
 {
@@ -1238,7 +1238,7 @@ It is also possible to add several texts (e.g. a collection of landing pages fro
 
 ### generate_difference_graph_from_text
 
-This tool shows you what's _missing_ in the first text, url, or InfraNodus graph object you have that is _present_ in all the other objects you sent.
+This tool shows you what's _missing_ in the first text, url, or KeywordGraph graph object you have that is _present_ in all the other objects you sent.
 
 The result shows the topics and concepts that are missing and can be used to improve your content and add some more ideas that are present in the already existing discourse.
 
@@ -1262,7 +1262,7 @@ Simple example:
 			"text": "Serpent is woman's friend"
 		},
 		{
-			"url": "https://infranodus.com"
+			"url": "https://keywordgraph.com"
 		}
 	],
 	"includeStatements": true
@@ -1354,7 +1354,7 @@ As a result, we will see only the content that's present in text 2 and text 3 bu
 }
 ```
 
-In the second example, we want to see what is missing on the homepage of [https://infranodus.com](https://infranodus.com) that is present in the other text provided. Obviously, InfraNodus talks about "network science" and "cognitive variability" but there's no mention of "cosmic solitude" and the Genesis bible text and so that is exactly what this tool shows us:
+In the second example, we want to see what is missing on the homepage of [https://keywordgraph.com](https://keywordgraph.com) that is present in the other text provided. Obviously, KeywordGraph talks about "network science" and "cognitive variability" but there's no mention of "cosmic solitude" and the Genesis bible text and so that is exactly what this tool shows us:
 
 **Request (JSON)**
 
@@ -1362,7 +1362,7 @@ In the second example, we want to see what is missing on the homepage of [https:
 {
 	"contexts": [
 		{
-			"url": "https://infranodus.com"
+			"url": "https://keywordgraph.com"
 		},
 		{
 			"text": "Network science meets cognitive variability and cosmic solitude"
@@ -1455,7 +1455,7 @@ In the second example, we want to see what is missing on the homepage of [https:
 
 ### generate_overlap_from_texts
 
-This tool helps you find which common topics and relations exist in all the texts, URLs (including YouTube videos), or existing InfraNodus graphs provided.
+This tool helps you find which common topics and relations exist in all the texts, URLs (including YouTube videos), or existing KeywordGraph graphs provided.
 
 This is very useful for revealing the common themes in specific content and exposing the commonalities present within a discourse.
 
@@ -1498,7 +1498,7 @@ Consider this simple example where there are no intersections between any texts:
 }
 ```
 
-Consider another example where we use our original demo text (retrieved as an InfraNodus graph), a URL with a longer version of that demo text, and plain text. We also ask MCP to include statements here so that we can see the exact statements where intersections have been found:
+Consider another example where we use our original demo text (retrieved as an KeywordGraph graph), a URL with a longer version of that demo text, and plain text. We also ask MCP to include statements here so that we can see the exact statements where intersections have been found:
 
 **Request**
 
@@ -1571,7 +1571,7 @@ Consider another example where we use our original demo text (retrieved as an In
 
 ### merged_graph_from_texts
 
-This tool generates a merged graph from several texts, URLs (including YouTube videos), and existing InfraNodus graphs. It provides information about the main topics and gaps in a collection of documents. Can be useful for getting an overview of a certain discourse from various sources and identifying potential topics that could be developed further.
+This tool generates a merged graph from several texts, URLs (including YouTube videos), and existing KeywordGraph graphs. It provides information about the main topics and gaps in a collection of documents. Can be useful for getting an overview of a certain discourse from various sources and identifying potential topics that could be developed further.
 
 **Request**
 
@@ -2078,7 +2078,7 @@ The tool provides intemediary progress, so if your LLM client supports it, you'l
 
 ```json
 {
-	"url": "https://infranodus.com",
+	"url": "https://keywordgraph.com",
 	"contentToExtract": "header tags"
 }
 ```
@@ -2149,7 +2149,7 @@ The tool provides intemediary progress, so if your LLM client supports it, you'l
 			"1. Insight Network: ai analysis knowledge graph network text visualization insight (0 | 15% | 31%)",
 			"2. Customer Patterns: customer uncover open ended review patterns lg amazon (4 | 9% | 13%)",
 			"3. Problem Tool: problem tool result struggle understand search google patchwork (3 | 7% | 13%)",
-			"4. Solution Study: infranodus solution work medicine energy target does study (14 | 7% | 12%)",
+			"4. Solution Study: keywordgraph solution work medicine energy target does study (14 | 7% | 12%)",
 			"5. Market Analysis: data case topic your market and overview analyze (5 | 12% | 11%)",
 			"6. Content Optimization: content seo discover generate optimization gap make show (2 | 9% | 10%)",
 			"7. Research Ideation: research ideation paper note perfect book (13 | 4% | 4%)",
@@ -2167,7 +2167,7 @@ The tool provides intemediary progress, so if your LLM client supports it, you'l
 		"mainConcepts": [
 			"ai",
 			"analysis",
-			"infranodus",
+			"keywordgraph",
 			"content",
 			"problem",
 			"solution",
@@ -2198,7 +2198,7 @@ The tool provides intemediary progress, so if your LLM client supports it, you'l
 		],
 		"conceptsToDevelop": [
 			"thinking",
-			"infranodus",
+			"keywordgraph",
 			"analysis",
 			"struggle",
 			"understand",

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import { SearchExistingGraphsSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { generateSearchResult } from "../utils/transformers.js";
@@ -6,8 +7,8 @@ import { generateSearchResult } from "../utils/transformers.js";
 export const searchExistingGraphsTool = {
 	name: "search",
 	definition: {
-		title: "Search through Existing InfraNodus Graphs",
-		description: "Find the concepts and terms in existing InfraNodus graphs",
+		title: `Search through Existing ${brand.name} Graphs`,
+		description: `Find the concepts and terms in existing ${brand.name} graphs`,
 		inputSchema: SearchExistingGraphsSchema.shape,
 		annotations: {
 			readOnlyHint: true,

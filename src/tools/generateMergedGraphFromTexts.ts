@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import {
 	GenerateOverlapGraphFromTextsSchema,
 	GenerateOverlapGraphFromTextsSchemaBase,
@@ -66,7 +67,7 @@ export const generateMergedGraphFromTextsTool = {
 	definition: {
 		title: "Generate Merged Knowledge Graph from Texts",
 		description:
-			"Build a graph of all the texts, URLs, and existing InfraNodus graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts.",
+			`Build a graph of all the texts, URLs, and existing ${brand.name} graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts.`,
 		inputSchema: GenerateOverlapGraphFromTextsSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,

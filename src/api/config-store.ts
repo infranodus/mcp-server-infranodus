@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { Config } from "../config/index.js";
+import { brandApiBase } from "../config/brand.js";
 
 const configStorage = new AsyncLocalStorage<Config>();
 
@@ -10,7 +11,7 @@ export function runWithConfig<T>(config: Config, fn: () => T): T {
 export function getConfig(): Config {
 	return (
 		configStorage.getStore() ??
-		(global as any).infranodusConfig ??
-		{ apiKey: "", apiBase: "https://infranodus.com/api/v1" }
+		(global as any).brandConfig ??
+		{ apiKey: "", apiBase: brandApiBase() }
 	);
 }

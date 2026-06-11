@@ -3,19 +3,30 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { configSchema, serverInfo } from "./config/index.js";
 import {
+	brand,
+	brandApiKey,
+	brandApiBase,
+	isToolEnabled,
+} from "./config/brand.js";
+import {
 	generateKnowledgeGraphTool,
+	createKnowledgeGraphTool,
+	generateOntologyGraphTool,
+	analyzeLlmResultsTool,
 	addMemoryTool,
 	getMemoryTool,
-	createKnowledgeGraphTool,
 	analyzeExistingGraphTool,
 	analyzeTextTool,
 	generateContentGapsTool,
 	generateTopicalClustersTool,
 	generateResearchQuestionsTool,
 	generateResearchIdeasTool,
-	optimizeTextStructureTool,
 	generateResponsesFromGraphTool,
 	generateContextualHintTool,
+	retrieveContextForPromptFromGraphTool,
+	developConceptualBridgesTool,
+	developLatentTopicsTool,
+	optimizeTextStructureTool,
 	listGraphsTool,
 	searchExistingGraphsTool,
 	searchExistingGraphsFetchTool,
@@ -23,12 +34,10 @@ import {
 	generateMergedGraphFromTextsTool,
 	generateDifferenceGraphFromTextsTool,
 	generateGoogleSearchResultsGraphTool,
+	generateYoutubeSearchResultsGraphTool,
 	generateGoogleSearchQueriesGraphTool,
 	generateGoogleResultsVsQueriesGraphTool,
 	generateSEOGraphTool,
-	retrieveContextForPromptFromGraphTool,
-	developConceptualBridgesTool,
-	developLatentTopicsTool,
 	developTextTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
@@ -49,7 +58,7 @@ export default function createServer({
 	config: z.infer<typeof configSchema>;
 }) {
 	// Store config globally as fallback for STDIO mode (single-user)
-	(global as any).infranodusConfig = config;
+	(global as any).brandConfig = config;
 
 	// Create MCP server with instructions for LLM context
 	const mcpServer = new McpServer(serverInfo, {
@@ -68,168 +77,51 @@ export default function createServer({
 		};
 	};
 
-	// Register tools
-	mcpServer.registerTool(
-		generateKnowledgeGraphTool.name,
-		generateKnowledgeGraphTool.definition,
-		wrapHandler(generateKnowledgeGraphTool.handler),
-	);
+	// All tools are compiled in; the active brand decides which are exposed
+	// (see excludedTools in config/brand.ts). New tools added here appear in
+	// every brand automatically unless explicitly excluded.
+	const allTools: { name: string; definition: any; handler: any }[] = [
+		generateKnowledgeGraphTool,
+		createKnowledgeGraphTool,
+		generateOntologyGraphTool,
+		addMemoryTool,
+		getMemoryTool,
+		analyzeExistingGraphTool,
+		analyzeTextTool,
+		generateContentGapsTool,
+		generateTopicalClustersTool,
+		generateResearchQuestionsTool,
+		generateResearchIdeasTool,
+		generateResponsesFromGraphTool,
+		generateContextualHintTool,
+		retrieveContextForPromptFromGraphTool,
+		developConceptualBridgesTool,
+		developLatentTopicsTool,
+		optimizeTextStructureTool,
+		developTextTool,
+		listGraphsTool,
+		searchExistingGraphsTool,
+		searchExistingGraphsFetchTool,
+		generateOverlapGraphFromTextsTool,
+		generateMergedGraphFromTextsTool,
+		generateDifferenceGraphFromTextsTool,
+		generateGoogleSearchResultsGraphTool,
+		generateYoutubeSearchResultsGraphTool,
+		generateGoogleSearchQueriesGraphTool,
+		generateGoogleResultsVsQueriesGraphTool,
+		analyzeLlmResultsTool,
+		generateSEOGraphTool,
+	];
 
-	mcpServer.registerTool(
-		createKnowledgeGraphTool.name,
-		createKnowledgeGraphTool.definition,
-		wrapHandler(createKnowledgeGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		addMemoryTool.name,
-		addMemoryTool.definition,
-		wrapHandler(addMemoryTool.handler),
-	);
-
-	mcpServer.registerTool(
-		getMemoryTool.name,
-		getMemoryTool.definition,
-		wrapHandler(getMemoryTool.handler),
-	);
-
-	mcpServer.registerTool(
-		analyzeExistingGraphTool.name,
-		analyzeExistingGraphTool.definition,
-		wrapHandler(analyzeExistingGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		analyzeTextTool.name,
-		analyzeTextTool.definition,
-		wrapHandler(analyzeTextTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateContentGapsTool.name,
-		generateContentGapsTool.definition,
-		wrapHandler(generateContentGapsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateTopicalClustersTool.name,
-		generateTopicalClustersTool.definition,
-		wrapHandler(generateTopicalClustersTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateResearchQuestionsTool.name,
-		generateResearchQuestionsTool.definition,
-		wrapHandler(generateResearchQuestionsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateResearchIdeasTool.name,
-		generateResearchIdeasTool.definition,
-		wrapHandler(generateResearchIdeasTool.handler),
-	);
-
-	mcpServer.registerTool(
-		optimizeTextStructureTool.name,
-		optimizeTextStructureTool.definition,
-		wrapHandler(optimizeTextStructureTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateResponsesFromGraphTool.name,
-		generateResponsesFromGraphTool.definition,
-		wrapHandler(generateResponsesFromGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		developConceptualBridgesTool.name,
-		developConceptualBridgesTool.definition,
-		wrapHandler(developConceptualBridgesTool.handler),
-	);
-
-	mcpServer.registerTool(
-		developLatentTopicsTool.name,
-		developLatentTopicsTool.definition,
-		wrapHandler(developLatentTopicsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		developTextTool.name,
-		developTextTool.definition,
-		wrapHandler(developTextTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateContextualHintTool.name,
-		generateContextualHintTool.definition,
-		wrapHandler(generateContextualHintTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateOverlapGraphFromTextsTool.name,
-		generateOverlapGraphFromTextsTool.definition,
-		wrapHandler(generateOverlapGraphFromTextsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateMergedGraphFromTextsTool.name,
-		generateMergedGraphFromTextsTool.definition,
-		wrapHandler(generateMergedGraphFromTextsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateDifferenceGraphFromTextsTool.name,
-		generateDifferenceGraphFromTextsTool.definition,
-		wrapHandler(generateDifferenceGraphFromTextsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateGoogleSearchResultsGraphTool.name,
-		generateGoogleSearchResultsGraphTool.definition,
-		wrapHandler(generateGoogleSearchResultsGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateGoogleSearchQueriesGraphTool.name,
-		generateGoogleSearchQueriesGraphTool.definition,
-		wrapHandler(generateGoogleSearchQueriesGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateGoogleResultsVsQueriesGraphTool.name,
-		generateGoogleResultsVsQueriesGraphTool.definition,
-		wrapHandler(generateGoogleResultsVsQueriesGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		generateSEOGraphTool.name,
-		generateSEOGraphTool.definition,
-		wrapHandler(generateSEOGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		retrieveContextForPromptFromGraphTool.name,
-		retrieveContextForPromptFromGraphTool.definition,
-		wrapHandler(retrieveContextForPromptFromGraphTool.handler),
-	);
-
-	mcpServer.registerTool(
-		listGraphsTool.name,
-		listGraphsTool.definition,
-		wrapHandler(listGraphsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		searchExistingGraphsTool.name,
-		searchExistingGraphsTool.definition,
-		wrapHandler(searchExistingGraphsTool.handler),
-	);
-
-	mcpServer.registerTool(
-		searchExistingGraphsFetchTool.name,
-		searchExistingGraphsFetchTool.definition,
-		wrapHandler(searchExistingGraphsFetchTool.handler),
-	);
+	// Register tools enabled for the active brand
+	for (const tool of allTools) {
+		if (!isToolEnabled(tool.name)) continue;
+		mcpServer.registerTool(
+			tool.name,
+			tool.definition,
+			wrapHandler(tool.handler),
+		);
+	}
 
 	// Register resources
 	mcpServer.registerResource(
@@ -277,14 +169,14 @@ async function main() {
 	dotenv.config();
 
 	const config = {
-		apiKey: process.env.INFRANODUS_API_KEY || "",
-		apiBase: process.env.INFRANODUS_API_BASE || "https://infranodus.com/api/v1",
+		apiKey: brandApiKey(),
+		apiBase: brandApiBase(),
 	};
 
 	// Validate config
 	if (!config.apiKey) {
 		console.error(
-			"WARNING: Set INFRANODUS_API_KEY in environment variables to ensure you don't hit the rate limit",
+			`WARNING: Set ${brand.envPrefix}_API_KEY in environment variables to ensure you don't hit the rate limit`,
 		);
 		// process.exit(1);
 	}

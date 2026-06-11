@@ -126,6 +126,14 @@ export interface GraphResponse {
 		text: string;
 		finish_reason?: string;
 	}[];
+	// Returned by the /aiAdvice endpoint when saveToGraphAndRedirect is true
+	redirectUrl?: string;
+	// Returned by the /aiAdvice endpoint when saveToGraphAndRedirect is false
+	// (raw AI output; each choice's `text` is set to message.content server-side)
+	choices?: {
+		message?: { content?: string };
+		text?: string;
+	}[];
 	error?: string;
 }
 
@@ -205,6 +213,43 @@ export interface GapsOutput {
 
 export interface TopicsOutput {
 	topicalClusters?: string[];
+	topicalClusterSummaries?: string[];
+}
+
+export interface OntologyGraphOutput {
+	// Core
+	saved?: boolean;
+	message?: string;
+	graphName?: string;
+	graphUrl?: string;
+	editUrl?: string;
+	// When not saved (preview): the generated ontology statements
+	ontologyStatements?: string[];
+	// The raw LLM completions, one per item (for analyze_llm_results); returned when includeStatements is true, whether or not the graph is saved
+	llmStatements?: string[];
+	// Optional graph + analytics (from a follow-up /graphAndStatements call)
+	statistics?: {
+		modularity: number;
+		diversity_stats?: any;
+		nodeCount?: number;
+		edgeCount?: number;
+		clusterCount?: number;
+	};
+	graphSummary?: string;
+	contentGaps?: string[];
+	mainTopicalClusters?: string[];
+	mainConcepts?: string[];
+	topInfluentialNodes?: Array<{
+		node: string;
+		degree: number;
+		bc: number;
+	}>;
+	conceptualGateways?: string[];
+	topRelations?: string[];
+	topBigrams?: string[];
+	topClusters?: any;
+	knowledgeGraph?: any;
+	knowledgeGraphByCluster?: any;
 }
 
 export interface KeywordsOutput {

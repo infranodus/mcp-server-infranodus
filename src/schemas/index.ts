@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 
 export const GenerateGraphSchema = z.object({
 	text: z
@@ -44,7 +45,7 @@ export const CreateGraphSchema = z.object({
 	graphName: z
 		.string()
 		.min(1, "Graph name is required")
-		.describe("Name of the graph to create in InfraNodus"),
+		.describe(`Name of the graph to create in ${brand.name}`),
 	text: z
 		.string()
 		.optional()
@@ -90,7 +91,7 @@ export const AddMemorySchema = z.object({
 		.min(1, "Graph name is required")
 		.max(28, "Graph name must be less than 28 characters")
 		.describe(
-			"Name of the graph to add the memory to in InfraNodus - lowercase, dashes for spaces, no special characters. Auto-generate from the context of the conversation (if previously available) or use the nanme of the LLM client or project, or use the name the user explicitly provided or requested.",
+			`Name of the graph to add the memory to in ${brand.name} - lowercase, dashes for spaces, no special characters. Auto-generate from the context of the conversation (if previously available) or use the nanme of the LLM client or project, or use the name the user explicitly provided or requested.`,
 		),
 	text: z
 		.string()
@@ -179,7 +180,7 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.string()
 		.min(1, "Graph name is required")
 		.describe(
-			"Name of an existing InfraNodus graph in your account to retrieve",
+			`Name of an existing ${brand.name} graph in your account to retrieve`,
 		),
 	userName: z
 		.string()
@@ -222,18 +223,18 @@ export const SearchExistingGraphsSchema = z.object({
 	query: z
 		.string()
 		.min(1, "Search query is required")
-		.describe("Query to search for in existing InfraNodus graphs"),
+		.describe(`Query to search for in existing ${brand.name} graphs`),
 	contextNames: z
 		.array(z.string())
 		.default([])
 		.describe(
-			"Names of the existing InfraNodus graphs to search in (array of strings, empty for all)",
+			`Names of the existing ${brand.name} graphs to search in (array of strings, empty for all)`,
 		),
 	contextTypes: z
 		.array(z.string())
 		.default([])
 		.describe(
-			"Types of the existing InfraNodus graphs to search in (array of strings, empty for all)",
+			`Types of the existing ${brand.name} graphs to search in (array of strings, empty for all)`,
 		),
 });
 
@@ -242,13 +243,13 @@ export const getMemorySchema = z.object({
 		.string()
 		.default("")
 		.describe(
-			"Name of the entity to get relations for from the InfraNodus memory, use [[wikilinks]] syntax to mark the entity, replace spaces with underscores. Leave if contextMemoryName is provided.",
+			`Name of the entity to get relations for from the ${brand.name} memory, use [[wikilinks]] syntax to mark the entity, replace spaces with underscores. Leave if contextMemoryName is provided.`,
 		),
 	memoryContextName: z
 		.string()
 		.default("")
 		.describe(
-			"Name of the existing InfraNodus memory graph to search in if requested or needed from the context (can be left empty to search in all memory graphs)",
+			`Name of the existing ${brand.name} memory graph to search in if requested or needed from the context (can be left empty to search in all memory graphs)`,
 		),
 });
 
@@ -280,7 +281,7 @@ export const GenerateContentGapsSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
 });
 export const GenerateContentGapsSchema = GenerateContentGapsSchemaBase.refine(
@@ -310,7 +311,7 @@ export const generateContextualHintSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
 	userName: z
 		.string()
@@ -327,6 +328,126 @@ export const generateContextualHintSchema =
 			(data.graphName !== undefined && data.graphName.trim().length > 0),
 		{ message: "Provide either text, url, or graphName for analysis." },
 	);
+
+export const GenerateOntologyGraphSchema = z.object({
+	prompt: z
+		.string()
+		.min(1, "Provide a topic, prompt, or text to generate an ontology for")
+		.describe(
+			"The topic, prompt, or text to generate a reasoning ontology graph for. For example: 'build an ontology on AI attention mechanisms' or 'the main principles of Ray Dalio applied to investment'. The AI generates entities and the relations between them.",
+		),
+	graphName: z
+		.string()
+		.optional()
+		.describe(
+			`Name of the ${brand.name} graph to save the ontology to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.`,
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
+		])
+		.default("claude-opus-4.6")
+		.describe(
+			"AI model used to generate the ontology. More capable models (claude-opus-4.6, gpt-5.4) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-4.6.",
+		),
+	saveGraph: z
+		.boolean()
+		.default(true)
+		.describe(
+			`Whether to save the generated ontology as a persistent ${brand.name} graph (true by default). When true, the graph is stored under your account and a link is returned. Set to false if the user explicitly asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later — in that case the generated ontology statements are returned directly without being persisted.`,
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include the compact graph structure — nodes (entities), edges (relations between them), and clusters — in the response. False by default to keep the response small; the ontology statements and analytics usually carry what's needed. Set to true when you also want to inspect the node/edge structure or render it.",
+		),
+	includeAnalytics: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the generated ontology. True by default. Use this to get insights from the graph: keep it on when you need to understand the structure, gaps, or key concepts; turn off to save context space when you only need the raw ontology statements (see includeStatements) or the graph link.",
+		),
+	includeStatements: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include the ontology statements — the entity-relation statements the AI generated, in their final post-processing shape as stored in the graph — in the response (the ontologyStatements array). True by default so you can read the generated ontology. Set to false to save context space when you only need the analytics and/or the saved graph link, not the underlying statements.",
+		),
+});
+
+export const AnalyzeLlmResultsSchema = z.object({
+	prompt: z
+		.string()
+		.min(1, "Provide a topic or question to analyze")
+		.describe(
+			"The topic or question to analyze. The LLM is asked to describe it, and the resulting text is turned into a knowledge graph that reveals how the LLM 'sees' the topic — main concepts, clusters, gaps, relations. Useful for probing LLM bias, surfacing the implicit structure of a model's view on a subject, or comparing how different models frame the same topic.",
+		),
+	graphName: z
+		.string()
+		.optional()
+		.describe(
+			`Name of the ${brand.name} graph to save the LLM overview to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.`,
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
+		])
+		.default("claude-opus-4.6")
+		.describe(
+			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-4.6.",
+		),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"How the LLM output is parsed into the graph. 'none' = plain word co-occurrence (contextType STANDARD); 'detectEntities' = mix named entities with words (contextType WIKILINKS, default — best balanced overview); 'extractEntitiesOnly' = entity-only graph (contextType WIKILINKS, cleanest entity view).",
+		),
+	saveGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			`Whether to save the LLM overview as a persistent ${brand.name} graph (true by default). Set to false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.`,
+		),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include the compact graph structure — nodes, edges, clusters — in the response. False by default for this tool to keep the response small (the LLM overview is typically about insights, not the raw graph). Set to true when you also want to inspect the node/edge structure or render it.",
+		),
+	includeAnalytics: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the LLM output. True by default, because the whole point of this tool is the insights about how the LLM frames the topic. Set to false to save context space when you only need the raw LLM statements (see includeStatements) or the graph link.",
+		),
+	includeStatements: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include the LLM statements — the individual completions the model produced about the topic, in their final post-processing shape as stored in the graph — in the response (the llmStatements array). True by default so you can read what the model actually said. Set to false to save context space when you only need the analytics and/or the saved graph link, not the underlying text.",
+		),
+});
 
 export const GenerateTopicalClustersSchemaBase = z.object({
 	text: z
@@ -347,13 +468,20 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
 	userName: z
 		.string()
 		.optional()
 		.describe(
 			"Name of the user who created the public graph. Provide only if username is explicitly requested by the user and their public graph is requested, otherwise do not provide.",
+		),
+	generateTopicalSummaries: z
+		.boolean()
+		.optional()
+		.default(true)
+		.describe(
+			"Generates AI-powered summaries of each topical cluster (returned as topicalClusterSummaries), summarizing the discourse each cluster represents — useful for SEO-optimized content creation. True by default. Set to false to increase processing speed or if the summary request fails.",
 		),
 });
 export const GenerateTopicalClustersSchema =
@@ -384,7 +512,7 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph in your account to generate research questions from. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph in your account to generate research questions from. Provide one of: text, url, or graphName.`,
 		),
 	userName: z
 		.string()
@@ -454,7 +582,7 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
 	userName: z
 		.string()
@@ -535,7 +663,7 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
 	responseType: z
 		.enum(["response", "idea", "question", "transcend"])
@@ -590,7 +718,7 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
 	requestMode: z
 		.enum(["question", "transcend"])
@@ -631,7 +759,7 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		.string()
 		.min(1, "Graph name is required")
 		.describe(
-			"Name of the existing InfraNodus graph in your account to retrieve",
+			`Name of the existing ${brand.name} graph in your account to retrieve`,
 		),
 	userName: z
 		.string()
@@ -675,7 +803,7 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph in your account to retrieve. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph in your account to retrieve. Provide one of: text, url, or graphName.`,
 		),
 	userName: z
 		.string()
@@ -739,7 +867,7 @@ export const GenerateGeneralGraphSchema = z.object({
 	doNotSave: z
 		.boolean()
 		.default(true)
-		.describe("Don't save the text to the InfraNodus graph"),
+		.describe(`Don't save the text to the ${brand.name} graph`),
 	addStats: z.boolean().default(true).describe("Include network statistics"),
 	includeStatements: z
 		.boolean()
@@ -806,10 +934,10 @@ const contextItemTextUrlOrGraphSchema = z.union([
 				.string()
 				.min(1, "Graph name is required when provided")
 				.describe(
-					"Name of an existing InfraNodus graph; its statements are retrieved and used as text.",
+					`Name of an existing ${brand.name} graph; its statements are retrieved and used as text.`,
 				),
 		})
-		.describe("Context from an existing InfraNodus graph by name."),
+		.describe(`Context from an existing ${brand.name} graph by name.`),
 ]);
 
 const GenerateOverlapGraphFromTextsSchemaBase = z.object({
@@ -978,6 +1106,106 @@ export const GenerateGoogleSearchResultsGraphSchema = z.object({
 		.default("US")
 		.describe(
 			"Country of the search queries, default is United States (US).Use the country most suitable for the language selected.",
+		),
+});
+
+export const GenerateYoutubeSearchResultsGraphSchema = z.object({
+	searchQuery: z
+		.string()
+		.min(1, "A search query is required for analysis")
+		.describe(
+			"The search term, a YouTube video ID, a channel username / URL / @handle, or a URL containing list= (playlist) or list ID. What is pulled depends on searchMode.",
+		),
+	searchMode: z
+		.enum([
+			"search",
+			"comments",
+			"channel",
+			"playlist",
+			"subtitles",
+			"subtitlesChannel",
+			"subtitlesPlaylist",
+			"searchVideos",
+		])
+		.default("search")
+		.describe(
+			"What to pull from YouTube: 'search' (default, video metadata for a search term), 'comments' (comments on a video), 'channel' (videos of a channel — provide a channel username, URL, or @handle), 'playlist' (videos of a playlist — provide a playlist ID or a URL with list=), 'subtitles'/'subtitlesChannel'/'subtitlesPlaylist' (transcribed subtitles of a video / channel / playlist), or 'searchVideos' (analyzes the content of the videos found for a search term; limit is hard-capped to 20). If searchQuery contains list=, 'channel' becomes 'playlist' and 'subtitlesChannel' becomes 'subtitlesPlaylist' automatically.",
+		),
+	limit: z
+		.number()
+		.int()
+		.min(1)
+		.max(2000)
+		.default(100)
+		.describe(
+			"Maximum number of results to pull, default 100, max 2000 (also capped by your plan quota). For searchMode 'searchVideos' the limit is hard-set to 20.",
+		),
+	sortBy: z
+		.enum(["Relevance", "Popular", "Latest"])
+		.default("Relevance")
+		.describe(
+			"Order in which results are pulled: 'Relevance' (default), 'Popular', or 'Latest'.",
+		),
+	excludeDescriptions: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Drop video descriptions from the search-result text (default true).",
+		),
+	includeSearchResults: z
+		.boolean()
+		.default(false)
+		.describe("Include search results (statements) in the response"),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include the graph structure and keywords in the response (add only if explicitly needed)",
+		),
+	showExtendedGraphInfo: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include extended graph information in the response (additional information about the content gaps and main topics)",
+		),
+	includeSearchResultsOnly: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Only include search results in the response (do not include the knowledge graph, analysis, and keywords)",
+		),
+	includeNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in the response (true only if explicitly required)",
+		),
+	importLanguage: z
+		.enum([
+			"EN",
+			"DE",
+			"FR",
+			"ES",
+			"IT",
+			"PT",
+			"RU",
+			"CN",
+			"JP",
+			"NL",
+			"TW",
+			"KO",
+			"AR",
+			"HE",
+		])
+		.default("EN")
+		.describe(
+			"Processing language, default is English (EN), use the language of the conversation or requested by user.",
+		),
+	importRegion: z
+		.string()
+		.default("US")
+		.describe(
+			"Region (country code) used to pull YouTube results, default is United States (US).",
 		),
 });
 
@@ -1289,7 +1517,7 @@ export const DevelopTextToolSchemaBase = z.object({
 		.min(1, "Graph name must be non-empty when provided")
 		.optional()
 		.describe(
-			"Name of an existing InfraNodus graph to use. Provide one of: text, url, or graphName.",
+			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
 	useSeveralGaps: z
 		.boolean()

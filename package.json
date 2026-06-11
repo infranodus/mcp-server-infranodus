@@ -1,12 +1,12 @@
 {
-	"name": "infranodus-mcp-server",
-	"version": "1.6.1",
-	"description": "InfraNodus MCP server - A Model Context Protocol server for network thinking and graph analysis",
+	"name": "keywordgraph-mcp-server",
+	"version": "1.6.2",
+	"description": "KeywordGraph MCP server - A Model Context Protocol server for network thinking and graph analysis",
 	"type": "module",
 	"module": "src/index.ts",
 	"main": "dist/index.js",
 	"bin": {
-		"infranodus-mcp-server": "./bin/infranodus-mcp-server.js"
+		"keywordgraph-mcp-server": "bin/keywordgraph-mcp-server.js"
 	},
 	"files": [
 		"dist/",
@@ -14,12 +14,16 @@
 		"README.md",
 		"LICENSE",
 		"llms.txt",
-		"llms-full.txt"
+		"llms-full.txt",
+		"llms.infranodus.txt",
+		"llms-full.infranodus.txt",
+		"llms.keywordgraph.txt",
+		"llms-full.keywordgraph.txt"
 	],
 	"keywords": [
 		"mcp",
 		"model-context-protocol",
-		"infranodus",
+		"keywordgraph",
 		"knowledge-graph",
 		"network-analysis"
 	],
@@ -27,7 +31,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/infranodus/mcp-server-infranodus.git"
+		"url": "https://github.com/keywordgraph/mcp-server-keywordgraph.git"
 	},
 	"engines": {
 		"node": ">=18.0.0"
@@ -39,8 +43,15 @@
 		"watch": "tsc --watch",
 		"inspect": "npm run build:inspect && npx @modelcontextprotocol/inspector node dist/index.js",
 		"start": "npm run build:inspect && node dist/index.js",
+		"start:in": "BRAND=infranodus npm run start",
+		"start:kg": "BRAND=keywordgraph npm run start",
 		"start:http": "npm run build:inspect && node dist/http-server.js",
 		"dev:http": "npm run build:inspect && node --watch dist/http-server.js",
+		"deploy:in": "fly deploy -c fly.infranodus.toml",
+		"deploy:kg": "fly deploy -c fly.keywordgraph.toml",
+		"deploy:exalt": "fly deploy -c fly.exaltgrowth.toml",
+		"publish:in": "npm run build:inspect && node scripts/publish-brand.mjs infranodus",
+		"publish:kg": "npm run build:inspect && node scripts/publish-brand.mjs keywordgraph",
 		"prepublishOnly": "npm run build:inspect"
 	},
 	"dependencies": {

@@ -212,11 +212,54 @@ export function generateContextualHint(data: GraphResponse): GraphOverview {
 	return graphOverview;
 }
 
-export function generateTopics(data: GraphResponse): TopicsOutput {
+// For the 'ontology graph' / 'llm graph' aiQueryTypes, a single completion
+// holds many statements, one per line. Mirror the host app's
+// convertGPTResponsesToArray (routes/ai.js): split each choice on newlines and
+// trim, rather than collapsing newlines into one statement the way
+// extractAiChoiceTexts does. Shared by generate_ontology_graph and
+// analyze_llm_results.
+export function extractLineSeparatedStatements(data: GraphResponse): string[] {
+	if (!data.choices || !data.choices.length) return [];
+
+	return data.choices
+		.flatMap((choice) => {
+			const content = choice.text ?? choice.message?.content ?? "";
+			return content.split("\n");
+		})
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0);
+}
+
+// For intro-search style responses: each "choice" is one full LLM completion
+// (typically a paragraph), and the graph treats each completion as a single
+// statement. Don't split by newline; just normalize internal whitespace so each
+// choice fits on one line (matches how the host app's convertGPTResponsesToArray
+// collapses newlines for non-ontology aiQueryTypes).
+export function extractAiChoiceTexts(data: GraphResponse): string[] {
+	if (!data.choices || !data.choices.length) return [];
+
+	return data.choices
+		.map((choice) => {
+			const content = choice.text ?? choice.message?.content ?? "";
+			return content.replace(/\s*\n+\s*/g, " ").trim();
+		})
+		.filter((text) => text.length > 0);
+}
+
+export function generateTopics(
+	data: GraphResponse,
+	summaryData?: GraphResponse,
+): TopicsOutput {
 	const topicalClusters: TopicsOutput = {};
 
 	if (data.extendedGraphSummary?.mainTopics) {
 		topicalClusters.topicalClusters = data.extendedGraphSummary.mainTopics;
+	}
+
+	if (summaryData?.aiAdvice) {
+		topicalClusters.topicalClusterSummaries = summaryData.aiAdvice.map(
+			(advice) => advice.text,
+		);
 	}
 
 	return topicalClusters;

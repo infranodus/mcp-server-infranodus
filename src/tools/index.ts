@@ -1,5 +1,7 @@
 export { generateKnowledgeGraphTool } from "./generateKnowledgeGraph.js";
 export { createKnowledgeGraphTool } from "./createKnowledgeGraph.js";
+export { generateOntologyGraphTool } from "./generateOntologyGraph.js";
+export { analyzeLlmResultsTool } from "./analyzeLlmResults.js";
 export { addMemoryTool } from "./addMemory.js";
 export { getMemoryTool } from "./getMemory.js";
 export { analyzeExistingGraphTool } from "./analyzeExistingGraph.js";
@@ -16,6 +18,7 @@ export { generateOverlapGraphFromTextsTool } from "./generateOverlapGraphFromTex
 export { generateMergedGraphFromTextsTool } from "./generateMergedGraphFromTexts.js";
 export { generateDifferenceGraphFromTextsTool } from "./generateDifferenceGraphFromTexts.js";
 export { generateGoogleSearchResultsGraphTool } from "./generateGoogleSearchResultsGraph.js";
+export { generateYoutubeSearchResultsGraphTool } from "./generateYoutubeSearchResultsGraph.js";
 export { generateGoogleSearchQueriesGraphTool } from "./generateGoogleSearchQueriesGraph.js";
 export { generateGoogleResultsVsQueriesGraphTool } from "./generateGoogleResultsVsQueriesGraph.js";
 export { generateSEOGraphTool } from "./generateSEOGraphTool.js";

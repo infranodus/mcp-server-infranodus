@@ -1,4 +1,19 @@
-# Publishing and Using infranodus-mcp-server with npx
+# Publishing and Using the MCP server with npx
+
+## Two brands, one codebase
+
+This single codebase ships as **two** npm packages from the same source:
+
+- `keywordgraph-mcp-server` (brand: `keywordgraph`)
+- `infranodus-mcp-server` (brand: `infranodus`)
+
+`package.json` can only hold one npm identity at a time, and it is committed with
+the **keywordgraph** identity. So a bare `npm publish` always ships the
+keywordgraph package. To publish each brand correctly, use the dedicated npm
+scripts, which delegate to `scripts/publish-brand.mjs`. That script temporarily
+rewrites `name`/`description`/`bin`/`repository`/`keywords` from the brand
+definition in `src/config/brand.ts` (the single source of truth), runs
+`npm publish`, then restores `package.json` verbatim.
 
 ## Publishing to npm
 
@@ -7,20 +22,29 @@
    npm login
    ```
 
-2. **Build the project:**
+2. **Publish each brand** (each command builds first via `build:inspect`, so no
+   separate build step is needed):
+
    ```bash
-   npm run build:inspect
+   # Publish keywordgraph-mcp-server
+   npm run publish:kg
+
+   # Publish infranodus-mcp-server
+   npm run publish:in
    ```
 
-3. **Publish to npm:**
+   Both packages share the single `version` in `package.json`, so bump the
+   version once (see [Version Updates](#version-updates)) and then publish both.
+
+   For a test run first, pass `--dry-run` through to `npm publish`:
    ```bash
-   npm publish
+   npm run publish:kg -- --dry-run
+   npm run publish:in -- --dry-run
    ```
 
-   Or for a test run first:
-   ```bash
-   npm publish --dry-run
-   ```
+   > A bare `npm publish` still works but only ever ships the keywordgraph
+   > package (the committed identity). Prefer the scripts above so the brand is
+   > always explicit.
 
 ## Using with npx
 
@@ -33,15 +57,15 @@ Users can add this to their Claude Desktop config file (`claude_desktop_config.j
 ```json
 {
   "mcpServers": {
-    "infranodus": {
+    "keywordgraph": {
       "command": "npx",
       "args": [
         "-y",
-        "infranodus-mcp-server"
+        "keywordgraph-mcp-server"
       ],
       "env": {
-        "INFRANODUS_API_KEY": "your-api-key-here",
-        "INFRANODUS_API_BASE": "https://infranodus.com/api/v1"
+        "KEYWORDGRAPH_API_KEY": "your-api-key-here",
+        "KEYWORDGRAPH_API_BASE": "https://keywordgraph.com/api/v1"
       }
     }
   }
@@ -54,27 +78,31 @@ After publishing, test your package:
 
 ```bash
 # Run directly (will exit immediately as it expects MCP protocol)
-npx -y infranodus-mcp-server
+npx -y keywordgraph-mcp-server
 
 # Set environment variables if needed
-INFRANODUS_API_KEY=your-key npx -y infranodus-mcp-server
+KEYWORDGRAPH_API_KEY=your-key npx -y keywordgraph-mcp-server
 ```
 
 ## Version Updates
 
 When you make changes:
 
-1. Update the version in `package.json`:
+1. Update the version **once** in `package.json` (both packages share the same
+   version):
    ```bash
    npm version patch  # for bug fixes
    npm version minor  # for new features
    npm version major  # for breaking changes
    ```
 
-2. Build and publish:
+   > `npm version` creates a git commit and tag, so run it a single time before
+   > publishing both brands — not between the two publish commands.
+
+2. Publish both brands (each script builds first):
    ```bash
-   npm run build:inspect
-   npm publish
+   npm run publish:kg
+   npm run publish:in
    ```
 
 ## Local Testing Before Publishing
@@ -93,14 +121,14 @@ To test the npx behavior locally before publishing:
 
 3. Test the command with a simple initialize message:
    ```bash
-   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | infranodus-mcp-server
+   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | keywordgraph-mcp-server
    ```
 
    You should see a JSON response with server capabilities.
 
 4. Unlink when done:
    ```bash
-   npm unlink -g infranodus-mcp-server
+   npm unlink -g keywordgraph-mcp-server
    ```
 
 ## Troubleshooting
@@ -129,7 +157,7 @@ Files excluded (via `.npmignore`):
 
 ## Deploying to Fly.io (HTTP Server)
 
-The MCP server can be deployed as an HTTP server with OAuth2 authentication at a public URL (e.g., `mcp.infranodus.com`).
+The MCP server can be deployed as an HTTP server with OAuth2 authentication at a public URL (e.g., `mcp.keywordgraph.com`).
 
 ### Prerequisites
 
@@ -179,18 +207,18 @@ fly deploy
 
 ### Custom Domain Setup
 
-To use a custom domain like `mcp.infranodus.com`:
+To use a custom domain like `mcp.keywordgraph.com`:
 
 1. **Add the domain**:
    ```bash
-   fly certs add mcp.infranodus.com
+   fly certs add mcp.keywordgraph.com
    ```
 
-2. **Configure DNS** - Add the records shown by Fly.io to your domain's DNS settings (typically a CNAME to `infranodus-mcp-server.fly.dev`).
+2. **Configure DNS** - Add the records shown by Fly.io to your domain's DNS settings (typically a CNAME to `keywordgraph-mcp-server.fly.dev`).
 
 3. **Verify**:
    ```bash
-   fly certs show mcp.infranodus.com
+   fly certs show mcp.keywordgraph.com
    ```
 
 ### Configuration
@@ -205,7 +233,7 @@ Environment variables set in `fly.toml`:
 ```toml
 [env]
   CORS_ORIGIN = '*'
-  INFRANODUS_API_BASE = 'https://infranodus.com/api/v1'
+  KEYWORDGRAPH_API_BASE = 'https://keywordgraph.com/api/v1'
   NODE_ENV = 'production'
 ```
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brand } from "../config/brand.js";
 import { AddMemorySchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
@@ -6,9 +7,9 @@ import { transformToStructuredOutput } from "../utils/transformers.js";
 export const addMemoryTool = {
 	name: "memory_add_relations",
 	definition: {
-		title: "Add Relations to the InfraNodus Memory",
+		title: `Add Relations to the ${brand.name} Memory`,
 		description:
-			"Add relations to the InfraNodus memory from text, save it, and provide its name and a link to it for future use. ",
+			`Add relations to the ${brand.name} memory from text, save it, and provide its name and a link to it for future use. `,
 		inputSchema: AddMemorySchema.shape,
 		annotations: {
 			readOnlyHint: false,

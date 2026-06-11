@@ -1,0 +1,469 @@
+# KeywordGraph MCP Server — Full Documentation for LLMs
+
+> MCP server for knowledge graph generation, text network analysis, content gap detection, and SEO optimization powered by KeywordGraph API and graph theory algorithms. All tools accept text, URLs (including YouTube for automatic transcription), or existing KeywordGraph graph names as input.
+
+## Quick Start
+
+Install via npx (Claude Desktop / Cursor IDE):
+
+```json
+{
+  "mcpServers": {
+    "keywordgraph": {
+      "command": "npx",
+      "args": ["-y", "keywordgraph-mcp-server"],
+      "env": {
+        "KEYWORDGRAPH_API_KEY": "YOUR_KEYWORDGRAPH_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Or use the remote HTTP server: https://mcp.keywordgraph.com (OAuth authentication).
+
+Get API key at: https://keywordgraph.com/api-access
+
+---
+
+## Workflow Patterns
+
+1. **Quick structural overview**: `generate_knowledge_graph` or `generate_topical_clusters` → get main topics, clusters, gaps.
+2. **Deep text development**: `develop_text_tool` (combines optimize + latent topics + conceptual bridges in one call with progress tracking).
+3. **Research ideation**: `generate_content_gaps` → `generate_research_questions` or `generate_research_ideas`. Use `useSeveralGaps` for diversity, `gapDepth` for less prominent gaps.
+4. **Text optimization**: `optimize_text_structure` (auto-detects bias/focus/dispersion and suggests appropriate development).
+5. **Outside-the-box thinking**: `develop_conceptual_bridges` (connects discourse to broader context) or set `shouldTranscend`/`transcendDiscourse: true`.
+6. **RAG augmentation**: `generate_contextual_hint` (lightweight structural summary) or `retrieve_from_knowledge_base` with `includeGraphSummary` (GraphRAG retrieval).
+7. **Comparing texts**: `overlap_between_texts` (similarities), `difference_between_texts` (what's missing in first text), `merged_graph_from_texts` (combined overview).
+8. **SEO/content optimization**: `generate_seo_report` (comprehensive, ~90s timeout needed) or run `analyze_google_search_results` → `analyze_related_search_queries` → `search_queries_vs_search_results` individually.
+9. **Memory**: `memory_add_relations` to persist knowledge graphs, `memory_get_relations` to retrieve. Use `[[wikilinks]]` for entity marking.
+10. **Graph management**: `list_graphs` to discover existing graphs, `search` + `fetch` for content retrieval.
+
+---
+
+## Common Parameters
+
+**Input types** (provide exactly one per call):
+- `text` (string): Raw text to analyze
+- `url` (string): Webpage or YouTube video URL (auto-transcribed)
+- `graphName` (string): Name of an existing KeywordGraph graph
+
+**Entity detection** (`modifyAnalyzedText` parameter):
+- `none` (default): Word co-occurrence graph
+- `detectEntities`: Mix entities and words
+- `extractEntitiesOnly`: Entity-only graph, best for ontologies and knowledge graphs
+
+**AI models** (`modelToUse` parameter, no additional API keys needed):
+- `gpt-4o`, `gpt-4o-mini`, `gpt-5.4`, `gpt-5.4-mini`
+- `claude-sonnet-4.6`, `claude-opus-4.6`
+- `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+
+**Response types** (`responseType` parameter):
+- `response`: Default analytical response
+- `idea`: Business-oriented idea
+- `question`: Research questions
+- `transcend`: Broader discourse connection
+
+**Diversity metrics** (returned in graph analysis):
+- `biased`: Text dominated by a single perspective — develop underrepresented topics
+- `focused`: Text concentrated on specific themes — develop content gaps between clusters
+- `diversified`: Good topic balance — develop content gaps for deeper connections
+- `dispersed`: Too scattered — focus on the most common gap topics
+
+---
+
+## Tool Reference
+
+### generate_knowledge_graph
+
+Generates a knowledge graph from text using network analysis. Shows main concepts (nodes), relations, topical clusters, and structural gaps. Returns diversity statistics, influential nodes, and a compact DOT-format graph.
+
+**Use for**: Getting structural insights into text, estimating bias, finding content gaps, topical clusters, and relations.
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source (provide one)
+- `includeGraph` (boolean): Include full graph structure with cluster details
+- `includeStatements` (boolean): Include original statements
+- `addNodesAndEdges` (boolean): Include raw nodes and edges
+- `modifyAnalyzedText`: Entity detection mode
+
+**Returns**: statistics (modularity, diversity_stats), contentGaps, mainTopicalClusters, mainConcepts, conceptualGateways, topRelations, topInfluentialNodes, knowledgeGraphByCluster.
+
+---
+
+### create_knowledge_graph
+
+Creates and saves a knowledge graph in KeywordGraph from text or URL. Returns the same analysis as `generate_knowledge_graph` plus a link to the saved graph.
+
+**Parameters**:
+- `graphName` (string, required): Name for the new graph
+- `text` / `url`: Input source
+- `includeGraph`, `includeStatements`, `addNodesAndEdges`, `modifyAnalyzedText`: Same as above
+
+**Returns**: Same as generate_knowledge_graph + `graphName`, `graphUrl`.
+
+---
+
+### generate_topical_clusters
+
+Extracts compact topical clusters from text. Each cluster includes: name, keywords, cluster ID, degree ratio (%), betweenness ratio (%).
+
+**Use for**: Compact topical summaries, improving LLM output structure, establishing topical authority for SEO.
+
+**Parameters**: `text` / `url` / `graphName`
+
+**Returns**: `topicalClusters` array. Format: "ClusterName: keyword1 keyword2 ... (id | degree% | betweenness%)"
+
+---
+
+### generate_content_gaps
+
+Identifies content gaps — missing connections between topical clusters that represent areas for development.
+
+**Use for**: Finding underexplored topics, identifying opportunities for research or content development.
+
+**Parameters**: `text` / `url` / `graphName`
+
+**Returns**: `contentGaps` array. Format: "Gap N: ClusterA (keywords) -> ClusterB (keywords)"
+
+---
+
+### generate_research_questions
+
+Generates research questions that bridge content gaps identified in text.
+
+**Use for**: Generating prompts for LLM workflows, research ideation, bridging knowledge gaps.
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source
+- `useSeveralGaps` (boolean): Generate questions for multiple gaps (more diverse)
+- `gapDepth` (number): Explore less prominent gaps (0 = top gap)
+- `modelToUse` (string): AI model to use
+
+**Returns**: `questions` array of research question strings.
+
+---
+
+### generate_research_ideas
+
+Generates ideas that develop the text further based on content gaps. By default stays within the text's context; with `shouldTranscend: true`, links to wider discourse.
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source
+- `useSeveralGaps` (boolean): Ideas for multiple gaps
+- `shouldTranscend` (boolean): Connect to broader discourse
+- `responseType`: 'response' (analytical) or 'idea' (business-oriented)
+- `modelToUse` (string): AI model to use
+
+**Returns**: `responses` array of idea strings.
+
+---
+
+### generate_contextual_hint
+
+Generates a structural summary for LLMs to have a general overview of a text's context. Ideal for GraphRAG augmentation where vector similarity retrieval is supplemented with structural understanding.
+
+**Parameters**: `text` / `url` / `graphName`
+
+**Returns**: `textOverview` string containing MainConcepts (with degree, betweenness, topic_id), MainTopics, TopicalGaps, ConceptualGateways, Relations, DiversityStatistics in XML-like tags.
+
+---
+
+### develop_latent_topics
+
+Identifies underdeveloped topics in text and generates ideas to develop them further.
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source
+- `requestMode`: 'transcend' (ideas beyond text) or 'question' (research questions)
+- `modelToUse` (string): AI model
+
+**Returns**: `ideas` array, `mainTopics`, `latentTopicsToDevelop` (DOT-format relations).
+
+---
+
+### develop_conceptual_bridges
+
+Identifies gateway concepts (high influence-to-degree ratio nodes that link different topical clusters) and generates ideas to connect the discourse to broader contexts.
+
+**Use for**: "Outside the box" thinking, linking discourse to different contexts.
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source
+- `requestMode`: 'transcend' or 'question'
+- `modelToUse` (string): AI model
+
+**Returns**: `ideas` array, `latentConceptsToDevelop`, `latentConceptsRelations`.
+
+---
+
+### develop_text_tool
+
+Comprehensive text development tool that chains multiple analyses in sequence with progress tracking:
+1. `optimize_text_structure` — gap-based ideas (adapts to text bias/focus/dispersion)
+2. `develop_latent_topics` — underdeveloped topic ideas
+3. `develop_conceptual_bridges` — broader context connections
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source
+- `transcendDiscourse` (boolean): Connect to wider context
+- `useSeveralGaps` (boolean): Multiple gaps
+- `gapDepth` (number): Gap depth
+- `modelToUse` (string): AI model
+
+**Returns**: `contentGapIdeas`, `latentTopicsIdeas`, `conceptualBridgesIdeas`, `contentGaps`, `conceptualBridges`, `latentTopics`, `mainTopics`.
+
+---
+
+### optimize_text_structure
+
+Analyzes text bias/coherence and generates development suggestions. Automatically adapts approach:
+- **Biased text** → develops least represented topics
+- **Focused/diversified text** → develops content gaps between clusters
+- **Dispersed text** → focuses on most common gap topics
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source
+- `responseType`: 'response', 'idea', 'question', or 'transcend'
+- `modelToUse` (string): AI model
+
+**Returns**: `suggestions` array, `diversity_stats`, `mainTopicalClusters`, `contentGaps`, `mainConcepts`, `topicsToDevelop`, `conceptualGateways`, `topRelations`.
+
+---
+
+### analyze_existing_graph_by_name
+
+Retrieves and analyzes an existing graph from your KeywordGraph account.
+
+**Parameters**:
+- `graphName` (string, required): Name of existing graph
+- `includeStatements`, `includeGraph`, `addNodesAndEdges`, `includeGraphSummary`, `modifyAnalyzedText`
+
+**Returns**: Full graph analysis (statistics, clusters, gaps, concepts, relations).
+
+---
+
+### analyze_text
+
+General text analysis. Similar to `generate_knowledge_graph` but focuses on analysis results and recommendations rather than the graph structure.
+
+**Parameters**:
+- `text` / `url`: Input source
+- `includeStatements`, `includeGraph`, `addNodesAndEdges`, `includeGraphSummary`, `modifyAnalyzedText`
+
+**Returns**: statistics, contentGaps, mainTopicalClusters, mainConcepts, topRelations, statements.
+
+---
+
+### generate_responses_from_graph
+
+Generate AI responses from an existing KeywordGraph graph or ontology using a custom prompt.
+
+**Parameters**:
+- `text` / `url` / `graphName`: Input source
+- `prompt` (string, required): Custom prompt for response generation
+- `modelToUse` (string): AI model
+
+**Returns**: AI-generated response based on graph context.
+
+---
+
+### retrieve_from_knowledge_base
+
+GraphRAG retrieval from an existing knowledge graph. Retrieves statements relevant to a prompt using both vector similarity and graph-based retrieval.
+
+**Parameters**:
+- `graphName` (string, required): Name of existing graph
+- `prompt` (string, required): Query prompt
+- `includeGraphSummary` (boolean): Include structural overview for RAG augmentation
+- `includeGraph`, `extendedGraphSummary`, `compactStatements`
+
+**Returns**: `retrievedStatements` (with content, categories, similarity scores), optionally `graphSummary`.
+
+---
+
+### list_graphs
+
+Lists all graphs in the user's account with optional filtering.
+
+**Parameters**:
+- `nameContains` (string): Filter by name (comma-separated for OR logic)
+- `type` (string): Filter by type (STANDARD, MINDMAP, MEMORY, ONTOLOGY, CSV, PDF, etc.)
+- `fromDate`, `toDate` (ISO string): Date range
+- `language` (string): Language code
+- `favorite` (boolean): Favorites only
+
+**Returns**: `totalGraphs`, `filters`, `graphs` array (id, name, description, type, isFavorite, isPublic, createdAt, language).
+
+---
+
+### search
+
+Search through existing KeywordGraph graphs for statements containing a search term.
+
+**Parameters**:
+- `query` (string, required): Search term
+- `contextNames` (string[]): Limit to specific graph names
+- `contextTypes` (string[]): Limit to specific graph types
+
+**Returns**: `results` array (id, title, url).
+
+---
+
+### fetch
+
+Fetch specific statements from a search result using the ID from `search`.
+
+**Parameters**:
+- `id` (string, required): Search result ID (format: "username:graphName:query")
+
+**Returns**: `id`, `title`, `text`, `url`.
+
+---
+
+### memory_add_relations
+
+Add relations to a knowledge graph memory. Creates the graph if it doesn't exist. By default uses `extractEntitiesOnly` for automatic entity detection, creating a high-level concept graph.
+
+**Parameters**:
+- `graphName` (string, required): Memory graph name (lowercase, dashes for spaces)
+- `text` (string, required): Text with entities marked as `[[wikilinks]]` or auto-detected
+- `modifyAnalyzedText`: Entity detection mode (default: 'extractEntitiesOnly')
+- `includeGraph`, `includeStatements`, `addNodesAndEdges`
+
+**Returns**: Full graph analysis + `graphName`, `graphUrl`.
+
+---
+
+### memory_get_relations
+
+Retrieve relations from KeywordGraph memory for a specific entity or context.
+
+**Parameters**:
+- `entityName` (string): Entity to search for (use `[[wikilinks]]` syntax, underscores for spaces)
+- `memoryContextName` (string): Specific memory graph name (empty = search all)
+
+**Returns**: `statements` array, `userName`, `graphNames`, `graphUrls`.
+
+---
+
+### overlap_between_texts
+
+Find common topics and relations that exist across all provided texts/URLs/graphs. If at least one context has no intersections with the rest, no results are shown.
+
+**Parameters**:
+- `contexts` (array, required, min 2): Array of `{text: "..."}`, `{url: "..."}`, or `{graphName: "..."}`
+- `includeStatements`, `includeGraph`, `addNodesAndEdges`, `modifyAnalyzedText`
+
+**Returns**: Analysis of overlapping content only (clusters, concepts, relations, statements).
+
+---
+
+### difference_between_texts
+
+Find what's missing in the first text/URL/graph that is present in the others. Shows topics and relations (not just keywords) because most texts share the same concepts — it's the relations that differ.
+
+**Use for**: Finding content gaps relative to existing discourse, enriching content with missing perspectives.
+
+**Parameters**:
+- `contexts` (array, required, min 2): First item is the target; remaining items are references
+- `includeStatements`, `includeGraph`, `addNodesAndEdges`, `modifyAnalyzedText`
+
+**Returns**: Analysis of content present in references but missing from target.
+
+---
+
+### merged_graph_from_texts
+
+Merge multiple sources into one graph. Provides topical clusters and gaps across the combined content.
+
+**Use for**: Getting an overview of a discourse from multiple sources, identifying cross-source gaps.
+
+**Parameters**:
+- `contexts` (array, required, min 2): Array of `{text: "..."}`, `{url: "..."}`, or `{graphName: "..."}`
+- `includeStatements`, `includeGraph`, `addNodesAndEdges`, `modifyAnalyzedText`
+
+**Returns**: Combined graph analysis with merged clusters, gaps, and concepts.
+
+---
+
+### analyze_google_search_results
+
+Generates a knowledge graph from Google search results for given queries. Shows what topics are covered in current search results (informational supply).
+
+**Parameters**:
+- `queries` (string[], required): Search queries
+- `importLanguage` (string): Language code (EN, DE, FR, ES, etc.)
+- `importCountry` (string): Country code (US, GB, DE, etc.)
+- `showExtendedGraphInfo` (boolean): Include diversity stats and graph summary
+- `includeSearchResults` (boolean): Include raw search result URLs
+- `includeGraph`, `includeNodesAndEdges`
+
+**Returns**: Graph analysis of search results (clusters, gaps, concepts) + optionally search result URLs.
+
+---
+
+### analyze_related_search_queries
+
+Analyzes which search queries people use together with your queries (Google "people also search for"). Shows informational demand — what people are looking for.
+
+**Parameters**:
+- `queries` (string[], required): Search queries
+- `importLanguage`, `importCountry`
+- `keywordsSource`: 'related' (Google suggestions) or 'adwords' (broader range)
+- `showExtendedGraphInfo`, `includeSearchQueries`, `includeGraph`, `includeNodesAndEdges`
+
+**Returns**: Graph analysis of related queries + optionally raw queries with search volume.
+
+---
+
+### search_queries_vs_search_results
+
+Finds clusters of high-volume search queries that don't appear in search results for the same requests. Reveals content gaps in current search results.
+
+**Parameters**:
+- `queries` (string[], required): Search queries
+- `importLanguage`, `importCountry`
+- `showExtendedGraphInfo`, `includeSearchQueries`, `includeGraph`
+
+**Returns**: Analysis of queries people search for but don't find, with topical clusters and gaps.
+
+---
+
+### generate_seo_report
+
+Comprehensive SEO analysis. Extracts text keywords, retrieves Google search results and search intent data, compares them, and synthesizes content ideas. Chains multiple API calls (~90 second timeout needed).
+
+**Parameters**:
+- `text` / `url`: Content to analyze
+- `contentToExtract`: 'all' (default), 'header tags' (h1-h6), or 'link tags'
+- `importLanguage`, `importCountry`
+- `numberOfKeywordsToExtract` (number, max 4): Top keyword groups for analysis
+- `numberOfTopicsToExtract` (number, max 4): Top topic clusters for analysis
+- `useProxy` (boolean): Use proxy for URL fetch (if first request fails)
+
+**Returns**:
+- `inSearchResultsNotInText`: Topics in search results but not in your text
+- `inSearchQueriesNotInText`: Topics people search for but not in your text
+- `inSearchQueriesNotInResults`: Topics people search for but don't find anywhere
+- `topMissingQueries`: Specific high-volume queries with search volume data
+
+---
+
+## Key Concepts
+
+**Topical Clusters**: Groups of related concepts identified by community detection algorithms. Format: "Name: keyword1 keyword2 ... (cluster_id | degree_ratio% | betweenness_ratio%)"
+
+**Content Gaps**: Missing connections between topical clusters. These represent areas where the discourse could be developed by linking currently disconnected themes.
+
+**Conceptual Gateways**: Nodes with high betweenness centrality relative to their degree — they bridge different topical clusters and are optimal for connecting the discourse to broader contexts.
+
+**Betweenness Centrality**: Measures how often a concept appears on shortest paths between other concepts. High betweenness = influential connector between different topic areas.
+
+**Modularity**: Measures how well the graph divides into distinct communities. High modularity = clearly separated topics. Low modularity = highly interconnected discourse.
+
+**Diversity Score**: Overall assessment of text structure balance:
+- `biased`: Dominated by single perspective/cluster
+- `focused`: Concentrated on specific themes with some variation
+- `diversified`: Good balance across multiple topics
+- `dispersed`: Too scattered, lacks coherent structure

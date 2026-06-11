@@ -2,7 +2,7 @@
 
 ## Problem Summary
 
-The InfraNodus MCP server at commit `a49c85df` works correctly with both n8n and Claude. However, attempted modifications to add session-based auth fallback broke n8n compatibility.
+The KeywordGraph MCP server at commit `a49c85df` works correctly with both n8n and Claude. However, attempted modifications to add session-based auth fallback broke n8n compatibility.
 
 | Client | Transport | Auth Behavior | Status |
 |--------|-----------|---------------|--------|
