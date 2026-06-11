@@ -131,7 +131,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Generate a graph with keywords and topics for Google search results for a certain query
     - Use it to understand the current informational supply (what people find)
 
-21. **analyze_youtube_search_results**
+21. **analyze_youtube_results**
     - Generate a graph with keywords and topics from YouTube results for a query, channel, or playlist
     - Choose what to pull via `searchMode`: `search` (video metadata for a search term), `comments` (comments on a video), `channel` (a channel's videos — pass a username, URL, or @handle), `playlist` (a playlist's videos — pass a playlist ID or a URL with `list=`), `subtitles` / `subtitlesChannel` / `subtitlesPlaylist` (transcribed subtitles of a video / channel / playlist), or `searchVideos` (analyzes the content of the videos found — limit hard-capped to 20)
     - Control results with `limit` (default 100, max 2000), `sortBy` (`Popular` / `Oldest` / `Latest`), `excludeDescriptions`, `importLanguage`, and `importRegion`

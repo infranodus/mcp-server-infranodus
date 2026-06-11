@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 export const generateYoutubeSearchResultsGraphTool = {
-	name: "analyze_youtube_search_results",
+	name: "analyze_youtube_results",
 	definition: {
 		title:
 			"Analyze YouTube Search Results, Channels, Playlists, Videos, and Comments",
