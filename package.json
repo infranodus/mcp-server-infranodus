@@ -1,6 +1,6 @@
 {
 	"name": "keywordgraph-mcp-server",
-	"version": "1.6.1",
+	"version": "1.6.2",
 	"description": "KeywordGraph MCP server - A Model Context Protocol server for network thinking and graph analysis",
 	"type": "module",
 	"module": "src/index.ts",
