@@ -1109,6 +1109,106 @@ export const GenerateGoogleSearchResultsGraphSchema = z.object({
 		),
 });
 
+export const GenerateYoutubeSearchResultsGraphSchema = z.object({
+	searchQuery: z
+		.string()
+		.min(1, "A search query is required for analysis")
+		.describe(
+			"The search term, a YouTube video ID, a channel username / URL / @handle, or a URL containing list= (playlist) or list ID. What is pulled depends on searchMode.",
+		),
+	searchMode: z
+		.enum([
+			"search",
+			"comments",
+			"channel",
+			"playlist",
+			"subtitles",
+			"subtitlesChannel",
+			"subtitlesPlaylist",
+			"searchVideos",
+		])
+		.default("search")
+		.describe(
+			"What to pull from YouTube: 'search' (default, video metadata for a search term), 'comments' (comments on a video), 'channel' (videos of a channel — provide a channel username, URL, or @handle), 'playlist' (videos of a playlist — provide a playlist ID or a URL with list=), 'subtitles'/'subtitlesChannel'/'subtitlesPlaylist' (transcribed subtitles of a video / channel / playlist), or 'searchVideos' (analyzes the content of the videos found for a search term; limit is hard-capped to 20). If searchQuery contains list=, 'channel' becomes 'playlist' and 'subtitlesChannel' becomes 'subtitlesPlaylist' automatically.",
+		),
+	limit: z
+		.number()
+		.int()
+		.min(1)
+		.max(2000)
+		.default(100)
+		.describe(
+			"Maximum number of results to pull, default 100, max 2000 (also capped by your plan quota). For searchMode 'searchVideos' the limit is hard-set to 20.",
+		),
+	sortBy: z
+		.enum(["Relevance", "Popular", "Latest"])
+		.default("Relevance")
+		.describe(
+			"Order in which results are pulled: 'Relevance' (default), 'Popular', or 'Latest'.",
+		),
+	excludeDescriptions: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Drop video descriptions from the search-result text (default true).",
+		),
+	includeSearchResults: z
+		.boolean()
+		.default(false)
+		.describe("Include search results (statements) in the response"),
+	includeGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include the graph structure and keywords in the response (add only if explicitly needed)",
+		),
+	showExtendedGraphInfo: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include extended graph information in the response (additional information about the content gaps and main topics)",
+		),
+	includeSearchResultsOnly: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Only include search results in the response (do not include the knowledge graph, analysis, and keywords)",
+		),
+	includeNodesAndEdges: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include nodes and edges in the response (true only if explicitly required)",
+		),
+	importLanguage: z
+		.enum([
+			"EN",
+			"DE",
+			"FR",
+			"ES",
+			"IT",
+			"PT",
+			"RU",
+			"CN",
+			"JP",
+			"NL",
+			"TW",
+			"KO",
+			"AR",
+			"HE",
+		])
+		.default("EN")
+		.describe(
+			"Processing language, default is English (EN), use the language of the conversation or requested by user.",
+		),
+	importRegion: z
+		.string()
+		.default("US")
+		.describe(
+			"Region (country code) used to pull YouTube results, default is United States (US).",
+		),
+});
+
 export const GenerateGoogleSearchQueriesGraphSchema = z.object({
 	queries: z
 		.array(z.string())

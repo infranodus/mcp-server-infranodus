@@ -131,47 +131,53 @@ KeywordGraph MCP Server enables LLM workflows and AI assistants to analyze text 
     - Generate a graph with keywords and topics for Google search results for a certain query
     - Use it to understand the current informational supply (what people find)
 
-21. **analyze_related_search_queries**
+21. **analyze_youtube_search_results**
+    - Generate a graph with keywords and topics from YouTube results for a query, channel, or playlist
+    - Choose what to pull via `searchMode`: `search` (video metadata for a search term), `comments` (comments on a video), `channel` (a channel's videos — pass a username, URL, or @handle), `playlist` (a playlist's videos — pass a playlist ID or a URL with `list=`), `subtitles` / `subtitlesChannel` / `subtitlesPlaylist` (transcribed subtitles of a video / channel / playlist), or `searchVideos` (analyzes the content of the videos found — limit hard-capped to 20)
+    - Control results with `limit` (default 100, max 2000), `sortBy` (`Popular` / `Oldest` / `Latest`), `excludeDescriptions`, `importLanguage`, and `importRegion`
+    - Use it to understand the topics, clusters, and content gaps in the discourse around a video, channel, playlist, or search term on YouTube
+
+22. **analyze_related_search_queries**
     - Generate a graph from the search queries suggested by Google for a certain query
     - Use it to understand the current informational demand (what people are looking for)
 
-22. **search_queries_vs_search_results**
+23. **search_queries_vs_search_results**
     - Generate a graph of keyword combinations and topics people tend to search for that do not readily appear in the search results for the same queries
     - Use it to understand what people search for but don't yet find
 
-23. **generate_seo_report**
+24. **generate_seo_report**
     - Analyze content for SEO optimization by comparing it with Google search results and search queries
     - Identify content gaps and opportunities for better search visibility
     - Get comprehensive analysis of what's in search results but not in your text
     - Discover what people search for but don't find in current results
 
-24. **memory_add_relations**
+25. **memory_add_relations**
     - Add relations to the KeywordGraph memory from text
     - Automatically detect entities or use [[wikilinks]] syntax to mark them
     - Save memory to a specified graph name for future retrieval
     - Support automatic entity extraction or manual entity marking
     - Provide links to created memory graphs for easy access
 
-25. **memory_get_relations**
+26. **memory_get_relations**
     - Retrieve relations from KeywordGraph memory for specific entities
     - Search for entity relations using [[wikilinks]] syntax
     - Query specific memory contexts or search across all memory graphs
     - Extract statements and relationships from stored knowledge graphs
     - Support both entity-specific searches and full context retrieval
 
-26. **retrieve_from_knowledge_base**
+27. **retrieve_from_knowledge_base**
     - Retrieve context from an existing KeywordGraph knowledge graph using GraphRAG
     - Query your knowledge base with a natural language prompt to get relevant statements
     - Include graph summaries for quick overviews of the knowledge structure
     - Optionally retrieve the full graph, statements, or extended analysis
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
-27. **search**
+28. **search**
     - Search through existing KeywordGraph graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-28. **fetch**
+29. **fetch**
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 

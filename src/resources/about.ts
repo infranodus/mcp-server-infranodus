@@ -31,12 +31,13 @@ Available Tools:
 10. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
 11. analyze_llm_results - Ask an LLM to describe a topic and turn its answer into a knowledge graph that reveals how the model frames it (main concepts, clusters, content gaps, relations). Useful for probing model bias or comparing how different models describe the same topic. Default model: claude-opus-4.6. Saves by default; returns analytics by default and omits raw graph (includeGraph: false) to keep responses compact
 12. analyze_google_search_results - Generate a Google search results graph from search queries
-13. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
-14. search_queries_vs_search_results - Find what people search for but don't yet find
-15. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
-16. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
-17. search - Search through existing ${brand.name} graphs
-18. fetch - Fetch a specific search result from a ${brand.name} graph
+13. analyze_youtube_search_results - Generate a knowledge graph from YouTube results (search results, a channel's or playlist's videos, video comments, or transcribed subtitles) to reveal main topics, clusters, and content gaps
+14. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
+15. search_queries_vs_search_results - Find what people search for but don't yet find
+16. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
+17. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
+18. search - Search through existing ${brand.name} graphs
+19. fetch - Fetch a specific search result from a ${brand.name} graph
 
 Key Features:
 - Topic modeling and clustering

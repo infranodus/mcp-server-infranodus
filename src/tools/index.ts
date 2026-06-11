@@ -18,6 +18,7 @@ export { generateOverlapGraphFromTextsTool } from "./generateOverlapGraphFromTex
 export { generateMergedGraphFromTextsTool } from "./generateMergedGraphFromTexts.js";
 export { generateDifferenceGraphFromTextsTool } from "./generateDifferenceGraphFromTexts.js";
 export { generateGoogleSearchResultsGraphTool } from "./generateGoogleSearchResultsGraph.js";
+export { generateYoutubeSearchResultsGraphTool } from "./generateYoutubeSearchResultsGraph.js";
 export { generateGoogleSearchQueriesGraphTool } from "./generateGoogleSearchQueriesGraph.js";
 export { generateGoogleResultsVsQueriesGraphTool } from "./generateGoogleResultsVsQueriesGraph.js";
 export { generateSEOGraphTool } from "./generateSEOGraphTool.js";
