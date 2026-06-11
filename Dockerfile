@@ -31,6 +31,15 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/llms.txt ./llms.txt
 COPY --from=builder /app/llms-full.txt ./llms-full.txt
 
+# Brand selection. The CMD below (`node dist/http-server.js`) resolves the
+# active brand from process.env.BRAND and falls back to "infranodus" when unset
+# — it does NOT go through the brand-specific bin/ launchers. To guarantee the
+# correct brand even if the Fly runtime `[env] BRAND` is missing, each brand's
+# fly.*.toml passes its BRAND via [build.args] and we bake it into the image
+# here. An explicit runtime BRAND (Fly [env] or a secret) still overrides this.
+ARG BRAND=infranodus
+ENV BRAND=${BRAND}
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000

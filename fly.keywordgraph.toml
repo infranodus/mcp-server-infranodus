@@ -10,6 +10,11 @@ primary_region = 'fra'
 [build]
   dockerfile = 'Dockerfile'
 
+  # Baked into the image so the server resolves this brand even if the runtime
+  # `[env] BRAND` below is ever lost or overridden. Keep both in sync.
+  [build.args]
+    BRAND = 'keywordgraph'
+
 [env]
   BRAND = 'keywordgraph'
   MCP_SOURCE = 'keywordgraph'
