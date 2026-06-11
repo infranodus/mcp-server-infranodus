@@ -1,4 +1,19 @@
-# Publishing and Using keywordgraph-mcp-server with npx
+# Publishing and Using the MCP server with npx
+
+## Two brands, one codebase
+
+This single codebase ships as **two** npm packages from the same source:
+
+- `keywordgraph-mcp-server` (brand: `keywordgraph`)
+- `infranodus-mcp-server` (brand: `infranodus`)
+
+`package.json` can only hold one npm identity at a time, and it is committed with
+the **keywordgraph** identity. So a bare `npm publish` always ships the
+keywordgraph package. To publish each brand correctly, use the dedicated npm
+scripts, which delegate to `scripts/publish-brand.mjs`. That script temporarily
+rewrites `name`/`description`/`bin`/`repository`/`keywords` from the brand
+definition in `src/config/brand.ts` (the single source of truth), runs
+`npm publish`, then restores `package.json` verbatim.
 
 ## Publishing to npm
 
@@ -7,20 +22,29 @@
    npm login
    ```
 
-2. **Build the project:**
+2. **Publish each brand** (each command builds first via `build:inspect`, so no
+   separate build step is needed):
+
    ```bash
-   npm run build:inspect
+   # Publish keywordgraph-mcp-server
+   npm run publish:kg
+
+   # Publish infranodus-mcp-server
+   npm run publish:in
    ```
 
-3. **Publish to npm:**
+   Both packages share the single `version` in `package.json`, so bump the
+   version once (see [Version Updates](#version-updates)) and then publish both.
+
+   For a test run first, pass `--dry-run` through to `npm publish`:
    ```bash
-   npm publish
+   npm run publish:kg -- --dry-run
+   npm run publish:in -- --dry-run
    ```
 
-   Or for a test run first:
-   ```bash
-   npm publish --dry-run
-   ```
+   > A bare `npm publish` still works but only ever ships the keywordgraph
+   > package (the committed identity). Prefer the scripts above so the brand is
+   > always explicit.
 
 ## Using with npx
 
@@ -64,17 +88,21 @@ KEYWORDGRAPH_API_KEY=your-key npx -y keywordgraph-mcp-server
 
 When you make changes:
 
-1. Update the version in `package.json`:
+1. Update the version **once** in `package.json` (both packages share the same
+   version):
    ```bash
    npm version patch  # for bug fixes
    npm version minor  # for new features
    npm version major  # for breaking changes
    ```
 
-2. Build and publish:
+   > `npm version` creates a git commit and tag, so run it a single time before
+   > publishing both brands — not between the two publish commands.
+
+2. Publish both brands (each script builds first):
    ```bash
-   npm run build:inspect
-   npm publish
+   npm run publish:kg
+   npm run publish:in
    ```
 
 ## Local Testing Before Publishing
