@@ -1,7 +1,7 @@
-# AI Tools → KeywordGraph API: `requestMode` reference
+# AI Tools → InfraNodus API: `requestMode` reference
 
 This document describes how the MCP tools that send a `requestMode` field interact
-with the KeywordGraph API, and exactly what data each one sends **as of the current
+with the InfraNodus API, and exactly what data each one sends **as of the current
 code**. It reflects the source in `src/tools/` and `src/api/client.ts`.
 
 ## Transport
@@ -9,7 +9,7 @@ code**. It reflects the source in `src/tools/` and `src/api/client.ts`.
 All of these tools hit a single endpoint through one helper,
 `makeInfraNodusRequest()` (`src/api/client.ts`):
 
-- **Base URL:** `https://keywordgraph.com/api/v1` (configurable via `apiBase`)
+- **Base URL:** `https://infranodus.com/api/v1` (configurable via `apiBase`)
 - **Path:** `/graphAndAdvice` (query parameters appended per tool — see tables below)
 - **Method:** `POST`
 - **Headers:**
@@ -28,7 +28,7 @@ Every tool accepts exactly one of three input types and resolves it before build
 the request body:
 
 - `graphName` (+ optional `userName`) → sends `name` / `userName`, analyzing an
-  existing saved KeywordGraph graph.
+  existing saved InfraNodus graph.
 - `url` → fetched and transcribed to plain text via `fetchUrlContentAsText()`, then
   sent as `text`.
 - `text` → sent as-is as `text`.
@@ -37,7 +37,7 @@ the request body:
 
 ## What `requestMode` is
 
-`requestMode` tells the KeywordGraph AI backend **how to use the analyzed graph** when
+`requestMode` tells the InfraNodus AI backend **how to use the analyzed graph** when
 generating its AI advice. The values these tools send are:
 
 | value | meaning on the backend |
@@ -214,7 +214,7 @@ POST /graphAndAdvice?doNotSave=true&addStats=true&includeGraph=<includeGraph>&in
   `optimize_text_structure` it is set indirectly through `params.responseType`. On
   the remaining tools it is either fixed or derived from boolean flags
   (`transcendDiscourse`, `shouldTranscend`) / `responseType`.
-- The backend interpretation of these `requestMode` values lives in the KeywordGraph
+- The backend interpretation of these `requestMode` values lives in the InfraNodus
   app (`lib/ai.js` + `lib/languages/ai_prompts.js`), where the value selects model
   parameters (max tokens, temperature, penalties) and the prompt wording used to
   generate the advice.

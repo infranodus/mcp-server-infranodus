@@ -4,9 +4,10 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 export const generateYoutubeSearchResultsGraphTool = {
-	name: "analyze_youtube_search_results",
+	name: "analyze_youtube_results",
 	definition: {
-		title: "Analyze the Main Topics in YouTube Search Results",
+		title:
+			"Analyze YouTube Search Results, Channels, Playlists, Videos, and Comments",
 		description:
 			"Generate a knowledge graph and topical clusters from YouTube results — search results, a channel's or playlist's videos, video comments, or transcribed subtitles — to reveal the main topics, clusters, and content gaps in the discourse",
 		inputSchema: GenerateYoutubeSearchResultsGraphSchema.shape,

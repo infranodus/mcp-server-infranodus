@@ -6,8 +6,8 @@ environment variable, which is baked into each brand's Fly config:
 
 | Brand        | Fly config              | App name (default)        | Deploy command       |
 | ------------ | ----------------------- | ------------------------- | -------------------- |
-| KeywordGraph | `fly.keywordgraph.toml` | `keywordgraph-mcp-server` | `npm run deploy:kg`  |
 | InfraNodus   | `fly.infranodus.toml`   | `infranodus-mcp-server`   | `npm run deploy:in`  |
+| KeywordGraph | `fly.keywordgraph.toml` | `keywordgraph-mcp-server` | `npm run deploy:kg`  |
 
 Each `npm run deploy:*` script is just `fly deploy -c <brand config>`.
 
@@ -27,20 +27,20 @@ Avoid `fly launch`; it tries to auto-scaffold and will overwrite the committed
 fly auth login
 
 # 2. Create the app — empty, no machines, no repo, no cost until you deploy.
-fly apps create keywordgraph-mcp-server
+fly apps create infranodus-mcp-server
 
 # 3. Set a stable JWT secret (see "Secrets" below for why).
-fly secrets set JWT_SECRET=$(openssl rand -hex 32) -a keywordgraph-mcp-server
+fly secrets set JWT_SECRET=$(openssl rand -hex 32) -a infranodus-mcp-server
 
 # 4. Deploy from local source.
-npm run deploy:kg
+npm run deploy:in
 ```
 
-For the InfraNodus app, repeat with `infranodus-mcp-server` and `npm run deploy:in`.
+For the KeywordGraph app, repeat with `keywordgraph-mcp-server` and `npm run deploy:kg`.
 
-> **App names are globally unique on Fly.** If `keywordgraph-mcp-server` is
+> **App names are globally unique on Fly.** If `infranodus-mcp-server` is
 > taken, `fly apps create` errors — pick another name and update the `app =`
-> line in `fly.keywordgraph.toml` to match.
+> line in `fly.infranodus.toml` to match.
 
 ## Secrets
 
@@ -57,7 +57,7 @@ server generates a **random secret on every startup**, which means:
 Set it once:
 
 ```bash
-fly secrets set JWT_SECRET=$(openssl rand -hex 32) -a keywordgraph-mcp-server
+fly secrets set JWT_SECRET=$(openssl rand -hex 32) -a infranodus-mcp-server
 ```
 
 You can set it **before or after** deploy — setting it on a running app triggers
@@ -68,13 +68,13 @@ the URL, so no user gets a token that the restart will invalidate.
 
 This is a multi-user hosted server: each user supplies their **own** API key
 through the OAuth/authorize flow, and every request runs with that user's key.
-The server-level `KEYWORDGRAPH_API_KEY` / `INFRANODUS_API_KEY` env var is only
+The server-level `INFRANODUS_API_KEY` / `KEYWORDGRAPH_API_KEY` env var is only
 used in local stdio (single-user CLI) mode. Leave it unset on Fly.
 
 ### Inspecting secrets
 
 ```bash
-fly secrets list -a keywordgraph-mcp-server   # shows names + digests, not values
+fly secrets list -a infranodus-mcp-server   # shows names + digests, not values
 ```
 
 ## What's already configured
@@ -92,14 +92,14 @@ Each `fly.*.toml` sets:
 After the first setup, deploying an update is just:
 
 ```bash
-npm run deploy:kg     # KeywordGraph
 npm run deploy:in     # InfraNodus
+npm run deploy:kg     # KeywordGraph
 ```
 
 ## Other Fly commands
 
 ```bash
-fly status   -a keywordgraph-mcp-server   # machines, health
-fly logs     -a keywordgraph-mcp-server   # live logs
-fly apps open -a keywordgraph-mcp-server  # open the URL in a browser
+fly status   -a infranodus-mcp-server   # machines, health
+fly logs     -a infranodus-mcp-server   # live logs
+fly apps open -a infranodus-mcp-server  # open the URL in a browser
 ```
