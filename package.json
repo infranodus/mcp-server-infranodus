@@ -1,12 +1,12 @@
 {
-	"name": "keywordgraph-mcp-server",
+	"name": "infranodus-mcp-server",
 	"version": "1.6.2",
-	"description": "KeywordGraph MCP server - A Model Context Protocol server for network thinking and graph analysis",
+	"description": "InfraNodus MCP server - A Model Context Protocol server for network thinking and graph analysis",
 	"type": "module",
 	"module": "src/index.ts",
 	"main": "dist/index.js",
 	"bin": {
-		"keywordgraph-mcp-server": "bin/keywordgraph-mcp-server.js"
+		"infranodus-mcp-server": "bin/infranodus-mcp-server.js"
 	},
 	"files": [
 		"dist/",
@@ -23,7 +23,7 @@
 	"keywords": [
 		"mcp",
 		"model-context-protocol",
-		"keywordgraph",
+		"infranodus",
 		"knowledge-graph",
 		"network-analysis"
 	],
@@ -31,7 +31,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/keywordgraph/mcp-server-keywordgraph.git"
+		"url": "https://github.com/infranodus/mcp-server-infranodus.git"
 	},
 	"engines": {
 		"node": ">=18.0.0"

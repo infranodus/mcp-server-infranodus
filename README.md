@@ -1,18 +1,18 @@
-# KeywordGraph MCP Server
+# InfraNodus MCP Server
 
-A Model Context Protocol (MCP) server that integrates KeywordGraph knowledge graph and text network analysis capabilities into LLM workflows and AI assistants like Claude Desktop.
+A Model Context Protocol (MCP) server that integrates InfraNodus knowledge graph and text network analysis capabilities into LLM workflows and AI assistants like Claude Desktop.
 
 ## Overview
 
-KeywordGraph MCP Server enables LLM workflows and AI assistants to analyze text using advanced network science algorithms, generate knowledge graphs, detect content gaps, and identify key topics and concepts. It transforms unstructured text into structured insights using graph theory and network analysis.
+InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text using advanced network science algorithms, generate knowledge graphs, detect content gaps, and identify key topics and concepts. It transforms unstructured text into structured insights using graph theory and network analysis.
 
-![KeywordGraph MCP Server](https://keywordgraph.com/images/front/keywordgraph-overview.jpg)
+![InfraNodus MCP Server](https://infranodus.com/images/front/infranodus-overview.jpg)
 
 ## Features
 
 ### You Can Use It To
 
-- Connect your existing KeywordGraph knowledge graphs to your LLM workflows and AI chats
+- Connect your existing InfraNodus knowledge graphs to your LLM workflows and AI chats
 - Identify the main topical clusters in discourse without missing the important nuances (works better than standard LLM workflows)
 - Identify the content gaps in any discourse (helpful for content creation and research)
 - Generate new knowledge graphs from any text and use them to augment your LLM responses
@@ -28,7 +28,7 @@ KeywordGraph MCP Server enables LLM workflows and AI assistants to analyze text 
    - Perform entity detection for cleaner graphs
 
 2. **analyze_existing_graph_by_name**
-   - Retrieve and analyze existing graphs from your KeywordGraph account
+   - Retrieve and analyze existing graphs from your InfraNodus account
    - Access previously saved analyses
    - Export graph data with full statistics
 
@@ -55,15 +55,15 @@ KeywordGraph MCP Server enables LLM workflows and AI assistants to analyze text 
    - Use it to augment prompts in your LLM workflows and AI assistants
 
 7. **generate_research_questions**
-   - Generate research questions that bridge content gaps from text, URL, or an existing KeywordGraph graph
+   - Generate research questions that bridge content gaps from text, URL, or an existing InfraNodus graph
    - Use them as prompts in your LLM models and AI workflows
-   - Use any AI model (included in KeywordGraph API)
+   - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
 8. **generate_research_ideas**
    - Generate innovative research ideas based on content gaps identified in the text
    - Get actionable ideas to improve the text and develop the discourse
-   - Use any AI model (included in KeywordGraph API)
+   - Use any AI model (included in InfraNodus API)
    - Ideas are generated from gaps between topical clusters
 
 9. **optimize_text_structure**
@@ -74,21 +74,21 @@ KeywordGraph MCP Server enables LLM workflows and AI assistants to analyze text 
    - Choose response type: response, idea, question, or transcend
 
 10. **generate_responses_from_graph**
-    - Generate responses based on an existing KeywordGraph graph
+    - Generate responses based on an existing InfraNodus graph
     - Integrate them into your LLM workflows and AI assistants
-    - Use any AI model (included in KeywordGraph API)
+    - Use any AI model (included in InfraNodus API)
     - Use any prompt
 
 11. **develop_conceptual_bridges**
     - Analyze text and develop latent ideas based on concepts that connect this text to a broader discourse
     - Discover hidden themes and patterns that link your text to wider contexts
-    - Use any AI model (included in KeywordGraph API)
+    - Use any AI model (included in InfraNodus API)
     - Generate insights that help develop the discourse
 
 12. **develop_latent_topics**
     - Analyze text and extract underdeveloped topics with ideas on how to develop them
     - Identify topics that need more attention and elaboration
-    - Use any AI model (included in KeywordGraph API)
+    - Use any AI model (included in InfraNodus API)
     - Get actionable suggestions for content expansion
 
 13. **develop_text_tool**
@@ -99,12 +99,12 @@ KeywordGraph MCP Server enables LLM workflows and AI assistants to analyze text 
     - Finds content gaps for deeper exploration
 
 14. **create_knowledge_graph**
-    - Create a knowledge graph in KeywordGraph from text and provide a link to it
-    - Use it to create a knowledge graph in KeywordGraph from text
+    - Create a knowledge graph in InfraNodus from text and provide a link to it
+    - Use it to create a knowledge graph in InfraNodus from text
 
 15. **generate_ontology_graph**
     - Use AI to generate a reasoning ontology graph (entities and the relations between them) from a topic, prompt, or text — e.g. "build an ontology on AI attention mechanisms"
-    - Saved as a persistent KeywordGraph graph by default and a link is returned; set `saveGraph: false` if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later (the generated statements are returned directly without persisting)
+    - Saved as a persistent InfraNodus graph by default and a link is returned; set `saveGraph: false` if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later (the generated statements are returned directly without persisting)
     - `modelToUse` defaults to `claude-opus-4.6` for richer ontologies; pick `-mini`/`-lite` variants (or `gpt-4o-mini`) for faster, cheaper generation
     - Returns the compact graph structure (`knowledgeGraph`) and analytics (main topical clusters, content gaps, top influential nodes, top relations, statistics) by default. Set `includeGraph: false` to save context space when only the ontology statements or insights are needed. Set `includeAnalytics: false` if you just need the raw ontology without graph-derived insights — keep it on whenever you want to understand the structure, gaps, or key concepts
 
@@ -152,28 +152,28 @@ KeywordGraph MCP Server enables LLM workflows and AI assistants to analyze text 
     - Discover what people search for but don't find in current results
 
 25. **memory_add_relations**
-    - Add relations to the KeywordGraph memory from text
+    - Add relations to the InfraNodus memory from text
     - Automatically detect entities or use [[wikilinks]] syntax to mark them
     - Save memory to a specified graph name for future retrieval
     - Support automatic entity extraction or manual entity marking
     - Provide links to created memory graphs for easy access
 
 26. **memory_get_relations**
-    - Retrieve relations from KeywordGraph memory for specific entities
+    - Retrieve relations from InfraNodus memory for specific entities
     - Search for entity relations using [[wikilinks]] syntax
     - Query specific memory contexts or search across all memory graphs
     - Extract statements and relationships from stored knowledge graphs
     - Support both entity-specific searches and full context retrieval
 
 27. **retrieve_from_knowledge_base**
-    - Retrieve context from an existing KeywordGraph knowledge graph using GraphRAG
+    - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG
     - Query your knowledge base with a natural language prompt to get relevant statements
     - Include graph summaries for quick overviews of the knowledge structure
     - Optionally retrieve the full graph, statements, or extended analysis
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
 28. **search**
-    - Search through existing KeywordGraph graphs
+    - Search through existing InfraNodus graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
@@ -195,17 +195,17 @@ _More capabilites coming soon!_
 
 ## Knowledge Graph Memory Use Advice
 
-KeywordGraph represents any text as a network graph in order to identify the main clusters of ideas and gaps between them. This helps generate advanced insights based on the text's structure. The network is effectively a knowledge graph that can also be used to retrieve complex ontological relations between different entities and concepts. This process is automated in KeywordGraph using the `search` and `fetch` tools along with the other tools that analyze the underlying network.
+InfraNodus represents any text as a network graph in order to identify the main clusters of ideas and gaps between them. This helps generate advanced insights based on the text's structure. The network is effectively a knowledge graph that can also be used to retrieve complex ontological relations between different entities and concepts. This process is automated in InfraNodus using the `search` and `fetch` tools along with the other tools that analyze the underlying network.
 
-However, you can also easily use KeywordGraph as a more traditional memory server to save and retrieve relations. We use [[wikilinks]] to highlight entities in your text to make your content and graphs compatible with markup syntax and PKM tools such as Obsidian. By default, KeywordGraph will generate the name of the memory graph for you based on the context of the conversation. However, you can modify this default behavior by adding a **system prompt** or **project instruction** into your LLM client.
+However, you can also easily use InfraNodus as a more traditional memory server to save and retrieve relations. We use [[wikilinks]] to highlight entities in your text to make your content and graphs compatible with markup syntax and PKM tools such as Obsidian. By default, InfraNodus will generate the name of the memory graph for you based on the context of the conversation. However, you can modify this default behavior by adding a **system prompt** or **project instruction** into your LLM client.
 
 Specifically you can specify to always use a speciic knowlege graph for memories to store everything in one place:
 
 ```
-Save all memories in the `my-memories` graph in KeywordGraph.
+Save all memories in the `my-memories` graph in InfraNodus.
 ```
 
-Or you can ask KeywordGraph to only save certain entities, e.g. for building social networks:
+Or you can ask InfraNodus to only save certain entities, e.g. for building social networks:
 
 ```
 When generating entities, only extract people, companies, and organizations. Ignore everything else.
@@ -213,41 +213,41 @@ When generating entities, only extract people, companies, and organizations. Ign
 
 ## Installation
 
-The easiest and the fastest way to launch the KeywordGraph MCP server is to either use our server URL `https://mcp.keywordgraph.com` for the remote / web applications or to add a manual configuration to your LLM apps if you're running them locally.
+The easiest and the fastest way to launch the InfraNodus MCP server is to either use our server URL `https://mcp.infranodus.com` for the remote / web applications or to add a manual configuration to your LLM apps if you're running them locally.
 
-You can also install the server locally, so you have more control over it. In this case, you can also edit the source files and even create your tools based on the [KeywordGraph API](https://keywordgraph.com/api).
+You can also install the server locally, so you have more control over it. In this case, you can also edit the source files and even create your tools based on the [InfraNodus API](https://infranodus.com/api).
 
-Below we describe the two different ways to set up your KeywordGraph MCP server.
+Below we describe the two different ways to set up your InfraNodus MCP server.
 
-### 1. Easiest Setup: KeywordGraph MCP Server (via HTTP/SSE)
+### 1. Easiest Setup: InfraNodus MCP Server (via HTTP/SSE)
 
 0. **Prerequisites**
 
-- Create an account on [KeywordGraph](https://keywordgraph.com) if you don't have it already and get your [KeywordGraph API Key](https://keywordgraph.com/api-access). We offer 14-day free trials.
+- Create an account on [InfraNodus](https://infranodus.com) if you don't have it already and get your [InfraNodus API Key](https://infranodus.com/api-access). We offer 14-day free trials.
 
 1. **Get the URL**
 
 - We currently use the following URL for our MCP server deployed in our infrastructure:
 
 ```bash
-https://mcp.keywordgraph.com
+https://mcp.infranodus.com
 ```
 
-2. **Add the MCP server URL to the Client Tool Where You Want to Use KeywordGraph**
+2. **Add the MCP server URL to the Client Tool Where You Want to Use InfraNodus**
 
-- Once you add the URL above to your tool, it will automatically prompt you to authenticate using OAuth in order to be able to access the KeywordGraph MCP hosted on it.
+- Once you add the URL above to your tool, it will automatically prompt you to authenticate using OAuth in order to be able to access the InfraNodus MCP hosted on it.
 
-4. **Using KeywordGraph Tools in Your Calls**
+4. **Using InfraNodus Tools in Your Calls**
 
-- To use KeywordGraph, see the tools available and simply call them through the chat interface (e.g. "show me the graphs where I talk about this topic" or "get the content gaps from the document I uploaded")
+- To use InfraNodus, see the tools available and simply call them through the chat interface (e.g. "show me the graphs where I talk about this topic" or "get the content gaps from the document I uploaded")
 
-- If your client is not using KeywordGraph for some actions, add the instruction to use KeywordGraph explicitly.
+- If your client is not using InfraNodus for some actions, add the instruction to use InfraNodus explicitly.
 
 ### 2. Manual Setup: via NPX
 
-You can deploy the KeywordGraph server manually via `npx` — a package that allows to execute local and remote Node.Js packages on your computer.
+You can deploy the InfraNodus server manually via `npx` — a package that allows to execute local and remote Node.Js packages on your computer.
 
-The KeywordGraph MCP server is available as an npm package at [https://www.npmjs.com/package/keywordgraph-mcp-server](https://www.npmjs.com/package/keywordgraph-mcp-server) from where you can launch it remotely on your local computer with npx. It will expose its tools to the MCP client that will be using this command to launch the server
+The InfraNodus MCP server is available as an npm package at [https://www.npmjs.com/package/infranodus-mcp-server](https://www.npmjs.com/package/infranodus-mcp-server) from where you can launch it remotely on your local computer with npx. It will expose its tools to the MCP client that will be using this command to launch the server
 
 #### For Claude Desktop / Cursor IDE:
 
@@ -256,11 +256,11 @@ Just add this in your Claude's configuration file (Settings > Developer > Edit C
 ```json
 {
 	"mcpServers": {
-		"keywordgraph": {
+		"infranodus": {
 			"command": "npx",
-			"args": ["-y", "keywordgraph-mcp-server"],
+			"args": ["-y", "infranodus-mcp-server"],
 			"env": {
-				"KEYWORDGRAPH_API_KEY": "YOUR_KEYWORDGRAPH_API_KEY"
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
 			}
 		}
 	}
@@ -269,12 +269,12 @@ Just add this in your Claude's configuration file (Settings > Developer > Edit C
 
 #### For Claude Code
 
-To connect the KeywordGraph MCP server to your Claude code, you can use this command. Make sure to provide the correct KeywordGraph API key for your account:
+To connect the InfraNodus MCP server to your Claude code, you can use this command. Make sure to provide the correct InfraNodus API key for your account:
 
 ```bash
-claude mcp add keywordgraph -s user \
-	-- env KEYWORDGRAPH_API_KEY=YOUR_INRANODUS_KEY \
-		npx -y keywordgraph-mcp-server
+claude mcp add infranodus -s user \
+	-- env INFRANODUS_API_KEY=YOUR_INRANODUS_KEY \
+		npx -y infranodus-mcp-server
 ```
 
 ### 3. Manual Setup: Launching MCP as a Local Server (for inspection & development)
@@ -282,13 +282,13 @@ claude mcp add keywordgraph -s user \
 0. **Prerequisites**
 
 - Node.js 18+ installed
-- KeywordGraph API key (get yours at [https://keywordgraph.com/api-access](https://keywordgraph.com/api-access))
+- InfraNodus API key (get yours at [https://infranodus.com/api-access](https://infranodus.com/api-access))
 
 1. **Clone and build the server:**
 
    ```bash
-   git clone https://github.com/yourusername/mcp-server-keywordgraph.git
-   cd mcp-server-keywordgraph
+   git clone https://github.com/yourusername/mcp-server-infranodus.git
+   cd mcp-server-infranodus
    npm install
    npm run build:inspect
    npm run inspect
@@ -301,7 +301,7 @@ Note that `build:inspect` will generate the `dist/index.js` file which you will 
    Create a `.env` file in the project root:
 
    ```
-   KEYWORDGRAPH_API_KEY=your-api-key-here
+   INFRANODUS_API_KEY=your-api-key-here
    ```
 
 3. **Inspect the MCP:**
@@ -318,18 +318,18 @@ Note that `build:inspect` will generate the `dist/index.js` file which you will 
    open ~/Library/Application\ Support/Claude/claude_desktop_config.json
    ```
 
-2. Add the KeywordGraph server configuration:
+2. Add the InfraNodus server configuration:
 
 a. remote launch via `npx`:
 
 ```json
 {
 	"mcpServers": {
-		"keywordgraph": {
+		"infranodus": {
 			"command": "npx",
-			"args": ["-y", "keywordgraph-mcp-server"],
+			"args": ["-y", "infranodus-mcp-server"],
 			"env": {
-				"KEYWORDGRAPH_API_KEY": "YOUR_KEYWORDGRAPH_API_KEY"
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
 			}
 		}
 	}
@@ -341,18 +341,18 @@ b. launch this repo with `node`, specify the absolute path to the repo + `/dist/
 ```json
 {
 	"mcpServers": {
-		"keywordgraph": {
+		"infranodus": {
 			"command": "node",
-			"args": ["/absolute/path/to/mcp-server-keywordgraph/dist/index.js"],
+			"args": ["/absolute/path/to/mcp-server-infranodus/dist/index.js"],
 			"env": {
-				"KEYWORDGRAPH_API_KEY": "your-api-key-here"
+				"INFRANODUS_API_KEY": "your-api-key-here"
 			}
 		}
 	}
 }
 ```
 
-**Note:** you can leave the `KEYWORDGRAPH_API_KEY` empty in which case you can make 70 free requests after which you will hit quota and will need to add your API key.
+**Note:** you can leave the `INFRANODUS_API_KEY` empty in which case you can make 70 free requests after which you will hit quota and will need to add your API key.
 
 3. Restart Claude Desktop to load the new server.
 
@@ -364,18 +364,18 @@ b. launch this repo with `node`, specify the absolute path to the repo + `/dist/
    %APPDATA%\Claude\claude_desktop_config.json
    ```
 
-2. Add the KeywordGraph server configuration:
+2. Add the InfraNodus server configuration:
 
 a. remote launch via `npx`:
 
 ```json
 {
 	"mcpServers": {
-		"keywordgraph": {
+		"infranodus": {
 			"command": "npx",
-			"args": ["-y", "keywordgraph-mcp-server"],
+			"args": ["-y", "infranodus-mcp-server"],
 			"env": {
-				"KEYWORDGRAPH_API_KEY": "YOUR_KEYWORDGRAPH_API_KEY"
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
 			}
 		}
 	}
@@ -387,11 +387,11 @@ b. launch this repo with `node`:
 ```json
 {
 	"mcpServers": {
-		"keywordgraph": {
+		"infranodus": {
 			"command": "node",
-			"args": ["C:\\path\\to\\mcp-server-keywordgraph\\dist\\index.js"],
+			"args": ["C:\\path\\to\\mcp-server-infranodus\\dist\\index.js"],
 			"env": {
-				"KEYWORDGRAPH_API_KEY": "your-api-key-here"
+				"INFRANODUS_API_KEY": "your-api-key-here"
 			}
 		}
 	}
@@ -407,26 +407,26 @@ b. launch this repo with `node`:
 For other applications supporting MCP, use the following command to start the server via npx:
 
 ```bash
-KEYWORDGRAPH_API_KEY=your-api-key npx -y keywordgraph-mcp-server
+INFRANODUS_API_KEY=your-api-key npx -y infranodus-mcp-server
 ```
 
 or locally
 
 ```bash
-KEYWORDGRAPH_API_KEY=your-api-key node /path/to/mcp-server-keywordgraph/dist/index.js
+INFRANODUS_API_KEY=your-api-key node /path/to/mcp-server-infranodus/dist/index.js
 ```
 
 The server communicates via stdio, so configure your application to run this command and communicate through standard input/output.
 
 ### Legacy Setup via Smithery
 
-KeywordGraph server is also available through Smithery: a repository of MCP servers that has an easy-to-follow installation process for most LLM clients. You will need a separate accout at Smithery though.
+InfraNodus server is also available through Smithery: a repository of MCP servers that has an easy-to-follow installation process for most LLM clients. You will need a separate accout at Smithery though.
 
 - Create an account on [Smithery.Ai](https://smithery.ai/) (it's free and you can use your Google or GitHub login)
 
-- Then go to the [Smithery KeywordGraph Server](https://smithery.ai/server/@keywordgraph/mcp-server-keywordgraph), click "Configure" at the top right, and add your KeywordGraph API key there.
+- Then go to the [Smithery InfraNodus Server](https://smithery.ai/server/@infranodus/mcp-server-infranodus), click "Configure" at the top right, and add your InfraNodus API key there.
 
-- Go to [Smithery KeywordGraph Server](https://smithery.ai/server/@keywordgraph/mcp-server-keywordgraph) and get the URL link from Smithery [https://server.smithery.ai/@keywordgraph/mcp-server-keywordgraph/mcp](https://server.smithery.ai/@keywordgraph/mcp-server-keywordgraph/mcp) for the server or use one of their automatic setup tools for Claude or Cursor.
+- Go to [Smithery InfraNodus Server](https://smithery.ai/server/@infranodus/mcp-server-infranodus) and get the URL link from Smithery [https://server.smithery.ai/@infranodus/mcp-server-infranodus/mcp](https://server.smithery.ai/@infranodus/mcp-server-infranodus/mcp) for the server or use one of their automatic setup tools for Claude or Cursor.
 
 - You may need to get your separate Smithery API key and Smithery proile link to make this work.
 
@@ -435,9 +435,9 @@ KeywordGraph server is also available through Smithery: a repository of MCP serv
 ```json
 // e.g. Cursor will access directly the server via Smithery
 "mcpServers": {
-    "mcp-server-keywordgraph": {
+    "mcp-server-infranodus": {
       "type": "http",
-      "url": "https://server.smithery.ai/@keywordgraph/mcp-server-keywordgraph/mcp?api_key=YOUR_SMITHERY_KEY&profile=YOUR_SMITHERY_PROFILE",
+      "url": "https://server.smithery.ai/@infranodus/mcp-server-infranodus/mcp?api_key=YOUR_SMITHERY_KEY&profile=YOUR_SMITHERY_PROFILE",
       "headers": {}
     }
   }
@@ -449,13 +449,13 @@ KeywordGraph server is also available through Smithery: a repository of MCP serv
 // Claude uses a slightly different implementation
 // Fot this, it launches the MCP server on your local machine
 "mcpServers": {
-   "mcp-server-keywordgraph": {
+   "mcp-server-infranodus": {
 			"command": "npx",
 			"args": [
 				"-y",
 				"@smithery/cli@latest",
 				"run",
-				"@keywordgraph/mcp-server-keywordgraph",
+				"@infranodus/mcp-server-infranodus",
 				"--key",
 				"YOUR_SMITHERY_KEY",
 				"--profile",
@@ -465,16 +465,16 @@ KeywordGraph server is also available through Smithery: a repository of MCP serv
   }
 ```
 
-**Note**, in both cases, you'll automatically get the `YOUR_SMITHERY_KEY` and `YOUR_SMITHERY_PROFILE` values from Smithery when you copy the URL with credentials. These are not your KeywordGraph API keys. You can use the KeywordGraph API server without the API for the first 70 calls. Then you can add it to your Smithery profile and it will automatically connect to your account using the link above.
+**Note**, in both cases, you'll automatically get the `YOUR_SMITHERY_KEY` and `YOUR_SMITHERY_PROFILE` values from Smithery when you copy the URL with credentials. These are not your InfraNodus API keys. You can use the InfraNodus API server without the API for the first 70 calls. Then you can add it to your Smithery profile and it will automatically connect to your account using the link above.
 
 ## Usage Examples
 
 Once installed, you can ask Claude to:
 
-- "Use KeywordGraph to analyze this text and show me the main topics"
+- "Use InfraNodus to analyze this text and show me the main topics"
 - "Generate a knowledge graph from this document"
 - "Find content gaps in this article"
-- "Retrieve my existing graph called 'Research Notes' from KeywordGraph"
+- "Retrieve my existing graph called 'Research Notes' from InfraNodus"
 - "What are the structural gaps in this text?"
 - "Identify the most influential concepts in this content"
 
@@ -522,7 +522,7 @@ Analyzes text and generates a knowledge graph.
 
 ### analyze_existing_graph_by_name
 
-Retrieves and analyzes an existing graph from your KeywordGraph account.
+Retrieves and analyzes an existing graph from your InfraNodus account.
 
 **Parameters:**
 
@@ -601,7 +601,7 @@ The `generate_seo_report` tool demonstrates this pattern with 6 major progress c
 
 ### API Key Issues
 
-- Get your API key at: [https://keywordgraph.com/api-access](https://keywordgraph.com/api-access)
+- Get your API key at: [https://infranodus.com/api-access](https://infranodus.com/api-access)
 - Ensure the key is correctly set in the configuration
 - Check that the key has not expired
 
@@ -616,9 +616,9 @@ npm run build
 
 ## Resources
 
-- [KeywordGraph Website](https://keywordgraph.com)
-- [KeywordGraph MCP](https://keywordgraph.com/mcp)
-- [KeywordGraph API Documentation](https://keywordgraph.com/api-access)
+- [InfraNodus Website](https://infranodus.com)
+- [InfraNodus MCP](https://infranodus.com/mcp)
+- [InfraNodus API Documentation](https://infranodus.com/api-access)
 - [MCP Protocol Documentation](https://modelcontextprotocol.io)
 - [Graph Theory Concepts](https://noduslabs.com/research/)
 
@@ -631,5 +631,5 @@ MIT
 For issues related to:
 
 - This MCP server: Open an issue in this repository
-- KeywordGraph API: Contact support@keywordgraph.com
+- InfraNodus API: Contact support@infranodus.com
 - MCP Protocol: Visit the [MCP community](https://modelcontextprotocol.io)
