@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { getConfig } from "../api/config-store.js";
 import { brand, brandApiBase } from "../config/brand.js";
 import {
-	extractOntologyStatements,
+	extractLineSeparatedStatements,
 	transformToStructuredOutput,
 } from "../utils/transformers.js";
 import { OntologyGraphOutput } from "../types/index.js";
@@ -34,10 +34,7 @@ function slugify(text: string): string {
 }
 
 function defaultOntologyName(prompt: string): string {
-	const timestamp = new Date()
-		.toISOString()
-		.slice(2, 16)
-		.replace(/[-:T]/g, "");
+	const timestamp = new Date().toISOString().slice(2, 16).replace(/[-:T]/g, "");
 	const slug = slugify(prompt.split(" ").slice(0, 3).join(" "));
 	return slug ? `ai_onto_${slug}_${timestamp}` : `ai_onto_${timestamp}`;
 }
@@ -46,8 +43,7 @@ export const generateOntologyGraphTool = {
 	name: "generate_ontology_graph",
 	definition: {
 		title: "Generate an AI Ontology Graph from a Topic or Prompt",
-		description:
-			`Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) for a topic, prompt, or text, and optionally save it as a ${brand.name} graph. By default the graph is saved and a link is returned. Set saveGraph to false if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later.`,
+		description: `Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) for a topic, prompt, or text, and optionally save it as a ${brand.name} graph. Use to get a rich overview or to produce a reasoning map of a topic for expert workflows.`,
 		inputSchema: GenerateOntologyGraphSchema.shape,
 		annotations: {
 			readOnlyHint: false,
@@ -58,8 +54,9 @@ export const generateOntologyGraphTool = {
 	handler: async (params: z.infer<typeof GenerateOntologyGraphSchema>) => {
 		try {
 			const saveGraph = params.saveGraph !== false;
-			const includeGraph = params.includeGraph !== false;
+			const includeGraph = params.includeGraph === true;
 			const includeAnalytics = params.includeAnalytics !== false;
+			const includeStatements = params.includeStatements !== false;
 			const graphName =
 				params.graphName?.trim() || defaultOntologyName(params.prompt);
 
@@ -70,8 +67,7 @@ export const generateOntologyGraphTool = {
 				mode: "gptchat",
 				modelToUse: params.modelToUse ?? "claude-opus-4.6",
 				prompt: [{ role: "user", content: params.prompt }],
-				numberOfResults: String(params.numberOfResults ?? 40),
-				modifyAnalyzedText: "extractEntitiesOnly",
+				modifyAnalyzedText: "none",
 				contextType: "ONTOLOGY",
 				replaceEntities: false,
 				hideSearchTerms: true,
@@ -89,7 +85,14 @@ export const generateOntologyGraphTool = {
 				);
 			}
 
-			const ontologyStatements = extractOntologyStatements(response);
+			// Raw statements are present in the /aiAdvice response only when NOT
+			// saving — saving returns a redirect instead. Each completion is a
+			// newline-separated list of entity-relation statements, split the same
+			// way the host app does (convertGPTResponsesToArray). The graph builder
+			// (/graphAndStatements) returns the statements in their final,
+			// post-processing shape, so those are preferred for ontologyStatements
+			// whenever the graph is built; these raw ones are the fallback.
+			const rawOntologyStatements = extractLineSeparatedStatements(response);
 
 			let output: OntologyGraphOutput;
 
@@ -115,37 +118,42 @@ export const generateOntologyGraphTool = {
 			} else {
 				output = {
 					saved: false,
-					ontologyStatements,
 					message:
-						ontologyStatements.length > 0
-							? `Ontology generated (not saved). Use saveGraph: true to persist it as a ${brand.name} graph.`
+						rawOntologyStatements.length > 0
+							? `Ontology generated (not saved): ${rawOntologyStatements.length} statement(s) returned. Use saveGraph: true to persist it as a ${brand.name} graph.`
 							: "The AI did not return any ontology statements. Try a more specific prompt or a more capable model.",
 				};
 			}
 
-			// Optional follow-up: fetch the analyzed graph for compact structure
-			// and/or analytics. Skip entirely if both are disabled.
-			if (includeGraph || includeAnalytics) {
+			// We hit the graph builder for analytics/graph, and also for the
+			// final-shape statements when the caller wants them — except in the
+			// non-saved, statements-only case, where the raw statements are already
+			// in hand and an extra build (plus its AI topics call) would be wasteful.
+			const needStatementsFromGraph =
+				includeStatements && (saveGraph || includeGraph || includeAnalytics);
+			const aiTopics = includeAnalytics ? "true" : "false";
+
+			if (includeGraph || includeAnalytics || needStatementsFromGraph) {
 				const graphQuery = new URLSearchParams({
 					doNotSave: "true",
 					addStats: "true",
-					includeStatements: "false",
+					includeStatements: includeStatements ? "true" : "false",
 					includeGraphSummary: "false",
 					extendedGraphSummary: includeAnalytics ? "true" : "false",
 					includeGraph: includeGraph ? "true" : "false",
 					compactGraph: includeGraph ? "true" : "false",
-					aiTopics: "true",
+					aiTopics,
 					optimize: "develop",
 				});
 				const graphEndpoint = `/graphAndStatements?${graphQuery.toString()}`;
 
 				const graphRequestBody: any = saveGraph
-					? { name: graphName, aiTopics: "true", userName: "" }
+					? { name: graphName, aiTopics, userName: "" }
 					: {
-							text: ontologyStatements.join("\n"),
-							aiTopics: "true",
+							text: rawOntologyStatements.join("\n"),
+							aiTopics,
 							modifyAnalyzedText: "extractEntitiesOnly",
-					  };
+						};
 
 				const graphResponse = await makeInfraNodusRequest(
 					graphEndpoint,
@@ -179,7 +187,28 @@ export const generateOntologyGraphTool = {
 					if (includeGraph) {
 						output.knowledgeGraph = structured.knowledgeGraph;
 					}
+					if (includeStatements && Array.isArray(graphResponse.statements)) {
+						const stmts = graphResponse.statements
+							.map((s: any) =>
+								(typeof s === "string" ? s : (s?.content ?? "")).trim(),
+							)
+							.filter((s: string) => s.length > 0);
+						if (stmts.length > 0) {
+							output.ontologyStatements = stmts;
+						}
+					}
 				}
+			}
+
+			// Fallback: if the builder's final-shape statements weren't obtained
+			// (no graph call ran, or it failed/returned none), surface the raw
+			// statements when we have them.
+			if (
+				includeStatements &&
+				!output.ontologyStatements &&
+				rawOntologyStatements.length > 0
+			) {
+				output.ontologyStatements = rawOntologyStatements;
 			}
 
 			return {

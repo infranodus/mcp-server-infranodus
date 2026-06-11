@@ -2,7 +2,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { configSchema, serverInfo } from "./config/index.js";
-import { brand, brandApiKey, brandApiBase, isToolEnabled } from "./config/brand.js";
+import {
+	brand,
+	brandApiKey,
+	brandApiBase,
+	isToolEnabled,
+} from "./config/brand.js";
 import {
 	generateKnowledgeGraphTool,
 	createKnowledgeGraphTool,
@@ -78,7 +83,6 @@ export default function createServer({
 		generateKnowledgeGraphTool,
 		createKnowledgeGraphTool,
 		generateOntologyGraphTool,
-		analyzeLlmResultsTool,
 		addMemoryTool,
 		getMemoryTool,
 		analyzeExistingGraphTool,
@@ -103,6 +107,7 @@ export default function createServer({
 		generateGoogleSearchResultsGraphTool,
 		generateGoogleSearchQueriesGraphTool,
 		generateGoogleResultsVsQueriesGraphTool,
+		analyzeLlmResultsTool,
 		generateSEOGraphTool,
 	];
 

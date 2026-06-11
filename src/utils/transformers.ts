@@ -212,7 +212,13 @@ export function generateContextualHint(data: GraphResponse): GraphOverview {
 	return graphOverview;
 }
 
-export function extractOntologyStatements(data: GraphResponse): string[] {
+// For the 'ontology graph' / 'llm graph' aiQueryTypes, a single completion
+// holds many statements, one per line. Mirror the host app's
+// convertGPTResponsesToArray (routes/ai.js): split each choice on newlines and
+// trim, rather than collapsing newlines into one statement the way
+// extractAiChoiceTexts does. Shared by generate_ontology_graph and
+// analyze_llm_results.
+export function extractLineSeparatedStatements(data: GraphResponse): string[] {
 	if (!data.choices || !data.choices.length) return [];
 
 	return data.choices

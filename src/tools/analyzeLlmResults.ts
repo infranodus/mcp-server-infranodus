@@ -4,7 +4,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { getConfig } from "../api/config-store.js";
 import { brand, brandApiBase } from "../config/brand.js";
 import {
-	extractAiChoiceTexts,
+	extractLineSeparatedStatements,
 	transformToStructuredOutput,
 } from "../utils/transformers.js";
 import { OntologyGraphOutput } from "../types/index.js";
@@ -32,10 +32,7 @@ function slugify(text: string): string {
 }
 
 function defaultGraphName(prompt: string): string {
-	const timestamp = new Date()
-		.toISOString()
-		.slice(2, 16)
-		.replace(/[-:T]/g, "");
+	const timestamp = new Date().toISOString().slice(2, 16).replace(/[-:T]/g, "");
 	const slug = slugify(prompt.split(" ").slice(0, 3).join(" "));
 	return slug ? `llm_view_${slug}_${timestamp}` : `llm_view_${timestamp}`;
 }
@@ -45,7 +42,7 @@ export const analyzeLlmResultsTool = {
 	definition: {
 		title: "Analyze How an LLM Sees a Topic",
 		description:
-			"Ask an LLM to describe a topic, then turn its response into a knowledge graph that reveals how the model frames it — main concepts, clusters, content gaps, and the relations between them. Useful for probing model bias, surfacing the implicit structure of an LLM's view on a subject, or comparing how different models describe the same topic. By default the graph is saved (saveGraph: true), analytics are returned (includeAnalytics: true), and the raw graph structure is omitted (includeGraph: false).",
+			"Ask an LLM to describe a topic, then turn its response into a knowledge graph that reveals how the model frames it — main concepts, clusters, content gaps, and the relations between them. Useful for probing model bias, surfacing the implicit structure of an LLM's view on a subject, or comparing how different models describe the same topic. ",
 		inputSchema: AnalyzeLlmResultsSchema.shape,
 		annotations: {
 			readOnlyHint: false,
@@ -58,7 +55,8 @@ export const analyzeLlmResultsTool = {
 			const saveGraph = params.saveGraph !== false;
 			const includeGraph = params.includeGraph === true;
 			const includeAnalytics = params.includeAnalytics !== false;
-			const modifyAnalyzedText = params.modifyAnalyzedText ?? "detectEntities";
+			const includeStatements = params.includeStatements !== false;
+			const modifyAnalyzedText = params.modifyAnalyzedText ?? "none";
 			const contextType =
 				modifyAnalyzedText === "none" ? "STANDARD" : "WIKILINKS";
 			const graphName =
@@ -67,11 +65,10 @@ export const analyzeLlmResultsTool = {
 			const requestBody: any = {
 				saveToGraphAndRedirect: saveGraph,
 				contextName: graphName,
-				aiQueryType: "intro search",
+				aiQueryType: "llm graph",
 				mode: "gptchat",
 				modelToUse: params.modelToUse ?? "claude-opus-4.6",
 				prompt: [{ role: "user", content: params.prompt }],
-				numberOfResults: String(params.numberOfResults ?? 20),
 				modifyAnalyzedText,
 				contextType,
 				replaceEntities: false,
@@ -88,7 +85,15 @@ export const analyzeLlmResultsTool = {
 				);
 			}
 
-			const llmStatements = extractAiChoiceTexts(response);
+			// Raw completions are present in the /aiAdvice response only when NOT
+			// saving — saving returns a redirect instead. For the 'llm graph'
+			// query each completion is a newline-separated list of statements, so
+			// split on newlines the same way the host app does (convertGPTResponses
+			// ToArray). The graph builder (/graphAndStatements) returns the
+			// statements in their final, post-processing shape (entity detection
+			// applied, etc.), so those are preferred for llmStatements whenever the
+			// graph is built; these raw ones are the fallback.
+			const rawChoiceStatements = extractLineSeparatedStatements(response);
 
 			let output: OntologyGraphOutput;
 
@@ -113,35 +118,43 @@ export const analyzeLlmResultsTool = {
 			} else {
 				output = {
 					saved: false,
-					llmStatements,
 					message:
-						llmStatements.length > 0
-							? `LLM overview generated (not saved): ${llmStatements.length} completion(s) returned. Use saveGraph: true to persist it as a ${brand.name} graph.`
+						rawChoiceStatements.length > 0
+							? `LLM overview generated (not saved): ${rawChoiceStatements.length} statement(s) returned. Use saveGraph: true to persist it as a ${brand.name} graph.`
 							: "The LLM did not return any statements. Try a more specific prompt or a different model.",
 				};
 			}
 
-			if (includeGraph || includeAnalytics) {
+			// We hit the graph builder for analytics/graph, and also for the
+			// final-shape statements when the caller wants them — except in the
+			// non-saved, statements-only case, where the raw completions are
+			// already in hand and an extra build (plus its AI topics call) would
+			// be wasteful.
+			const needStatementsFromGraph =
+				includeStatements && (saveGraph || includeGraph || includeAnalytics);
+			const aiTopics = includeAnalytics ? "true" : "false";
+
+			if (includeGraph || includeAnalytics || needStatementsFromGraph) {
 				const graphQuery = new URLSearchParams({
 					doNotSave: "true",
 					addStats: "true",
-					includeStatements: "false",
+					includeStatements: includeStatements ? "true" : "false",
 					includeGraphSummary: "false",
 					extendedGraphSummary: includeAnalytics ? "true" : "false",
 					includeGraph: includeGraph ? "true" : "false",
 					compactGraph: includeGraph ? "true" : "false",
-					aiTopics: "true",
+					aiTopics,
 					optimize: "develop",
 				});
 				const graphEndpoint = `/graphAndStatements?${graphQuery.toString()}`;
 
 				const graphRequestBody: any = saveGraph
-					? { name: graphName, aiTopics: "true", userName: "" }
+					? { name: graphName, aiTopics, userName: "" }
 					: {
-							text: llmStatements.join("\n"),
-							aiTopics: "true",
+							text: rawChoiceStatements.join("\n"),
+							aiTopics,
 							modifyAnalyzedText,
-					  };
+						};
 
 				const graphResponse = await makeInfraNodusRequest(
 					graphEndpoint,
@@ -174,7 +187,28 @@ export const analyzeLlmResultsTool = {
 					if (includeGraph) {
 						output.knowledgeGraph = structured.knowledgeGraph;
 					}
+					if (includeStatements && Array.isArray(graphResponse.statements)) {
+						const stmts = graphResponse.statements
+							.map((s: any) =>
+								(typeof s === "string" ? s : (s?.content ?? "")).trim(),
+							)
+							.filter((s: string) => s.length > 0);
+						if (stmts.length > 0) {
+							output.llmStatements = stmts;
+						}
+					}
 				}
+			}
+
+			// Fallback: if the builder's final-shape statements weren't obtained
+			// (no graph call ran, or it failed/returned none), surface the raw
+			// completions when we have them.
+			if (
+				includeStatements &&
+				!output.llmStatements &&
+				rawChoiceStatements.length > 0
+			) {
+				output.llmStatements = rawChoiceStatements;
 			}
 
 			return {

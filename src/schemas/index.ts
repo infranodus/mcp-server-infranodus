@@ -360,15 +360,6 @@ export const GenerateOntologyGraphSchema = z.object({
 		.describe(
 			"AI model used to generate the ontology. More capable models (claude-opus-4.6, gpt-5.4) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-4.6.",
 		),
-	numberOfResults: z
-		.number()
-		.int()
-		.min(1)
-		.max(40)
-		.default(40)
-		.describe(
-			"Approximate number of ontology statements / relations to generate. Default: 40 (the maximum), so you get a rich ontology. Hard-capped at 40 — higher values are silently clamped by the backend. Reduce this (e.g. to 20 or 10) if generation takes too long, the request times out, or the model returns errors on complex topics.",
-		),
 	saveGraph: z
 		.boolean()
 		.default(true)
@@ -377,15 +368,21 @@ export const GenerateOntologyGraphSchema = z.object({
 		),
 	includeGraph: z
 		.boolean()
-		.default(true)
+		.default(false)
 		.describe(
-			"Include the compact graph structure — nodes (entities), edges (relations between them), and clusters — in the response. True by default, since nodes and edges are the point of an ontology graph. Set to false to save context space when only the ontology statements or analytical insights are needed.",
+			"Include the compact graph structure — nodes (entities), edges (relations between them), and clusters — in the response. False by default to keep the response small; the ontology statements and analytics usually carry what's needed. Set to true when you also want to inspect the node/edge structure or render it.",
 		),
 	includeAnalytics: z
 		.boolean()
 		.default(true)
 		.describe(
-			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the generated ontology. True by default. Use this to get insights from the graph: keep it on when you need to understand the structure, gaps, or key concepts; turn off only if you just need the raw ontology statements.",
+			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the generated ontology. True by default. Use this to get insights from the graph: keep it on when you need to understand the structure, gaps, or key concepts; turn off to save context space when you only need the raw ontology statements (see includeStatements) or the graph link.",
+		),
+	includeStatements: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include the ontology statements — the entity-relation statements the AI generated, in their final post-processing shape as stored in the graph — in the response (the ontologyStatements array). True by default so you can read the generated ontology. Set to false to save context space when you only need the analytics and/or the saved graph link, not the underlying statements.",
 		),
 });
 
@@ -420,24 +417,15 @@ export const AnalyzeLlmResultsSchema = z.object({
 		.describe(
 			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-4.6.",
 		),
-	numberOfResults: z
-		.number()
-		.int()
-		.min(1)
-		.max(40)
-		.default(20)
-		.describe(
-			`Number of separate LLM completions to generate (NOT statements per completion). Each completion becomes one statement in the graph — together they form the multi-angle view of how the model frames the topic. Default: 20 (matches ${brand.name}' built-in UI). This directly drives cost and latency: 20 = 20 separate model calls (some models like gpt-5.4/gpt-5.4-mini are internally capped at 8). Lower it (e.g. to 10) if the user is cost-sensitive or generation times out; raise it (up to 40) for a richer overview when the model is fast/cheap.`,
-		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
-		.default("detectEntities")
+		.default("none")
 		.describe(
 			"How the LLM output is parsed into the graph. 'none' = plain word co-occurrence (contextType STANDARD); 'detectEntities' = mix named entities with words (contextType WIKILINKS, default — best balanced overview); 'extractEntitiesOnly' = entity-only graph (contextType WIKILINKS, cleanest entity view).",
 		),
 	saveGraph: z
 		.boolean()
-		.default(true)
+		.default(false)
 		.describe(
 			`Whether to save the LLM overview as a persistent ${brand.name} graph (true by default). Set to false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.`,
 		),
@@ -451,7 +439,13 @@ export const AnalyzeLlmResultsSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe(
-			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the LLM output. True by default, because the whole point of this tool is the insights about how the LLM frames the topic. Turn off only if you just need the raw text statements.",
+			"Include graph analytics — main topical clusters, content gaps, top influential nodes / concepts, top relations, conceptual gateways, and network statistics — derived from the LLM output. True by default, because the whole point of this tool is the insights about how the LLM frames the topic. Set to false to save context space when you only need the raw LLM statements (see includeStatements) or the graph link.",
+		),
+	includeStatements: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include the LLM statements — the individual completions the model produced about the topic, in their final post-processing shape as stored in the graph — in the response (the llmStatements array). True by default so you can read what the model actually said. Set to false to save context space when you only need the analytics and/or the saved graph link, not the underlying text.",
 		),
 });
 
