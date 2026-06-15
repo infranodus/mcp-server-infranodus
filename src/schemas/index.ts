@@ -548,7 +548,7 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 			"gpt-5.4",
 			"gpt-5.4-mini",
 		])
-		.default("gpt-4o")
+		.default("gpt-5.4")
 		.describe(
 			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
@@ -630,7 +630,7 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 			"gpt-5.4",
 			"gpt-5.4-mini",
 		])
-		.default("gpt-4o")
+		.default("gpt-5.4")
 		.describe(
 			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
@@ -685,7 +685,7 @@ export const OptimizeTextStructureSchemaBase = z.object({
 			"gpt-5.4",
 			"gpt-5.4-mini",
 		])
-		.default("gpt-4o")
+		.default("gpt-5.4")
 		.describe(
 			"AI model to use for generating optimization suggestions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
@@ -698,6 +698,34 @@ export const OptimizeTextStructureSchema =
 			(data.graphName !== undefined && data.graphName.trim().length > 0),
 		{ message: "Provide either text, url, or graphName for analysis." },
 	);
+
+export const OptimizeReasoningSchemaBase = z.object({
+	text: z
+		.string()
+		.min(1, "Text is required for analysis")
+		.describe(
+			"The current reasoning trace or chat conversation to analyze structurally. Paste the model's own chain-of-thought / reasoning output, the running dialogue with the user, or both concatenated. Use new lines to separate distinct reasoning steps, turns, or paragraphs (but not individual sentences).",
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-4.6",
+			"claude-sonnet-4.6",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
+		])
+		.default("gpt-5.4")
+		.describe(
+			"AI model to use for generating the reasoning-optimization suggestions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+		),
+});
+export const OptimizeReasoningSchema = OptimizeReasoningSchemaBase;
 
 export const DevelopLatentConceptsSchemaBase = z.object({
 	text: z
@@ -740,7 +768,7 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 			"gpt-5.4",
 			"gpt-5.4-mini",
 		])
-		.default("gpt-4o")
+		.default("gpt-5.4")
 		.describe(
 			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
@@ -842,7 +870,7 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 			"gpt-5.4",
 			"gpt-5.4-mini",
 		])
-		.default("gpt-4o")
+		.default("gpt-5.4")
 		.describe(
 			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),
@@ -1547,7 +1575,7 @@ export const DevelopTextToolSchemaBase = z.object({
 			"gpt-5.4",
 			"gpt-5.4-mini",
 		])
-		.default("gpt-4o")
+		.default("gpt-5.4")
 		.describe(
 			"AI model to use for generating insights: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
 		),

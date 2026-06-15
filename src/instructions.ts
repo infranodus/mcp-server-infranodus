@@ -20,7 +20,7 @@ WORKFLOW PATTERNS:
 1. Quick structural overview: generate_knowledge_graph or generate_topical_clusters → get main topics, clusters, gaps.
 2. Deep text development: develop_text_tool (combines optimize + latent topics + conceptual bridges in one call with progress tracking).
 3. Research ideation: generate_content_gaps → generate_research_questions or generate_research_ideas. Use useSeveralGaps for diversity, gapDepth for less prominent gaps.
-4. Text optimization: optimize_text_structure (auto-detects bias/focus/dispersion and suggests appropriate development).
+4. Text optimization: optimize_text_structure (auto-detects bias/focus/dispersion and suggests appropriate development). For the model's own reasoning or chat with the user, use optimize_reasoning (same analysis applied to the reasoning trace/conversation, steering it toward optimal diversity and coherence).
 5. Outside-the-box thinking: develop_conceptual_bridges (connects discourse to broader context) or set shouldTranscend/transcendDiscourse: true.
 6. RAG augmentation: generate_contextual_hint (lightweight structural summary) or retrieve_from_knowledge_base with includeGraphSummary (GraphRAG retrieval).
 7. Comparing texts: overlap_between_texts (similarities), difference_between_texts (what's missing in first text), merged_graph_from_texts (combined overview).

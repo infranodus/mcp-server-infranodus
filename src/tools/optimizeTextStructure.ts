@@ -58,7 +58,7 @@ export const optimizeTextStructureTool = {
 					name: params.graphName,
 					aiTopics: "true",
 					requestMode,
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			} else {
 				let contentText: string;
@@ -72,14 +72,14 @@ export const optimizeTextStructureTool = {
 					contentText = params.text;
 				} else {
 					return errorContent(
-						"Provide either text, url, or graphName for analysis"
+						"Provide either text, url, or graphName for analysis",
 					);
 				}
 				requestBody = {
 					text: contentText,
 					aiTopics: "true",
 					requestMode,
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			}
 

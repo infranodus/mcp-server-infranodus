@@ -24,20 +24,21 @@ Available Tools:
 3. generate_content_gaps - Generate content gaps from text
 4. generate_topical_clusters - Generate topics and clusters of keywords from text using knowledge graph analysis; by default also returns AI-generated summaries of each topical cluster (topicalClusterSummaries, useful for SEO-optimized content creation) — set generateTopicalSummaries: false to increase processing speed or if the summary request fails
 5. optimize_text_structure - Analyze the level of bias and coherence in text; if too biased, develop the represented topics; if focused or diversified, develop the content gaps; if dispersed, focus the most common gap topics
-6. develop_text_tool - Comprehensive text analysis combining research questions, latent topics, and content gaps with progress tracking
-7. create_knowledge_graph - Create a knowledge graph in ${brand.name} from text and provide a link to it
-8. overlap_between_texts - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
-9. merged_graph_from_texts - Build a graph of all the texts, URLs, and existing graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
-10. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
-11. analyze_llm_results - Ask an LLM to describe a topic and turn its answer into a knowledge graph that reveals how the model frames it (main concepts, clusters, content gaps, relations). Useful for probing model bias or comparing how different models describe the same topic. Default model: claude-opus-4.6. Saves by default; returns analytics by default and omits raw graph (includeGraph: false) to keep responses compact
-12. analyze_google_search_results - Generate a Google search results graph from search queries
-13. analyze_youtube_results - Generate a knowledge graph from YouTube results (search results, a channel's or playlist's videos, video comments, or transcribed subtitles) to reveal main topics, clusters, and content gaps
-14. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
-15. search_queries_vs_search_results - Find what people search for but don't yet find
-16. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
-17. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
-18. search - Search through existing ${brand.name} graphs
-19. fetch - Fetch a specific search result from a ${brand.name} graph
+6. optimize_reasoning - Apply the same bias/coherence analysis to the model's own reasoning trace or chat with the user (pass it as text); detects whether the reasoning is biased, focused, diversified, or dispersed and suggests how to continue thinking toward optimal diversity and coherence at the same time
+7. develop_text_tool - Comprehensive text analysis combining research questions, latent topics, and content gaps with progress tracking
+8. create_knowledge_graph - Create a knowledge graph in ${brand.name} from text and provide a link to it
+9. overlap_between_texts - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
+10. merged_graph_from_texts - Build a graph of all the texts, URLs, and existing graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
+11. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
+12. analyze_llm_results - Ask an LLM to describe a topic and turn its answer into a knowledge graph that reveals how the model frames it (main concepts, clusters, content gaps, relations). Useful for probing model bias or comparing how different models describe the same topic. Default model: claude-opus-4.6. Saves by default; returns analytics by default and omits raw graph (includeGraph: false) to keep responses compact
+13. analyze_google_search_results - Generate a Google search results graph from search queries
+14. analyze_youtube_results - Generate a knowledge graph from YouTube results (search results, a channel's or playlist's videos, video comments, or transcribed subtitles) to reveal main topics, clusters, and content gaps
+15. analyze_related_search_queries - Generate a graph of search requests related to search queries provided
+16. search_queries_vs_search_results - Find what people search for but don't yet find
+17. generate_seo_report - Analyze content for SEO optimization by comparing it with Google search results and search queries
+18. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
+19. search - Search through existing ${brand.name} graphs
+20. fetch - Fetch a specific search result from a ${brand.name} graph
 
 Key Features:
 - Topic modeling and clustering
