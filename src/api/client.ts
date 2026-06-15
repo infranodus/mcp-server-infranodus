@@ -1,5 +1,5 @@
 import { GraphResponse } from "../types/index.js";
-import { getConfig } from "./config-store.js";
+import { getConfig, getCurrentTool } from "./config-store.js";
 import { brandSource } from "../config/brand.js";
 
 export async function makeInfraNodusRequest(
@@ -10,7 +10,13 @@ export async function makeInfraNodusRequest(
 	try {
 		const config = getConfig();
 
-		const requestBody = { ...body, modal: "mcp_server", source: brandSource() };
+		const tool = getCurrentTool();
+		const requestBody = {
+			...body,
+			modal: "mcp_server",
+			source: brandSource(),
+			...(tool && { tool }),
+		};
 
 		const response = await fetch(`${config.apiBase}${endpoint}`, {
 			method,

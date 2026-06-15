@@ -47,7 +47,7 @@ import { prompts } from "./prompts/index.js";
 import { serverInstructions } from "./instructions.js";
 import * as dotenv from "dotenv";
 import * as mcpcat from "mcpcat";
-import { runWithConfig } from "./api/config-store.js";
+import { runWithConfig, runWithTool } from "./api/config-store.js";
 
 // Export the config schema for Smithery
 export { configSchema };
@@ -67,13 +67,17 @@ export default function createServer({
 	});
 
 	// Wrap tool handlers so each invocation runs in an AsyncLocalStorage
-	const wrapHandler = (handler: any) => {
+	// carrying both the config and the invoking tool's name (so API requests
+	// can tag which tool triggered them — see makeInfraNodusRequest).
+	const wrapHandler = (handler: any, toolName: string) => {
 		return async (params: any, extra: any) => {
 			return runWithConfig(config, () =>
-				handler(params, {
-					progressToken: extra?._meta?.progressToken,
-					sendNotification: extra?.sendNotification,
-				}),
+				runWithTool(toolName, () =>
+					handler(params, {
+						progressToken: extra?._meta?.progressToken,
+						sendNotification: extra?.sendNotification,
+					}),
+				),
 			);
 		};
 	};
@@ -121,7 +125,7 @@ export default function createServer({
 		mcpServer.registerTool(
 			tool.name,
 			tool.definition,
-			wrapHandler(tool.handler),
+			wrapHandler(tool.handler, tool.name),
 		);
 	}
 
