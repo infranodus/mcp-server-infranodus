@@ -33,6 +33,12 @@ export const GenerateGraphSchema = z.object({
 		.describe(
 			"Include nodes and edges in response (true only if explicitly needed, not recommended for longer texts)",
 		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
+		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
@@ -76,6 +82,12 @@ export const CreateGraphSchema = z.object({
 		.default(false)
 		.describe(
 			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)",
+		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -157,6 +169,12 @@ export const AnalyzeTextSchemaBase = z.object({
 		.describe(
 			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)",
 		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
+		),
 	includeGraphSummary: z
 		.boolean()
 		.default(false)
@@ -205,6 +223,12 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.default(false)
 		.describe(
 			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)",
+		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
 		),
 	includeGraphSummary: z
 		.boolean()
@@ -371,6 +395,12 @@ export const GenerateOntologyGraphSchema = z.object({
 		.default(false)
 		.describe(
 			"Include the compact graph structure — nodes (entities), edges (relations between them), and clusters — in the response. False by default to keep the response small; the ontology statements and analytics usually carry what's needed. Set to true when you also want to inspect the node/edge structure or render it.",
+		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), and the nodes-to-statements map. Implies includeGraph and overrides compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
 		),
 	includeAnalytics: z
 		.boolean()

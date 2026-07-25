@@ -54,7 +54,11 @@ export const generateOntologyGraphTool = {
 	handler: async (params: z.infer<typeof GenerateOntologyGraphSchema>) => {
 		try {
 			const saveGraph = params.saveGraph !== false;
-			const includeGraph = params.includeGraph === true;
+			const fullGraph = params.fullGraph === true;
+			// fullGraph implies includeGraph and disables compaction below, so the
+			// response carries the raw graphology graph (all node/edge attributes,
+			// edge context_matrix, nodes_to_statements_map).
+			const includeGraph = params.includeGraph === true || fullGraph;
 			const includeAnalytics = params.includeAnalytics !== false;
 			const includeStatements = params.includeStatements !== false;
 			const graphName =
@@ -141,7 +145,7 @@ export const generateOntologyGraphTool = {
 					includeGraphSummary: "false",
 					extendedGraphSummary: includeAnalytics ? "true" : "false",
 					includeGraph: includeGraph ? "true" : "false",
-					compactGraph: includeGraph ? "true" : "false",
+					compactGraph: includeGraph && !fullGraph ? "true" : "false",
 					aiTopics,
 					optimize: "develop",
 				});

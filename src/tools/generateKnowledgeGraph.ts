@@ -43,9 +43,13 @@ export const generateKnowledgeGraphTool = {
 
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
+			const fullGraph = params.fullGraph === true;
 			const buildingEntitiesGraph =
 				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
-			// Build query parameters
+			// Build query parameters. fullGraph overrides the compaction flags:
+			// the API returns the raw graphology graph (all node/edge attributes,
+			// edge context_matrix, nodes_to_statements_map) and, when statements
+			// are requested, their full metadata.
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -53,11 +57,15 @@ export const generateKnowledgeGraphTool = {
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
 				includeGraph:
-					includeGraph || buildingEntitiesGraph || includeNodesAndEdges
+					fullGraph || includeGraph || buildingEntitiesGraph || includeNodesAndEdges
 						? "true"
 						: "false",
-				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
-				compactStatements: params.includeStatements ? "true" : "false",
+				compactGraph:
+					!fullGraph && (includeGraph || buildingEntitiesGraph)
+						? "true"
+						: "false",
+				compactStatements:
+					!fullGraph && params.includeStatements ? "true" : "false",
 				aiTopics: "true",
 				optimize: "develop",
 			});
@@ -89,8 +97,8 @@ export const generateKnowledgeGraphTool = {
 
 			const structuredOutput = transformToStructuredOutput(
 				response,
-				includeGraph,
-				includeNodesAndEdges,
+				includeGraph || fullGraph,
+				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph
 			);
 
