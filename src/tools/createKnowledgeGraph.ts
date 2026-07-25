@@ -4,7 +4,7 @@ import { CreateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
-import { wikilinksModeToContextSettings } from "../utils/wikilinksMode.js";
+import { prepareWikilinksPayload } from "../utils/wikilinksMode.js";
 
 function errorContent(message: string) {
 	return {
@@ -89,13 +89,12 @@ export const createKnowledgeGraphTool = {
 			}
 
 			// Applied by the backend only when the graph context is created —
-			// the first upload to a graphName fixes the processing mode.
-			const wikilinksContextSettings = wikilinksModeToContextSettings(
-				params.wikilinksMode,
+			// the first upload to a graphName fixes the processing mode. Parent
+			// modes replace `text` with statements[] + per-statement categories.
+			Object.assign(
+				requestBody,
+				prepareWikilinksPayload(contentText, params.wikilinksMode),
 			);
-			if (wikilinksContextSettings) {
-				requestBody.contextSettings = wikilinksContextSettings;
-			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 

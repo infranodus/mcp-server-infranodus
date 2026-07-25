@@ -3,7 +3,7 @@ import { GenerateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
-import { wikilinksModeToContextSettings } from "../utils/wikilinksMode.js";
+import { prepareWikilinksPayload } from "../utils/wikilinksMode.js";
 
 function errorContent(message: string) {
 	return {
@@ -86,12 +86,10 @@ export const generateKnowledgeGraphTool = {
 				requestBody.modifyAnalyzedText = params.modifyAnalyzedText;
 			}
 
-			const wikilinksContextSettings = wikilinksModeToContextSettings(
-				params.wikilinksMode,
+			Object.assign(
+				requestBody,
+				prepareWikilinksPayload(contentText, params.wikilinksMode),
 			);
-			if (wikilinksContextSettings) {
-				requestBody.contextSettings = wikilinksContextSettings;
-			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
