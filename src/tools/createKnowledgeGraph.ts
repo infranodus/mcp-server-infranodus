@@ -4,6 +4,7 @@ import { CreateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+import { wikilinksModeToContextSettings } from "../utils/wikilinksMode.js";
 
 function errorContent(message: string) {
 	return {
@@ -71,6 +72,10 @@ export const createKnowledgeGraphTool = {
 				optimize: "develop",
 			});
 
+			if (params.maxNodes && params.maxNodes > 0) {
+				queryParams.set("maxnodes", String(params.maxNodes));
+			}
+
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
 			const requestBody: any = {
@@ -81,6 +86,15 @@ export const createKnowledgeGraphTool = {
 
 			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {
 				requestBody.modifyAnalyzedText = params.modifyAnalyzedText;
+			}
+
+			// Applied by the backend only when the graph context is created —
+			// the first upload to a graphName fixes the processing mode.
+			const wikilinksContextSettings = wikilinksModeToContextSettings(
+				params.wikilinksMode,
+			);
+			if (wikilinksContextSettings) {
+				requestBody.contextSettings = wikilinksContextSettings;
 			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

@@ -3,6 +3,7 @@ import { GenerateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+import { wikilinksModeToContextSettings } from "../utils/wikilinksMode.js";
 
 function errorContent(message: string) {
 	return {
@@ -70,6 +71,10 @@ export const generateKnowledgeGraphTool = {
 				optimize: "develop",
 			});
 
+			if (params.maxNodes && params.maxNodes > 0) {
+				queryParams.set("maxnodes", String(params.maxNodes));
+			}
+
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
 			const requestBody: any = {
@@ -79,6 +84,13 @@ export const generateKnowledgeGraphTool = {
 
 			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {
 				requestBody.modifyAnalyzedText = params.modifyAnalyzedText;
+			}
+
+			const wikilinksContextSettings = wikilinksModeToContextSettings(
+				params.wikilinksMode,
+			);
+			if (wikilinksContextSettings) {
+				requestBody.contextSettings = wikilinksContextSettings;
 			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

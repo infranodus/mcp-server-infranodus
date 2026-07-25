@@ -149,6 +149,9 @@ export const generateOntologyGraphTool = {
 					aiTopics,
 					optimize: "develop",
 				});
+				if (params.maxNodes && params.maxNodes > 0) {
+					graphQuery.set("maxnodes", String(params.maxNodes));
+				}
 				const graphEndpoint = `/graphAndStatements?${graphQuery.toString()}`;
 
 				const graphRequestBody: any = saveGraph

@@ -4,6 +4,7 @@ import { AnalyzeTextSchema, AnalyzeTextSchemaBase } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+import { wikilinksModeToContextSettings } from "../utils/wikilinksMode.js";
 
 function errorContent(message: string) {
 	return {
@@ -73,7 +74,13 @@ export const analyzeTextTool = {
 				return errorContent("Provide either text or url for analysis");
 			}
 
-			const requestBody = { text: contentText, aiTopics: "true" };
+			const requestBody: any = { text: contentText, aiTopics: "true" };
+			const wikilinksContextSettings = wikilinksModeToContextSettings(
+				params.wikilinksMode,
+			);
+			if (wikilinksContextSettings) {
+				requestBody.contextSettings = wikilinksContextSettings;
+			}
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {

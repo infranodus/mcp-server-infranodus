@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { brand } from "../config/brand.js";
+import {
+	WikilinksModeEnum,
+	wikilinksModeDescription,
+} from "../utils/wikilinksMode.js";
 
 export const GenerateGraphSchema = z.object({
 	text: z
@@ -39,12 +43,24 @@ export const GenerateGraphSchema = z.object({
 		.describe(
 			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
 		),
+	maxNodes: z
+		.number()
+		.int()
+		.positive()
+		.max(1000)
+		.optional()
+		.describe(
+			"Maximum number of concepts (nodes) in the generated graph. Default 150 — the most relevant nodes are kept and the rest dropped. Increase (e.g. 500) for large texts when a more complete graph is explicitly needed; response size grows accordingly. Omit to use the default.",
+		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
 			"Text processing setting to use: none (for text, gap, and topical analysis), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph generation and entity extraction)",
 		),
+	wikilinksMode: WikilinksModeEnum.default("default").describe(
+		wikilinksModeDescription,
+	),
 });
 
 export const CreateGraphSchema = z.object({
@@ -89,12 +105,25 @@ export const CreateGraphSchema = z.object({
 		.describe(
 			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
 		),
+	maxNodes: z
+		.number()
+		.int()
+		.positive()
+		.max(1000)
+		.optional()
+		.describe(
+			"Maximum number of concepts (nodes) in the generated graph. Default 150 — the most relevant nodes are kept and the rest dropped. Increase (e.g. 500) for large texts when a more complete graph is explicitly needed; response size grows accordingly. Omit to use the default.",
+		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
 			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)",
 		),
+	wikilinksMode: WikilinksModeEnum.default("default").describe(
+		wikilinksModeDescription +
+			" For saved graphs this applies only when the graph is FIRST created; uploads to an existing graphName keep its original setting.",
+	),
 });
 
 export const AddMemorySchema = z.object({
@@ -185,6 +214,9 @@ export const AnalyzeTextSchemaBase = z.object({
 		.describe(
 			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)",
 		),
+	wikilinksMode: WikilinksModeEnum.default("default").describe(
+		wikilinksModeDescription,
+	),
 });
 export const AnalyzeTextSchema = AnalyzeTextSchemaBase.refine(
 	(data) =>
@@ -401,6 +433,15 @@ export const GenerateOntologyGraphSchema = z.object({
 		.default(false)
 		.describe(
 			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), and the nodes-to-statements map. Implies includeGraph and overrides compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
+		),
+	maxNodes: z
+		.number()
+		.int()
+		.positive()
+		.max(1000)
+		.optional()
+		.describe(
+			"Maximum number of concepts (nodes) in the generated graph. Default 150 — the most relevant nodes are kept and the rest dropped. Increase (e.g. 500) for large ontologies when a more complete graph is explicitly needed; response size grows accordingly. Omit to use the default.",
 		),
 	includeAnalytics: z
 		.boolean()
