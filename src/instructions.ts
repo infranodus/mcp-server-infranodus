@@ -12,7 +12,7 @@ import { brand } from "./config/brand.js";
 
 export const serverInstructions = `${brand.name} MCP server for knowledge graph generation and text network analysis using graph theory algorithms.
 
-INPUT TYPES: All analysis tools accept text (string), url (webpage or YouTube video URL — automatically transcribed), or graphName (existing ${brand.name} graph). Provide exactly one input type per call.
+INPUT TYPES: All analysis tools accept text (string), url (webpage or YouTube video URL — automatically transcribed), or graphName (existing ${brand.name} graph). Provide exactly one input type per call. Every tool that takes text also takes statements (array of short discrete statements — notes, records, memory items, relations) with two optional parallel arrays: categories (metadata labels, each becoming a [[label]] node on that statement) and timestamps (ISO 8601 dates for time filters and dynamic graphs). Use text/url for prose and long documents. The comparison tools take the same fields per item of their contexts array, where metadata applies only if every context uses statements.
 
 ENTITY DETECTION MODES: Use modifyAnalyzedText parameter — 'none' (default, word co-occurrence graph), 'detectEntities' (mix entities and words), 'extractEntitiesOnly' (entity-only graph, best for ontologies and knowledge graphs).
 

@@ -4,7 +4,7 @@ import {
 	generateContextualHintSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateContextualHint } from "../utils/transformers.js";
 
 function errorContent(message: string) {
@@ -43,28 +43,24 @@ export const generateContextualHintTool = {
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
-			let requestBody: { text?: string; name?: string; userName?: string };
+			let requestBody: {
+				text?: string;
+				statements?: string[];
+				categories?: string[][];
+				timestamps?: string[];
+				contextSettings?: Record<string, unknown>;
+				name?: string;
+				userName?: string;
+			};
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
 					userName: params.userName ?? "",
 				};
 			} else {
-				let contentText: string;
-				if (params.url) {
-					const result = await fetchUrlContentAsText(params.url);
-					if (!result.ok) return errorContent(result.error);
-					contentText = result.contentText;
-					if (!contentText?.trim())
-						return errorContent("URL did not return any text content");
-				} else if (params.text?.trim()) {
-					contentText = params.text;
-				} else {
-					return errorContent(
-						"Provide either text, url, or graphName for analysis",
-					);
-				}
-				requestBody = { text: contentText };
+				const input = await resolveGraphInput(params);
+				if (!input.ok) return errorContent(input.error);
+				requestBody = { ...input.payload };
 			}
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

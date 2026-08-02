@@ -5,12 +5,38 @@ import {
 	wikilinksModeDescription,
 } from "../utils/wikilinksMode.js";
 
+/**
+ * Optional alternative to `text` / `url`, shared by every tool that builds a
+ * graph from content: discrete statements with optional per-statement
+ * metadata. Reused across schemas — zod field instances are immutable.
+ */
+const statementsField = z
+	.array(z.string().min(1))
+	.optional()
+	.describe(
+		"Alternative to `text`: already-separated statements, each one unit of analysis (the role a line plays in `text`). Use only for short discrete items — notes, records, memory entries, survey answers, relations — especially when they carry `categories` or `timestamps`. For prose or long content use text/url instead, which is split on new lines anyway.",
+	);
+
+const categoriesField = z
+	.array(z.array(z.string()))
+	.optional()
+	.describe(
+		"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label becomes a [[label]] node linked to that statement's concepts only, so author / source / tag / section can be filtered and grouped in the graph. Requires `statements`; omit when there is no metadata.",
+	);
+
+const timestampsField = z
+	.array(z.string())
+	.optional()
+	.describe(
+		"Per-statement date, one entry per statement (empty string = upload time, length must match `statements`). ISO 8601 — '2026-08-02' or '2026-08-02T14:30:00Z'; DD.MM.YYYY and MM/DD/YYYY also parse. Stored to minute precision in the server timezone; drives time filters and dynamic graph views. Requires `statements`; omit when the statements are undated.",
+	);
+
 export const GenerateGraphSchema = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Use [[wikilinks]] to mark entities (if required for social / knowledge graphs, ontology, or entity detection). Provide either this or url.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Use [[wikilinks]] to mark entities (if required for social / knowledge graphs, ontology, or entity detection). Provide one of: this, url, or statements.",
 		),
 	url: z
 		.string()
@@ -19,6 +45,9 @@ export const GenerateGraphSchema = z.object({
 		.describe(
 			"URL to fetch content from or YouTube video URL to fetch transcript. Provide either this or text, not both.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -72,7 +101,7 @@ export const CreateGraphSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: this, url, or statements.",
 		),
 	url: z
 		.string()
@@ -81,6 +110,9 @@ export const CreateGraphSchema = z.object({
 		.describe(
 			"URL to fetch content from or YouTube video URL to fetch transcript. Provide either this or text, not both.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -136,10 +168,13 @@ export const AddMemorySchema = z.object({
 		),
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements, relations, and paragraphs in each text (but not the sentences). Detect the entities in every statement and use [[wikilinks]] syntax to mark them, unless the user explicitly requests automatic entity detection. Every statement should have at least two entities marked.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements, relations, and paragraphs in each text (but not the sentences). Detect the entities in every statement and use [[wikilinks]] syntax to mark them, unless the user explicitly requests automatic entity detection. Every statement should have at least two entities marked. Provide either this or statements.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -171,7 +206,7 @@ export const AnalyzeTextSchemaBase = z.object({
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: this, url, or statements.",
 		),
 	url: z
 		.string()
@@ -180,6 +215,9 @@ export const AnalyzeTextSchemaBase = z.object({
 		.describe(
 			"URL to fetch content from (e.g. webpage or YouTube video transcript). Provide either this or text.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -221,8 +259,9 @@ export const AnalyzeTextSchemaBase = z.object({
 export const AnalyzeTextSchema = AnalyzeTextSchemaBase.refine(
 	(data) =>
 		(data.text !== undefined && data.text.trim().length > 0) ||
-		(data.url !== undefined && data.url.length > 0),
-	{ message: "Provide either text or url for analysis." },
+		(data.url !== undefined && data.url.length > 0) ||
+		(data.statements !== undefined && data.statements.length > 0),
+	{ message: "Provide text, url, or statements for analysis." },
 );
 
 export const AnalyzeExistingGraphSchemaBase = z.object({
@@ -330,8 +369,11 @@ export const GenerateContentGapsSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -360,8 +402,11 @@ export const generateContextualHintSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -381,8 +426,9 @@ export const generateContextualHintSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const GenerateOntologyGraphSchema = z.object({
@@ -532,8 +578,11 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -560,8 +609,9 @@ export const GenerateTopicalClustersSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const GenerateResearchQuestionsSchemaBase = z.object({
@@ -576,8 +626,11 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -630,8 +683,9 @@ export const GenerateResearchQuestionsSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const GenerateResearchIdeasSchemaBase = z.object({
@@ -646,8 +700,11 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -711,8 +768,9 @@ export const GenerateResearchIdeasSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const OptimizeTextStructureSchemaBase = z.object({
@@ -727,8 +785,11 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -766,17 +827,21 @@ export const OptimizeTextStructureSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const OptimizeReasoningSchemaBase = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"The current reasoning trace or chat conversation to analyze structurally. Paste the model's own chain-of-thought / reasoning output, the running dialogue with the user, or both concatenated. Use new lines to separate distinct reasoning steps, turns, or paragraphs (but not individual sentences).",
+			"The current reasoning trace or chat conversation to analyze structurally. Paste the model's own chain-of-thought / reasoning output, the running dialogue with the user, or both concatenated. Use new lines to separate distinct reasoning steps, turns, or paragraphs (but not individual sentences). Provide either this or statements.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	modelToUse: z
 		.enum([
 			"claude-opus-4.6",
@@ -810,8 +875,11 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -849,8 +917,9 @@ export const DevelopLatentConceptsSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const RetrieveContextForPromptFromGraphSchema = z.object({
@@ -921,8 +990,11 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	prompt: z
 		.string()
 		.min(1, "Prompt is required")
@@ -951,8 +1023,9 @@ export const GenerateResponsesFromGraphSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 // This is used for adding options later to each tool
@@ -1006,7 +1079,7 @@ export const GenerateGeneralGraphSchema = z.object({
 		),
 });
 
-/** Shared context item: one of { text }, { url }, or { graphName }. Used by overlap and difference tools. */
+/** Shared context item: one of { text }, { statements }, { url }, or { graphName }. Used by overlap and difference tools. */
 const contextItemTextUrlOrGraphSchema = z.union([
 	z
 		.object({
@@ -1018,6 +1091,15 @@ const contextItemTextUrlOrGraphSchema = z.union([
 				),
 		})
 		.describe("Context from plain text."),
+	z
+		.object({
+			statements: statementsField.unwrap(),
+			categories: categoriesField,
+			timestamps: timestampsField,
+		})
+		.describe(
+			"Context from short discrete statements, with optional per-statement metadata.",
+		),
 	z
 		.object({
 			url: z
@@ -1044,7 +1126,7 @@ const GenerateOverlapGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts are required for overlap")
 		.describe(
-			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { statements: string[] } (with optional categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -1081,7 +1163,7 @@ const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts (target + one reference) are required")
 		.describe(
-			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { statements: string[] } (with optional categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -1511,6 +1593,9 @@ export const GenerateSEOGraphSchema = z.object({
 		.describe(
 			"URL to fetch content from for SEO analysis. Provide either this or text, not both.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	contentToExtract: z
 		.enum(["all", "header tags", "link tags"])
 		.default("all")
@@ -1609,8 +1694,11 @@ export const DevelopTextToolSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")

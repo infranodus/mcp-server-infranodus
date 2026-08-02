@@ -2,9 +2,8 @@ import { z } from "zod";
 import { brand } from "../config/brand.js";
 import { AnalyzeTextSchema, AnalyzeTextSchemaBase } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
-import { prepareWikilinksPayload } from "../utils/wikilinksMode.js";
 
 function errorContent(message: string) {
 	return {
@@ -61,24 +60,10 @@ export const analyzeTextTool = {
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
-			let contentText: string;
-			if (params.url) {
-				const result = await fetchUrlContentAsText(params.url);
-				if (!result.ok) return errorContent(result.error);
-				contentText = result.contentText;
-				if (!contentText?.trim())
-					return errorContent("URL did not return any text content");
-			} else if (params.text?.trim()) {
-				contentText = params.text;
-			} else {
-				return errorContent("Provide either text or url for analysis");
-			}
+			const input = await resolveGraphInput(params);
+			if (!input.ok) return errorContent(input.error);
 
-			const requestBody: any = { text: contentText, aiTopics: "true" };
-			Object.assign(
-				requestBody,
-				prepareWikilinksPayload(contentText, params.wikilinksMode),
-			);
+			const requestBody: any = { aiTopics: "true", ...input.payload };
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {

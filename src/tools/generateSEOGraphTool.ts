@@ -9,6 +9,11 @@ import {
 	extractStatementStrings,
 } from "../utils/transformers.js";
 import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import {
+	prepareStatementsPayload,
+	type WikilinksPayload,
+} from "../utils/wikilinksMode.js";
+import { validateStatementsInput } from "../utils/graphInput.js";
 import { ToolHandlerContext } from "../types/index.js";
 import { ProgressReporter } from "../utils/progress.js";
 
@@ -55,9 +60,34 @@ export const generateSEOGraphTool = {
 			// Step 1: Generate topical clusters from the original text
 			await progress.report(5, "🔍 Extracting content from URL or text...");
 
-			// Resolve content: from URL (convert/url) if provided, otherwise use text
-			let contentText: string;
-			if (params.url) {
+			// Resolve content: from statements (with optional metadata) if given,
+			// otherwise from URL (convert/url), otherwise from text.
+			let contentText = "";
+			let statementsPayload: WikilinksPayload | undefined;
+			if (params.statements) {
+				const invalid = validateStatementsInput(
+					params.statements,
+					params.categories,
+					params.timestamps
+				);
+				if (invalid) {
+					return {
+						content: [
+							{ type: "text" as const, text: JSON.stringify({ error: invalid }) },
+						],
+						isError: true,
+					};
+				}
+				statementsPayload = prepareStatementsPayload(
+					params.statements,
+					params.categories,
+					undefined,
+					params.timestamps
+				);
+				// The comparison steps below need a plain text blob for the size check
+				// and for the search-query extraction.
+				contentText = params.statements.join("\n");
+			} else if (params.url) {
 				const result = await fetchUrlContentAsText(params.url, {
 					contentToExtract: params.contentToExtract ?? "all",
 					useProxy: params.useProxy === true,
@@ -97,13 +127,19 @@ export const generateSEOGraphTool = {
 						{
 							type: "text" as const,
 							text: JSON.stringify({
-								error: "Provide either url or text for SEO analysis",
+								error: "Provide url, text, or statements for SEO analysis",
 							}),
 						},
 					],
 					isError: true,
 				};
 			}
+
+			// The comparison steps below pair the content with a generated summary
+			// context. /graphsAndStatements only takes statements when EVERY context
+			// has them (routes/graphs.js: contexts.every(c => c.statements)), so those
+			// calls always send the content as text — statements are joined above.
+			const contentContextItem = { text: contentText };
 
 			// Step 2: Generate topical clusters from the original text
 			await progress.report(
@@ -113,9 +149,7 @@ export const generateSEOGraphTool = {
 
 			const topicalClustersResponse = await makeInfraNodusRequest(
 				"/graphAndStatements?doNotSave=true&addStats=true&includeGraphSummary=false&extendedGraphSummary=true&includeGraph=false&includeStatements=false&aiTopics=true",
-				{
-					text: contentText,
-				}
+				statementsPayload ?? { text: contentText }
 			);
 
 			if (topicalClustersResponse.error) {
@@ -237,7 +271,7 @@ export const generateSEOGraphTool = {
 				{
 					contexts: [
 						{
-							text: contentText,
+							...contentContextItem,
 							modifyAnalyzedText: "none",
 						},
 						{
@@ -263,7 +297,7 @@ export const generateSEOGraphTool = {
 				{
 					contexts: [
 						{
-							text: contentText,
+							...contentContextItem,
 							modifyAnalyzedText: "none",
 						},
 						{

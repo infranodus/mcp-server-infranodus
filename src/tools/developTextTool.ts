@@ -4,7 +4,8 @@ import {
 	DevelopTextToolSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
+import type { WikilinksPayload } from "../utils/wikilinksMode.js";
 import {
 	generateResearchQuestions,
 	extractLatentTopicsIdeas,
@@ -43,21 +44,11 @@ export const developTextTool = {
 	) => {
 		try {
 			const useGraph = params.graphName?.trim();
-			let contentText: string | undefined;
+			let contentPayload: Partial<WikilinksPayload> = {};
 			if (!useGraph) {
-				if (params.url) {
-					const result = await fetchUrlContentAsText(params.url);
-					if (!result.ok) return errorContent(result.error);
-					contentText = result.contentText;
-					if (!contentText?.trim())
-						return errorContent("URL did not return any text content");
-				} else if (params.text?.trim()) {
-					contentText = params.text;
-				} else {
-					return errorContent(
-						"Provide either text, url, or graphName for analysis"
-					);
-				}
+				const input = await resolveGraphInput(params);
+				if (!input.ok) return errorContent(input.error);
+				contentPayload = input.payload;
 			}
 
 			// Create progress helper
@@ -106,7 +97,7 @@ export const developTextTool = {
 						modelToUse: params.modelToUse ?? "gpt-4o",
 				  }
 				: {
-						text: contentText,
+						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
@@ -153,7 +144,7 @@ export const developTextTool = {
 						modelToUse: params.modelToUse ?? "gpt-4o",
 				  }
 				: {
-						text: contentText,
+						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",
@@ -200,7 +191,7 @@ export const developTextTool = {
 						modelToUse: params.modelToUse ?? "gpt-4o",
 				  }
 				: {
-						text: contentText,
+						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? "gpt-4o",

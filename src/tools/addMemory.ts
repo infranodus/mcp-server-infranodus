@@ -2,7 +2,17 @@ import { z } from "zod";
 import { brand } from "../config/brand.js";
 import { AddMemorySchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const addMemoryTool = {
 	name: "memory_add_relations",
@@ -39,11 +49,16 @@ export const addMemoryTool = {
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
+			// graphName here is where the memory is saved, not a content source,
+			// so the content still comes from text or statements.
+			const input = await resolveGraphInput(params);
+			if (!input.ok) return errorContent(input.error);
+
 			const requestBody: any = {
 				name: params.graphName,
-				text: params.text,
 				aiTopics: "true",
 				contextType: "memory",
+				...input.payload,
 			};
 
 			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {

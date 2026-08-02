@@ -52,6 +52,7 @@ export const wikilinksModeDescription =
 	"'parentAndConcepts': same heading/prefix parent contract, but concepts also keep their normal co-occurrence connections — best for mixed content (notes, docs, articles) where you want both section/page provenance and a real concept graph. " +
 	"'plainText': brackets are stripped and everything is processed as ordinary words. " +
 	"In all modes parent and wikilink nodes share the [[name]] namespace, so graphs remain comparable/mergeable. " +
+	"With `statements` + `categories` supplied directly, parent extraction is skipped and those categories become the mention labels ('obsidianStyle' still gives the star topology). " +
 	"Takes effect when the graph is generated or first created; an existing saved graph keeps its original setting.";
 
 const PARENT_PREFIX_RE = /^\s*\[\[([^\]]+)\]\]:\s*/;
@@ -64,7 +65,106 @@ export interface WikilinksPayload {
 	text?: string;
 	statements?: string[];
 	categories?: string[][];
+	timestamps?: string[];
 	contextSettings?: Record<string, unknown>;
+}
+
+/**
+ * Bracket handling for a mode, independent of where the statements come from
+ * (split out of the text or supplied directly by the caller).
+ */
+function bracketSettings(
+	mode: WikilinksMode | undefined,
+): Record<string, unknown> {
+	switch (mode) {
+		case "wikilinksOnly":
+			return {
+				doubleSquarebracketsProcessing: "PROCESS_AS_HASHTAGS_IGNORE_THE_REST",
+				partOfSpeechToProcess: "HASHTAGS_ONLY",
+			};
+		case "plainText":
+			return { doubleSquarebracketsProcessing: "IGNORE_BRACKETS" };
+		default:
+			return {};
+	}
+}
+
+/**
+ * Settings that turn each per-statement category into a mention node attached
+ * to that statement only. See the module note above for why the bracket
+ * combination matters: it keeps category nodes in the [[name]] namespace.
+ */
+function categorySettings(
+	mode: WikilinksMode | undefined,
+): Record<string, unknown> {
+	if (mode === "plainText") {
+		// Brackets stay stripped in this mode; the mentions still become nodes,
+		// just outside the [[name]] namespace.
+		return {
+			categoriesAsMentions: true,
+			mentionsProcessing: "CONNECT_TO_ALL_CONCEPTS",
+			doubleSquarebracketsProcessing: "IGNORE_BRACKETS",
+		};
+	}
+	return {
+		categoriesAsMentions: true,
+		mentionsProcessing:
+			mode === "obsidianStyle"
+				? "CONNECT_TO_CONCEPTS_ONLY"
+				: "CONNECT_TO_ALL_CONCEPTS",
+		// IGNORE_BRACKETS on single brackets + processed doublebrackets is the
+		// combination that makes the engine name category mentions [[category]]
+		// instead of @category — keeping them in the same namespace as inline
+		// wikilinks.
+		squareBracketsProcessing: "IGNORE_BRACKETS",
+		doubleSquarebracketsProcessing: "PROCESS_AS_HASHTAGS",
+	};
+}
+
+/**
+ * Payload for callers that already hold discrete statements (and optionally
+ * parallel per-statement categories / timestamps arrays), so nothing has to be
+ * parsed out of a text blob. Mode-specific bracket handling still applies and
+ * overrides the category defaults where the two disagree.
+ */
+export function prepareStatementsPayload(
+	statements: string[],
+	categories: string[][] | undefined,
+	mode: WikilinksMode | undefined,
+	timestamps?: string[],
+): WikilinksPayload {
+	const hasCategories = Array.isArray(categories) && categories.length > 0;
+	const hasTimestamps = Array.isArray(timestamps) && timestamps.length > 0;
+	const contextSettings = statementsContextSettings(mode, hasCategories);
+	return {
+		text: "",
+		statements,
+		...(hasCategories ? { categories } : {}),
+		...(hasTimestamps ? { timestamps } : {}),
+		// Omit rather than send {} — an empty settings object is not what the
+		// text path sends for the default mode either.
+		...(Object.keys(contextSettings).length > 0 ? { contextSettings } : {}),
+	};
+}
+
+/**
+ * Processing settings for a statements upload. The API reads these from the
+ * top level of the body (`contextSettings`), so multi-context requests share
+ * one set across all of their contexts.
+ */
+export function statementsContextSettings(
+	mode: WikilinksMode | undefined,
+	hasCategories: boolean,
+): Record<string, unknown> {
+	// Category mentions only survive under the bracket combination in
+	// categorySettings, so it overrides the mode's own bracket handling where
+	// the two disagree. 'wikilinksOnly' keeps its HASHTAGS_ONLY part-of-speech
+	// filter — that is what restricts concept nodes to [[wikilinks]]; its
+	// PROCESS_AS_HASHTAGS_IGNORE_THE_REST would drop the category mentions
+	// along with everything else.
+	return hasCategories
+		? { ...bracketSettings(mode), ...categorySettings(mode) }
+		: bracketSettings(mode);
 }
 
 /**
@@ -78,19 +178,8 @@ export function prepareWikilinksPayload(
 ): WikilinksPayload {
 	switch (mode) {
 		case "wikilinksOnly":
-			return {
-				contextSettings: {
-					doubleSquarebracketsProcessing:
-						"PROCESS_AS_HASHTAGS_IGNORE_THE_REST",
-					partOfSpeechToProcess: "HASHTAGS_ONLY",
-				},
-			};
 		case "plainText":
-			return {
-				contextSettings: {
-					doubleSquarebracketsProcessing: "IGNORE_BRACKETS",
-				},
-			};
+			return { contextSettings: bracketSettings(mode) };
 		case "obsidianStyle":
 		case "parentAndConcepts": {
 			const statements: string[] = [];
@@ -121,19 +210,7 @@ export function prepareWikilinksPayload(
 				text: "",
 				statements,
 				categories,
-				contextSettings: {
-					categoriesAsMentions: true,
-					mentionsProcessing:
-						mode === "obsidianStyle"
-							? "CONNECT_TO_CONCEPTS_ONLY"
-							: "CONNECT_TO_ALL_CONCEPTS",
-					// IGNORE_BRACKETS on single brackets + processed doublebrackets
-					// is the combination that makes the engine name category
-					// mentions [[category]] instead of @category — keeping parent
-					// nodes in the same namespace as inline wikilinks.
-					squareBracketsProcessing: "IGNORE_BRACKETS",
-					doubleSquarebracketsProcessing: "PROCESS_AS_HASHTAGS",
-				},
+				contextSettings: categorySettings(mode),
 			};
 		}
 		default:
