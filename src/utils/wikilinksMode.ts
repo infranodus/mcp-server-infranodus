@@ -133,7 +133,11 @@ export function prepareStatementsPayload(
 	mode: WikilinksMode | undefined,
 	timestamps?: string[],
 ): WikilinksPayload {
-	const hasCategories = Array.isArray(categories) && categories.length > 0;
+	// Only actual labels matter: a model that sends [[], [], []] for "no
+	// metadata" must not flip the processing settings for the whole upload.
+	const hasCategories =
+		Array.isArray(categories) &&
+		categories.some((entry) => Array.isArray(entry) && entry.length > 0);
 	const hasTimestamps = Array.isArray(timestamps) && timestamps.length > 0;
 	const contextSettings = statementsContextSettings(mode, hasCategories);
 	return {

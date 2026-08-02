@@ -63,7 +63,7 @@ export const analyzeTextTool = {
 			const input = await resolveGraphInput(params);
 			if (!input.ok) return errorContent(input.error);
 
-			const requestBody: any = { aiTopics: "true", ...input.payload };
+			const requestBody = { aiTopics: "true", ...input.payload };
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {

@@ -20,16 +20,16 @@ export type GraphInputResult =
 	| { ok: true; payload: WikilinksPayload & { text: string } }
 	| { ok: false; error: string };
 
-// Formats the API's convertAnyDate() rewrites before parsing. Everything else
-// has to survive Date.parse: convertAnyDate returns false for what it cannot
-// read and the value then silently lands on 1970-01-01, so reject it here.
-const DAY_FIRST_DATE = /^\d{1,2}[./]\d{1,2}[./]\d{4}$/;
+// ISO 8601 only, deliberately. The API's convertAnyDate() reorders D/M/Y and
+// M/D/Y only when one component exceeds 12, so "03.05.2026" meant as 3 May is
+// stored as 5 March — silent, plausible, wrong. And what it cannot read at all
+// it returns false for, which becomes 1970-01-01 downstream. Neither failure is
+// visible to the caller, so anything ambiguous is refused here instead.
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 
 function timestampIsParsable(value: string): boolean {
 	const trimmed = value.trim();
-	return (
-		DAY_FIRST_DATE.test(trimmed) || Number.isFinite(Date.parse(trimmed))
-	);
+	return ISO_DATE.test(trimmed) && Number.isFinite(Date.parse(trimmed));
 }
 
 /**
@@ -53,7 +53,7 @@ export function validateStatementsInput(
 			(timestamp) => timestamp?.trim() && !timestampIsParsable(timestamp),
 		);
 		if (bad)
-			return `timestamp "${bad}" cannot be parsed as a date — use ISO 8601 (2026-08-02 or 2026-08-02T14:30:00Z), or DD.MM.YYYY / MM/DD/YYYY`;
+			return `timestamp "${bad}" is not ISO 8601 — use 2026-08-02 or 2026-08-02T14:30:00Z. Day-first and month-first formats are refused because the API cannot tell them apart below the 13th of the month.`;
 	}
 	return null;
 }
@@ -71,7 +71,7 @@ export async function resolveGraphInput(
 	const hasText = Boolean(params.text?.trim());
 	const hasUrl = Boolean(params.url);
 
-	if (statements) {
+	if (statements && statements.length > 0) {
 		if (hasText || hasUrl) {
 			return {
 				ok: false,
@@ -123,6 +123,10 @@ export type ContextItem =
 	| { graphName: string }
 	| { statements: string[]; categories?: string[][]; timestamps?: string[] };
 
+type ResolvedItem =
+	| { text: string }
+	| { statements: string[]; categories?: string[][]; timestamps?: string[] };
+
 export type ResolvedContexts =
 	| {
 			ok: true;
@@ -135,11 +139,16 @@ export type ResolvedContexts =
  * Resolve the `contexts` array of the multi-graph comparison tools into the
  * items of a /graphsAndStatements body.
  *
- * The API takes statements only when EVERY context has them
- * (routes/graphs.js: `contexts.every(context => context.statements)`), so a
- * statements item in a mixed array is flattened into text — which is what the
- * url and graphName items resolve to anyway. Its categories and timestamps are
- * dropped in that case; they only survive when every context uses statements.
+ * Statements are only read when EVERY context has them (routes/graphs.js:
+ * `contexts.every(context => context.statements)`), so a statements item in a
+ * mixed array is joined into text — what url and graphName items resolve to
+ * anyway, and its categories and timestamps are dropped with it.
+ *
+ * Naming is the app's job: getContextForEntry (lib/context.js) gives every
+ * unnamed statements context a uuid fragment, because upstream creates the
+ * context by name. Sending statements to an app that predates that fix hangs
+ * for two minutes and returns 504, as does sending timestamps to one that
+ * predates the missing-`Instruments`-require fix in routes/graphs.js.
  */
 export async function resolveContexts(
 	items: ContextItem[],
@@ -147,9 +156,7 @@ export async function resolveContexts(
 		graphName: string,
 	) => Promise<{ ok: true; text: string } | { ok: false; error: string }>,
 ): Promise<ResolvedContexts> {
-	const resolved: Array<
-		{ text: string } | { statements: string[]; categories?: string[][]; timestamps?: string[] }
-	> = [];
+	const resolved: ResolvedItem[] = [];
 
 	for (let i = 0; i < items.length; i++) {
 		const item = items[i];
@@ -159,8 +166,13 @@ export async function resolveContexts(
 				item.categories,
 				item.timestamps,
 			);
-			if (invalid) return { ok: false, error: `Context at index ${i}: ${invalid}` };
-			resolved.push(item);
+			if (invalid)
+				return { ok: false, error: `Context at index ${i}: ${invalid}` };
+			resolved.push({
+				statements: item.statements,
+				...(item.categories ? { categories: item.categories } : {}),
+				...(item.timestamps ? { timestamps: item.timestamps } : {}),
+			});
 			continue;
 		}
 		if ("text" in item) {
@@ -200,8 +212,7 @@ export async function resolveContexts(
 		};
 	}
 
-	const allStatements = resolved.every((item) => "statements" in item);
-	if (!allStatements) {
+	if (!resolved.every((item) => "statements" in item)) {
 		return {
 			ok: true,
 			contexts: resolved.map((item) =>
@@ -211,7 +222,9 @@ export async function resolveContexts(
 	}
 
 	const hasCategories = resolved.some(
-		(item) => "categories" in item && (item.categories?.length ?? 0) > 0,
+		(item) =>
+			"categories" in item &&
+			(item.categories ?? []).some((entry) => entry.length > 0),
 	);
 	const contextSettings = statementsContextSettings(undefined, hasCategories);
 	return {

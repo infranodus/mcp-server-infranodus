@@ -12,6 +12,7 @@ import {
  */
 const statementsField = z
 	.array(z.string().min(1))
+	.min(1)
 	.optional()
 	.describe(
 		"Alternative to `text`: already-separated statements, each one unit of analysis (the role a line plays in `text`). Use only for short discrete items — notes, records, memory entries, survey answers, relations — especially when they carry `categories` or `timestamps`. For prose or long content use text/url instead, which is split on new lines anyway.",
@@ -24,11 +25,17 @@ const categoriesField = z
 		"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label becomes a [[label]] node linked to that statement's concepts only, so author / source / tag / section can be filtered and grouped in the graph. Requires `statements`; omit when there is no metadata.",
 	);
 
+/** Saved graphs freeze their processing settings at creation (lib/context.js
+ * applies contextSettings only when the context does not already exist), so
+ * categories on a later upload to the same graph produce no label nodes. */
+const SAVED_GRAPH_CATEGORIES_NOTE =
+	"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label becomes a [[label]] node linked to that statement's concepts only, so author / source / tag / section can be filtered and grouped in the graph. Takes effect only when the graph is FIRST created — uploads to an existing graphName keep its original settings and the labels are ignored. Requires `statements`; omit when there is no metadata.";
+
 const timestampsField = z
 	.array(z.string())
 	.optional()
 	.describe(
-		"Per-statement date, one entry per statement (empty string = upload time, length must match `statements`). ISO 8601 — '2026-08-02' or '2026-08-02T14:30:00Z'; DD.MM.YYYY and MM/DD/YYYY also parse. Stored to minute precision in the server timezone; drives time filters and dynamic graph views. Requires `statements`; omit when the statements are undated.",
+		"Per-statement date, one entry per statement (empty string = upload time, length must match `statements`). ISO 8601 only — '2026-08-02' or '2026-08-02T14:30:00Z'; other formats are refused because day-first and month-first dates are indistinguishable below the 13th. Stored to minute precision in the server timezone; drives time filters and dynamic graph views. Requires `statements`; omit when the statements are undated.",
 	);
 
 export const GenerateGraphSchema = z.object({
@@ -111,7 +118,9 @@ export const CreateGraphSchema = z.object({
 			"URL to fetch content from or YouTube video URL to fetch transcript. Provide either this or text, not both.",
 		),
 	statements: statementsField,
-	categories: categoriesField,
+	categories: categoriesField.describe(
+		`${SAVED_GRAPH_CATEGORIES_NOTE}`,
+	),
 	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
@@ -173,7 +182,7 @@ export const AddMemorySchema = z.object({
 			"Text that you'd like to analyze. Use new lines to separate separate statements, relations, and paragraphs in each text (but not the sentences). Detect the entities in every statement and use [[wikilinks]] syntax to mark them, unless the user explicitly requests automatic entity detection. Every statement should have at least two entities marked. Provide either this or statements.",
 		),
 	statements: statementsField,
-	categories: categoriesField,
+	categories: categoriesField.describe(SAVED_GRAPH_CATEGORIES_NOTE),
 	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
@@ -1090,15 +1099,20 @@ const contextItemTextUrlOrGraphSchema = z.union([
 					"Text content - use new lines to separate statements (but not sentences).",
 				),
 		})
+		.strict()
 		.describe("Context from plain text."),
 	z
 		.object({
-			statements: statementsField.unwrap(),
+			statements: z
+				.array(z.string().min(1))
+				.min(1)
+				.describe("Short discrete statements, one unit of analysis each."),
 			categories: categoriesField,
 			timestamps: timestampsField,
 		})
+		.strict()
 		.describe(
-			"Context from short discrete statements, with optional per-statement metadata.",
+			"Context from short discrete statements. Categories and timestamps apply only when every context uses statements; otherwise the statements are joined into text.",
 		),
 	z
 		.object({
@@ -1108,6 +1122,7 @@ const contextItemTextUrlOrGraphSchema = z.union([
 				.url("Must be a valid URL")
 				.describe("URL to fetch content from (or YouTube transcript)."),
 		})
+		.strict()
 		.describe("Context from a URL."),
 	z
 		.object({
@@ -1118,6 +1133,7 @@ const contextItemTextUrlOrGraphSchema = z.union([
 					`Name of an existing ${brand.name} graph; its statements are retrieved and used as text.`,
 				),
 		})
+		.strict()
 		.describe(`Context from an existing ${brand.name} graph by name.`),
 ]);
 
@@ -1126,7 +1142,7 @@ const GenerateOverlapGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts are required for overlap")
 		.describe(
-			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { statements: string[] } (with optional categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -1163,7 +1179,7 @@ const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts (target + one reference) are required")
 		.describe(
-			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { statements: string[] } (with optional categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -1595,7 +1611,6 @@ export const GenerateSEOGraphSchema = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
-	timestamps: timestampsField,
 	contentToExtract: z
 		.enum(["all", "header tags", "link tags"])
 		.default("all")
@@ -1743,8 +1758,9 @@ export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
 	(data) =>
 		(data.text !== undefined && data.text.trim().length > 0) ||
 		(data.url !== undefined && data.url.length > 0) ||
-		(data.graphName !== undefined && data.graphName.trim().length > 0),
-	{ message: "Provide either text, url, or graphName for analysis." },
+		(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+		(data.statements !== undefined && data.statements.length > 0),
+	{ message: "Provide text, url, statements, or graphName for analysis." },
 );
 
 export const ListGraphsSchema = z.object({

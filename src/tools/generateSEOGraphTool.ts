@@ -64,11 +64,27 @@ export const generateSEOGraphTool = {
 			// otherwise from URL (convert/url), otherwise from text.
 			let contentText = "";
 			let statementsPayload: WikilinksPayload | undefined;
-			if (params.statements) {
+			if (params.statements?.length && (params.url || params.text?.trim())) {
+				// Same mutual exclusion resolveGraphInput enforces for every other
+				// tool; this one resolves its url with extra options so it cannot
+				// share that helper.
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: JSON.stringify({
+								error:
+									"Provide only one of: statements, text, or url — not statements together with text/url",
+							}),
+						},
+					],
+					isError: true,
+				};
+			}
+			if (params.statements?.length) {
 				const invalid = validateStatementsInput(
 					params.statements,
-					params.categories,
-					params.timestamps
+					params.categories
 				);
 				if (invalid) {
 					return {
@@ -81,8 +97,7 @@ export const generateSEOGraphTool = {
 				statementsPayload = prepareStatementsPayload(
 					params.statements,
 					params.categories,
-					undefined,
-					params.timestamps
+					undefined
 				);
 				// The comparison steps below need a plain text blob for the size check
 				// and for the search-query extraction.
