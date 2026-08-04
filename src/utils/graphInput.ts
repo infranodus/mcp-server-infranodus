@@ -44,9 +44,11 @@ export function validateStatementsInput(
 	if (statements.length === 0) return "statements must not be an empty array";
 	if (statements.some((statement) => !statement?.trim()))
 		return "statements must not contain empty entries — drop them (and their categories / timestamps entry) before sending";
-	if (categories && categories.length !== statements.length)
+	// Empty metadata arrays mean "none provided" — only enforce the per-statement
+	// pairing when there is actual metadata to pair
+	if (categories && categories.length > 0 && categories.length !== statements.length)
 		return `categories must have exactly one entry per statement (got ${categories.length} categories for ${statements.length} statements); use an empty array for statements without metadata`;
-	if (timestamps) {
+	if (timestamps && timestamps.length > 0) {
 		if (timestamps.length !== statements.length)
 			return `timestamps must have exactly one entry per statement (got ${timestamps.length} timestamps for ${statements.length} statements); use an empty string for statements without a date`;
 		const bad = timestamps.find(
@@ -170,8 +172,8 @@ export async function resolveContexts(
 				return { ok: false, error: `Context at index ${i}: ${invalid}` };
 			resolved.push({
 				statements: item.statements,
-				...(item.categories ? { categories: item.categories } : {}),
-				...(item.timestamps ? { timestamps: item.timestamps } : {}),
+				...(item.categories?.length ? { categories: item.categories } : {}),
+				...(item.timestamps?.length ? { timestamps: item.timestamps } : {}),
 			});
 			continue;
 		}
