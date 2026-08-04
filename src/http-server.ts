@@ -1016,7 +1016,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: `${brand.name} MCP Server`,
-		version: "1.7.2",
+		version: "1.7.3",
 		description: `MCP server for ${brand.name} knowledge graph analysis`,
 		endpoints: {
 			oauth: {
