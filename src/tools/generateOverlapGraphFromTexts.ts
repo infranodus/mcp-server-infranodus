@@ -4,7 +4,7 @@ import {
 	GenerateOverlapGraphFromTextsSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import { resolveContexts } from "../utils/graphInput.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 import type { GraphResponse } from "../types/index.js";
 
@@ -79,46 +79,15 @@ export const generateOverlapGraphFromTextsTool = {
 	) => {
 		try {
 			const modifyAnalyzedText = params.modifyAnalyzedText ?? "none";
-			const resolvedTexts: string[] = [];
-			for (let i = 0; i < params.contexts.length; i++) {
-				const item = params.contexts[i];
-				if ("text" in item) {
-					if (!item.text.trim())
-						return errorContent(`Context at index ${i} has empty text.`);
-					resolvedTexts.push(item.text);
-					continue;
-				}
-				if ("url" in item) {
-					const result = await fetchUrlContentAsText(item.url);
-					if (!result.ok)
-						return errorContent(
-							`URL at context index ${i} failed: ${result.error}`
-						);
-					if (!result.contentText?.trim())
-						return errorContent(
-							`URL at context index ${i} did not return any text content`
-						);
-					resolvedTexts.push(result.contentText);
-					continue;
-				}
-				if ("graphName" in item) {
-					const result = await fetchGraphTextByName(item.graphName);
-					if (!result.ok)
-						return errorContent(
-							`Graph at context index ${i} failed: ${result.error}`
-						);
-					resolvedTexts.push(result.text);
-					continue;
-				}
-				return errorContent(
-					`Context at index ${i} must be { text }, { url }, or { graphName }.`
-				);
-			}
-			const contexts: Array<{ text: string; modifyAnalyzedText?: string }> =
-				resolvedTexts.map((text) => ({
-					text,
-					modifyAnalyzedText,
-				}));
+			const resolved = await resolveContexts(
+				params.contexts,
+				fetchGraphTextByName
+			);
+			if (!resolved.ok) return errorContent(resolved.error);
+			const contexts = resolved.contexts.map((context) => ({
+				...context,
+				modifyAnalyzedText,
+			}));
 
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
@@ -142,6 +111,9 @@ export const generateOverlapGraphFromTextsTool = {
 			const requestBody: any = {
 				contexts,
 				aiTopics: "true",
+				...(resolved.contextSettings
+					? { contextSettings: resolved.contextSettings }
+					: {}),
 			};
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

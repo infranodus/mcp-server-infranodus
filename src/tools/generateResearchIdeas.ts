@@ -4,7 +4,7 @@ import {
 	GenerateResearchIdeasSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
 import {
 	generateResearchIdeas,
 	generateResponses,
@@ -52,6 +52,10 @@ export const generateResearchIdeasTool = {
 
 			let requestBody: {
 				text?: string;
+				statements?: string[];
+				categories?: string[][];
+				timestamps?: string[];
+				contextSettings?: Record<string, unknown>;
 				name?: string;
 				userName?: string;
 				aiTopics: string;
@@ -67,22 +71,10 @@ export const generateResearchIdeasTool = {
 					modelToUse: params.modelToUse ?? "gpt-4o",
 				};
 			} else {
-				let contentText: string;
-				if (params.url) {
-					const result = await fetchUrlContentAsText(params.url);
-					if (!result.ok) return errorContent(result.error);
-					contentText = result.contentText;
-					if (!contentText?.trim())
-						return errorContent("URL did not return any text content");
-				} else if (params.text?.trim()) {
-					contentText = params.text;
-				} else {
-					return errorContent(
-						"Provide either text, url, or graphName for analysis",
-					);
-				}
+				const input = await resolveGraphInput(params);
+				if (!input.ok) return errorContent(input.error);
 				requestBody = {
-					text: contentText,
+					...input.payload,
 					aiTopics: "true",
 					requestMode: params.shouldTranscend
 						? "transcend"

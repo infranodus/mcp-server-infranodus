@@ -4,7 +4,17 @@ import {
 	OptimizeReasoningSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateOptimizationResult } from "../utils/transformers.js";
+
+function errorContent(message: string) {
+	return {
+		content: [
+			{ type: "text" as const, text: JSON.stringify({ error: message }) },
+		],
+		isError: true,
+	};
+}
 
 export const optimizeReasoningTool = {
 	name: "optimize_reasoning",
@@ -34,8 +44,11 @@ export const optimizeReasoningTool = {
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
 
+			const input = await resolveGraphInput(params);
+			if (!input.ok) return errorContent(input.error);
+
 			const requestBody = {
-				text: params.text,
+				...input.payload,
 				aiTopics: "true",
 				requestMode: "response",
 				modelToUse: params.modelToUse ?? "gpt-5.4",

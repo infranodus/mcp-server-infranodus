@@ -35,45 +35,94 @@ function hashApiKey(apiKey: string): string {
 	return crypto.createHash("sha256").update(apiKey).digest("hex").slice(0, 16);
 }
 
+// TTL cache for /userId validation results, keyed by SHA-256 of the API key.
+// Raw-API-key clients hit the auth middleware on every request; without this,
+// each request costs a round-trip to the brand API.
+const validationCache = new Map<
+	string,
+	{ result: InfraNodusUserInfo | null; expiresAt: number }
+>();
+const inFlightValidations = new Map<string, Promise<InfraNodusUserInfo | null>>();
+const VALID_KEY_TTL_MS = 10 * 60 * 1000; // revoked keys keep working up to this long
+const INVALID_KEY_TTL_MS = 60 * 1000; // short so a newly created key isn't blocked by a stale miss
+const MAX_VALIDATION_CACHE_SIZE = 10000;
+
+function validationCacheKey(apiKey: string): string {
+	return crypto.createHash("sha256").update(apiKey).digest("hex");
+}
+
 /**
- * Validate an API key by calling the /api/v1/userId endpoint
- * Returns user info if valid, null if invalid
+ * Validate an API key against the /api/v1/userId endpoint, with a TTL cache.
+ * Returns user info if valid, null if invalid.
+ * Concurrent calls for the same key share one upstream request.
  */
 export async function validateApiKey(apiKey: string): Promise<InfraNodusUserInfo | null> {
-	try {
-		const response = await fetch(`${BRAND_API_BASE}/userId`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
-			},
-			body: JSON.stringify({}),
+	const cacheKey = validationCacheKey(apiKey);
+
+	const cached = validationCache.get(cacheKey);
+	if (cached && Date.now() < cached.expiresAt) {
+		return cached.result;
+	}
+
+	const pending = inFlightValidations.get(cacheKey);
+	if (pending) {
+		return pending;
+	}
+
+	const validation = fetchUserInfo(apiKey)
+		.then((result) => {
+			// Map iteration order is insertion order, so deleting the first
+			// entry evicts the oldest when the cap is reached
+			if (validationCache.size >= MAX_VALIDATION_CACHE_SIZE) {
+				const oldest = validationCache.keys().next().value;
+				if (oldest !== undefined) validationCache.delete(oldest);
+			}
+			validationCache.set(cacheKey, {
+				result,
+				expiresAt: Date.now() + (result ? VALID_KEY_TTL_MS : INVALID_KEY_TTL_MS),
+			});
+			return result;
+		})
+		// Network errors are transient — treat as invalid but don't cache the failure
+		.catch(() => null)
+		.finally(() => {
+			inFlightValidations.delete(cacheKey);
 		});
 
-		if (!response.ok) {
-			return null;
-		}
+	inFlightValidations.set(cacheKey, validation);
+	return validation;
+}
 
-		const data = await response.json();
+/**
+ * Call the /api/v1/userId endpoint. Returns user info for a valid key, null
+ * for a definitively invalid one, and throws on network errors so callers can
+ * distinguish transient failures from rejections.
+ */
+async function fetchUserInfo(apiKey: string): Promise<InfraNodusUserInfo | null> {
+	const response = await fetch(`${BRAND_API_BASE}/userId`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${apiKey}`,
+		},
+		body: JSON.stringify({}),
+	});
 
-		// Check for valid response format: {"userId": 486, "userName": "circadian"}
-		if (data && typeof data.userId === "number" && typeof data.userName === "string") {
-			return {
-				userId: data.userId,
-				userName: data.userName,
-			};
-		}
-
-		// Check for error indicators
-		if (!data || data.error || typeof data === "string") {
-			return null;
-		}
-
-		return null;
-	} catch (error) {
-		// Network error or invalid response
+	if (!response.ok) {
 		return null;
 	}
+
+	const data = await response.json();
+
+	// Check for valid response format: {"userId": 486, "userName": "circadian"}
+	if (data && typeof data.userId === "number" && typeof data.userName === "string") {
+		return {
+			userId: data.userId,
+			userName: data.userName,
+		};
+	}
+
+	return null;
 }
 
 /**
@@ -182,10 +231,28 @@ export function cleanupExpiredSessions(): number {
 	return cleaned;
 }
 
+/**
+ * Clean up expired API key validation cache entries
+ */
+function cleanupValidationCache(): number {
+	const now = Date.now();
+	let cleaned = 0;
+
+	for (const [key, entry] of validationCache.entries()) {
+		if (now >= entry.expiresAt) {
+			validationCache.delete(key);
+			cleaned++;
+		}
+	}
+
+	return cleaned;
+}
+
 // Start periodic cleanup every 10 minutes
 setInterval(() => {
 	cleanupExpiredSessions();
 	cleanupExpiredAuthCodes();
+	cleanupValidationCache();
 }, 10 * 60 * 1000);
 
 // ============================================================================

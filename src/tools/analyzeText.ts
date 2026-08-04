@@ -2,7 +2,7 @@ import { z } from "zod";
 import { brand } from "../config/brand.js";
 import { AnalyzeTextSchema, AnalyzeTextSchemaBase } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 function errorContent(message: string) {
@@ -31,37 +31,39 @@ export const analyzeTextTool = {
 		try {
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
+			const fullGraph = params.fullGraph === true;
 			const buildingEntitiesGraph =
 				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
+			// fullGraph overrides the compaction flags: the API returns the raw
+			// graphology graph (all node/edge attributes, edge context_matrix,
+			// nodes_to_statements_map) and, when statements are requested, their
+			// full metadata.
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: "true",
-				includeGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
-				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
-				compactStatements: params.includeStatements ? "true" : "false",
+				includeGraph:
+					fullGraph || includeGraph || buildingEntitiesGraph
+						? "true"
+						: "false",
+				compactGraph:
+					!fullGraph && (includeGraph || buildingEntitiesGraph)
+						? "true"
+						: "false",
+				compactStatements:
+					!fullGraph && params.includeStatements ? "true" : "false",
 				aiTopics: "true",
 				optimize: "develop",
 			});
 
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
-			let contentText: string;
-			if (params.url) {
-				const result = await fetchUrlContentAsText(params.url);
-				if (!result.ok) return errorContent(result.error);
-				contentText = result.contentText;
-				if (!contentText?.trim())
-					return errorContent("URL did not return any text content");
-			} else if (params.text?.trim()) {
-				contentText = params.text;
-			} else {
-				return errorContent("Provide either text or url for analysis");
-			}
+			const input = await resolveGraphInput(params);
+			if (!input.ok) return errorContent(input.error);
 
-			const requestBody = { text: contentText, aiTopics: "true" };
+			const requestBody = { aiTopics: "true", ...input.payload };
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
 			if (response.error) {
@@ -78,8 +80,8 @@ export const analyzeTextTool = {
 
 			const structuredOutput = transformToStructuredOutput(
 				response,
-				includeGraph,
-				includeNodesAndEdges,
+				includeGraph || fullGraph,
+				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph
 			);
 

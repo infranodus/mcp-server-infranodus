@@ -1,12 +1,49 @@
 import { z } from "zod";
 import { brand } from "../config/brand.js";
+import {
+	WikilinksModeEnum,
+	wikilinksModeDescription,
+} from "../utils/wikilinksMode.js";
+
+/**
+ * Optional alternative to `text` / `url`, shared by every tool that builds a
+ * graph from content: discrete statements with optional per-statement
+ * metadata. Reused across schemas — zod field instances are immutable.
+ */
+const statementsField = z
+	.array(z.string().min(1))
+	.min(1)
+	.optional()
+	.describe(
+		"Alternative to `text`: already-separated statements, each one unit of analysis (the role a line plays in `text`). Use only for short discrete items — notes, records, memory entries, survey answers, relations — especially when they carry `categories` or `timestamps`. For prose or long content use text/url instead, which is split on new lines anyway.",
+	);
+
+const categoriesField = z
+	.array(z.array(z.string()))
+	.optional()
+	.describe(
+		"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label becomes a [[label]] node linked to that statement's concepts only, so author / source / tag / section can be filtered and grouped in the graph. Requires `statements`; omit when there is no metadata.",
+	);
+
+/** Saved graphs freeze their processing settings at creation (lib/context.js
+ * applies contextSettings only when the context does not already exist), so
+ * categories on a later upload to the same graph produce no label nodes. */
+const SAVED_GRAPH_CATEGORIES_NOTE =
+	"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label becomes a [[label]] node linked to that statement's concepts only, so author / source / tag / section can be filtered and grouped in the graph. Takes effect only when the graph is FIRST created — uploads to an existing graphName keep its original settings and the labels are ignored. Requires `statements`; omit when there is no metadata.";
+
+const timestampsField = z
+	.array(z.string())
+	.optional()
+	.describe(
+		"Per-statement date, one entry per statement (empty string = upload time, length must match `statements`). ISO 8601 only — '2026-08-02' or '2026-08-02T14:30:00Z'; other formats are refused because day-first and month-first dates are indistinguishable below the 13th. Stored to minute precision in the server timezone; drives time filters and dynamic graph views. Requires `statements`; omit when the statements are undated.",
+	);
 
 export const GenerateGraphSchema = z.object({
 	text: z
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Use [[wikilinks]] to mark entities (if required for social / knowledge graphs, ontology, or entity detection). Provide either this or url.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Use [[wikilinks]] to mark entities (if required for social / knowledge graphs, ontology, or entity detection). Provide one of: this, url, or statements.",
 		),
 	url: z
 		.string()
@@ -15,6 +52,9 @@ export const GenerateGraphSchema = z.object({
 		.describe(
 			"URL to fetch content from or YouTube video URL to fetch transcript. Provide either this or text, not both.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -33,12 +73,30 @@ export const GenerateGraphSchema = z.object({
 		.describe(
 			"Include nodes and edges in response (true only if explicitly needed, not recommended for longer texts)",
 		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
+		),
+	maxNodes: z
+		.number()
+		.int()
+		.positive()
+		.max(1000)
+		.optional()
+		.describe(
+			"Maximum number of concepts (nodes) in the generated graph. Default 150 — the most relevant nodes are kept and the rest dropped. Increase (e.g. 500) for large texts when a more complete graph is explicitly needed; response size grows accordingly. Omit to use the default.",
+		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
 			"Text processing setting to use: none (for text, gap, and topical analysis), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph generation and entity extraction)",
 		),
+	wikilinksMode: WikilinksModeEnum.default("default").describe(
+		wikilinksModeDescription,
+	),
 });
 
 export const CreateGraphSchema = z.object({
@@ -50,7 +108,7 @@ export const CreateGraphSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: this, url, or statements.",
 		),
 	url: z
 		.string()
@@ -59,6 +117,11 @@ export const CreateGraphSchema = z.object({
 		.describe(
 			"URL to fetch content from or YouTube video URL to fetch transcript. Provide either this or text, not both.",
 		),
+	statements: statementsField,
+	categories: categoriesField.describe(
+		`${SAVED_GRAPH_CATEGORIES_NOTE}`,
+	),
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -77,12 +140,31 @@ export const CreateGraphSchema = z.object({
 		.describe(
 			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)",
 		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
+		),
+	maxNodes: z
+		.number()
+		.int()
+		.positive()
+		.max(1000)
+		.optional()
+		.describe(
+			"Maximum number of concepts (nodes) in the generated graph. Default 150 — the most relevant nodes are kept and the rest dropped. Increase (e.g. 500) for large texts when a more complete graph is explicitly needed; response size grows accordingly. Omit to use the default.",
+		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
 			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)",
 		),
+	wikilinksMode: WikilinksModeEnum.default("default").describe(
+		wikilinksModeDescription +
+			" For saved graphs this applies only when the graph is FIRST created; uploads to an existing graphName keep its original setting.",
+	),
 });
 
 export const AddMemorySchema = z.object({
@@ -95,10 +177,13 @@ export const AddMemorySchema = z.object({
 		),
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements, relations, and paragraphs in each text (but not the sentences). Detect the entities in every statement and use [[wikilinks]] syntax to mark them, unless the user explicitly requests automatic entity detection. Every statement should have at least two entities marked.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements, relations, and paragraphs in each text (but not the sentences). Detect the entities in every statement and use [[wikilinks]] syntax to mark them, unless the user explicitly requests automatic entity detection. Every statement should have at least two entities marked. Provide either this or statements.",
 		),
+	statements: statementsField,
+	categories: categoriesField.describe(SAVED_GRAPH_CATEGORIES_NOTE),
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -130,7 +215,7 @@ export const AnalyzeTextSchemaBase = z.object({
 		.string()
 		.optional()
 		.describe(
-			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide either this or url.",
+			"Text that you'd like to analyze. Use new lines to separate separate statements or paragrams in each text (but not the sentences). Provide one of: this, url, or statements.",
 		),
 	url: z
 		.string()
@@ -139,6 +224,9 @@ export const AnalyzeTextSchemaBase = z.object({
 		.describe(
 			"URL to fetch content from (e.g. webpage or YouTube video transcript). Provide either this or text.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
 		.default(false)
@@ -157,6 +245,12 @@ export const AnalyzeTextSchemaBase = z.object({
 		.describe(
 			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)",
 		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
+		),
 	includeGraphSummary: z
 		.boolean()
 		.default(false)
@@ -167,12 +261,16 @@ export const AnalyzeTextSchemaBase = z.object({
 		.describe(
 			"Entity detection: none (normal), detectEntities (mix entities and words), extractEntitiesOnly (detect entities only - use for ontology and knowledge graph creation and entity extraction)",
 		),
+	wikilinksMode: WikilinksModeEnum.default("default").describe(
+		wikilinksModeDescription,
+	),
 });
 export const AnalyzeTextSchema = AnalyzeTextSchemaBase.refine(
 	(data) =>
 		(data.text !== undefined && data.text.trim().length > 0) ||
-		(data.url !== undefined && data.url.length > 0),
-	{ message: "Provide either text or url for analysis." },
+		(data.url !== undefined && data.url.length > 0) ||
+		(data.statements !== undefined && data.statements.length > 0),
+	{ message: "Provide text, url, or statements for analysis." },
 );
 
 export const AnalyzeExistingGraphSchemaBase = z.object({
@@ -205,6 +303,12 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.default(false)
 		.describe(
 			"Include nodes and edges in response (add only if explicitly needed, not recommended for longer texts)",
+		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), the nodes-to-statements map, and full statement metadata. Overrides includeGraph / addNodesAndEdges / compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
 		),
 	includeGraphSummary: z
 		.boolean()
@@ -274,8 +378,11 @@ export const GenerateContentGapsSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -304,8 +411,11 @@ export const generateContextualHintSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -325,8 +435,9 @@ export const generateContextualHintSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const GenerateOntologyGraphSchema = z.object({
@@ -371,6 +482,21 @@ export const GenerateOntologyGraphSchema = z.object({
 		.default(false)
 		.describe(
 			"Include the compact graph structure — nodes (entities), edges (relations between them), and clusters — in the response. False by default to keep the response small; the ontology statements and analytics usually carry what's needed. Set to true when you also want to inspect the node/edge structure or render it.",
+		),
+	fullGraph: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Return the complete non-compacted graph: all node attributes (degree, betweenness centrality, community), all edge attributes including context_matrix (which statements produced each edge, with weights), and the nodes-to-statements map. Implies includeGraph and overrides compaction. Token-heavy — use only when the raw graph data is explicitly needed (e.g. export, rendering, or programmatic processing).",
+		),
+	maxNodes: z
+		.number()
+		.int()
+		.positive()
+		.max(1000)
+		.optional()
+		.describe(
+			"Maximum number of concepts (nodes) in the generated graph. Default 150 — the most relevant nodes are kept and the rest dropped. Increase (e.g. 500) for large ontologies when a more complete graph is explicitly needed; response size grows accordingly. Omit to use the default.",
 		),
 	includeAnalytics: z
 		.boolean()
@@ -461,8 +587,11 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -489,8 +618,9 @@ export const GenerateTopicalClustersSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const GenerateResearchQuestionsSchemaBase = z.object({
@@ -505,8 +635,11 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -559,8 +692,9 @@ export const GenerateResearchQuestionsSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const GenerateResearchIdeasSchemaBase = z.object({
@@ -575,8 +709,11 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -640,8 +777,9 @@ export const GenerateResearchIdeasSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const OptimizeTextStructureSchemaBase = z.object({
@@ -656,8 +794,11 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -695,17 +836,21 @@ export const OptimizeTextStructureSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const OptimizeReasoningSchemaBase = z.object({
 	text: z
 		.string()
-		.min(1, "Text is required for analysis")
+		.optional()
 		.describe(
-			"The current reasoning trace or chat conversation to analyze structurally. Paste the model's own chain-of-thought / reasoning output, the running dialogue with the user, or both concatenated. Use new lines to separate distinct reasoning steps, turns, or paragraphs (but not individual sentences).",
+			"The current reasoning trace or chat conversation to analyze structurally. Paste the model's own chain-of-thought / reasoning output, the running dialogue with the user, or both concatenated. Use new lines to separate distinct reasoning steps, turns, or paragraphs (but not individual sentences). Provide either this or statements.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	modelToUse: z
 		.enum([
 			"claude-opus-4.6",
@@ -739,8 +884,11 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -778,8 +926,9 @@ export const DevelopLatentConceptsSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 export const RetrieveContextForPromptFromGraphSchema = z.object({
@@ -850,8 +999,11 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	prompt: z
 		.string()
 		.min(1, "Prompt is required")
@@ -880,8 +1032,9 @@ export const GenerateResponsesFromGraphSchema =
 		(data) =>
 			(data.text !== undefined && data.text.trim().length > 0) ||
 			(data.url !== undefined && data.url.length > 0) ||
-			(data.graphName !== undefined && data.graphName.trim().length > 0),
-		{ message: "Provide either text, url, or graphName for analysis." },
+			(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+			(data.statements !== undefined && data.statements.length > 0),
+		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
 // This is used for adding options later to each tool
@@ -935,7 +1088,7 @@ export const GenerateGeneralGraphSchema = z.object({
 		),
 });
 
-/** Shared context item: one of { text }, { url }, or { graphName }. Used by overlap and difference tools. */
+/** Shared context item: one of { text }, { statements }, { url }, or { graphName }. Used by overlap and difference tools. */
 const contextItemTextUrlOrGraphSchema = z.union([
 	z
 		.object({
@@ -946,7 +1099,21 @@ const contextItemTextUrlOrGraphSchema = z.union([
 					"Text content - use new lines to separate statements (but not sentences).",
 				),
 		})
+		.strict()
 		.describe("Context from plain text."),
+	z
+		.object({
+			statements: z
+				.array(z.string().min(1))
+				.min(1)
+				.describe("Short discrete statements, one unit of analysis each."),
+			categories: categoriesField,
+			timestamps: timestampsField,
+		})
+		.strict()
+		.describe(
+			"Context from short discrete statements. Categories and timestamps apply only when every context uses statements; otherwise the statements are joined into text.",
+		),
 	z
 		.object({
 			url: z
@@ -955,6 +1122,7 @@ const contextItemTextUrlOrGraphSchema = z.union([
 				.url("Must be a valid URL")
 				.describe("URL to fetch content from (or YouTube transcript)."),
 		})
+		.strict()
 		.describe("Context from a URL."),
 	z
 		.object({
@@ -965,6 +1133,7 @@ const contextItemTextUrlOrGraphSchema = z.union([
 					`Name of an existing ${brand.name} graph; its statements are retrieved and used as text.`,
 				),
 		})
+		.strict()
 		.describe(`Context from an existing ${brand.name} graph by name.`),
 ]);
 
@@ -973,7 +1142,7 @@ const GenerateOverlapGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts are required for overlap")
 		.describe(
-			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -1010,7 +1179,7 @@ const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts (target + one reference) are required")
 		.describe(
-			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -1440,6 +1609,8 @@ export const GenerateSEOGraphSchema = z.object({
 		.describe(
 			"URL to fetch content from for SEO analysis. Provide either this or text, not both.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
 	contentToExtract: z
 		.enum(["all", "header tags", "link tags"])
 		.default("all")
@@ -1538,8 +1709,11 @@ export const DevelopTextToolSchemaBase = z.object({
 		.url()
 		.optional()
 		.describe(
-			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, or graphName.",
+			"URL to fetch content from or YouTube video URL to fetch transcript. Provide one of: text, url, statements, or graphName.",
 		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
 	graphName: z
 		.string()
 		.min(1, "Graph name must be non-empty when provided")
@@ -1584,8 +1758,9 @@ export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
 	(data) =>
 		(data.text !== undefined && data.text.trim().length > 0) ||
 		(data.url !== undefined && data.url.length > 0) ||
-		(data.graphName !== undefined && data.graphName.trim().length > 0),
-	{ message: "Provide either text, url, or graphName for analysis." },
+		(data.graphName !== undefined && data.graphName.trim().length > 0) ||
+		(data.statements !== undefined && data.statements.length > 0),
+	{ message: "Provide text, url, statements, or graphName for analysis." },
 );
 
 export const ListGraphsSchema = z.object({

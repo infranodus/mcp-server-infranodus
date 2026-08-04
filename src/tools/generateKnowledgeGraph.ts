@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { GenerateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { fetchUrlContentAsText } from "../utils/urlContent.js";
+import { resolveGraphInput } from "../utils/graphInput.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 function errorContent(message: string) {
@@ -28,24 +28,18 @@ export const generateKnowledgeGraphTool = {
 	},
 	handler: async (params: z.infer<typeof GenerateGraphSchema>) => {
 		try {
-			let contentText: string;
-			if (params.url) {
-				const result = await fetchUrlContentAsText(params.url);
-				if (!result.ok) return errorContent(result.error);
-				contentText = result.contentText;
-				if (!contentText?.trim())
-					return errorContent("URL did not return any text content");
-			} else if (params.text?.trim()) {
-				contentText = params.text;
-			} else {
-				return errorContent("Provide either url or text for analysis");
-			}
+			const input = await resolveGraphInput(params);
+			if (!input.ok) return errorContent(input.error);
 
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
+			const fullGraph = params.fullGraph === true;
 			const buildingEntitiesGraph =
 				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
-			// Build query parameters
+			// Build query parameters. fullGraph overrides the compaction flags:
+			// the API returns the raw graphology graph (all node/edge attributes,
+			// edge context_matrix, nodes_to_statements_map) and, when statements
+			// are requested, their full metadata.
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
@@ -53,20 +47,28 @@ export const generateKnowledgeGraphTool = {
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
 				includeGraph:
-					includeGraph || buildingEntitiesGraph || includeNodesAndEdges
+					fullGraph || includeGraph || buildingEntitiesGraph || includeNodesAndEdges
 						? "true"
 						: "false",
-				compactGraph: includeGraph || buildingEntitiesGraph ? "true" : "false",
-				compactStatements: params.includeStatements ? "true" : "false",
+				compactGraph:
+					!fullGraph && (includeGraph || buildingEntitiesGraph)
+						? "true"
+						: "false",
+				compactStatements:
+					!fullGraph && params.includeStatements ? "true" : "false",
 				aiTopics: "true",
 				optimize: "develop",
 			});
 
+			if (params.maxNodes && params.maxNodes > 0) {
+				queryParams.set("maxnodes", String(params.maxNodes));
+			}
+
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 
 			const requestBody: any = {
-				text: contentText,
 				aiTopics: "true",
+				...input.payload,
 			};
 
 			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {
@@ -89,8 +91,8 @@ export const generateKnowledgeGraphTool = {
 
 			const structuredOutput = transformToStructuredOutput(
 				response,
-				includeGraph,
-				includeNodesAndEdges,
+				includeGraph || fullGraph,
+				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph
 			);
 
