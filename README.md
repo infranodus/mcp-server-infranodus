@@ -274,6 +274,24 @@ Just add this in your Claude's configuration file (Settings > Developer > Edit C
 }
 ```
 
+Optional local guardrail with [Armorer Guard](https://github.com/ArmorerLabs/Armorer-Guard):
+
+```json
+{
+	"mcpServers": {
+		"infranodus": {
+			"command": "armorer-guard",
+			"args": ["mcp-proxy", "--", "npx", "-y", "infranodus-mcp-server"],
+			"env": {
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY"
+			}
+		}
+	}
+}
+```
+
+This keeps the same InfraNodus MCP server and adds a local proxy that inspects tool-call arguments for prompt injection, credential leakage, exfiltration risk, and dangerous actions before forwarding safe calls.
+
 #### For Claude Code
 
 To connect the InfraNodus MCP server to your Claude code, you can use this command. Make sure to provide the correct InfraNodus API key for your account:
