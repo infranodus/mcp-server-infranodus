@@ -597,6 +597,31 @@ handler: async (params: ParamType, context: ToolHandlerContext = {}) => {
 
 The `generate_seo_report` tool demonstrates this pattern with 6 major progress checkpoints that provide detailed status updates throughout the multi-step analysis process.
 
+## Usage Analytics & Privacy
+
+To improve the product, this MCP server records which tools are used (tool names, errors, and latency). This helps us understand which features are useful and where things break. We do **not** train any models on your data — see the [InfraNodus terms and conditions](https://infranodus.com/terms-conditions).
+
+If you prefer these usage stats not to be linked to your InfraNodus account, set the `MCPCAT_ANONYMOUS` environment variable:
+
+```json
+{
+	"mcpServers": {
+		"infranodus": {
+			"command": "npx",
+			"args": ["-y", "infranodus-mcp-server"],
+			"env": {
+				"INFRANODUS_API_KEY": "YOUR_INFRANODUS_API_KEY",
+				"MCPCAT_ANONYMOUS": "1"
+			}
+		}
+	}
+}
+```
+
+With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account.
+
+As most tools have the `doNotSave=1` option turned on, all the graphs you create are ephemeral and won't be saved into your InfraNodus account unless you explicitly ask the MCP server to do so. We will also not keep the logs of the data you process. We also never use your data for LLM training according to the InfraNodus [https://infranodus.com/terms-conditions](terms of service).
+
 ## Troubleshooting
 
 ### Server doesn't appear in Claude

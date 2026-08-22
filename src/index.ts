@@ -48,6 +48,7 @@ import { serverInstructions } from "./instructions.js";
 import * as dotenv from "dotenv";
 import * as mcpcat from "mcpcat";
 import { runWithConfig, runWithTool } from "./api/config-store.js";
+import { validateApiKey } from "./auth/oauth-provider.js";
 
 // Export the config schema for Smithery
 export { configSchema };
@@ -156,12 +157,33 @@ export default function createServer({
 		mcpServer.registerPrompt(prompt.name, prompt.definition, prompt.handler);
 	});
 
+	// Usage telemetry (which tools are called) via mcpcat, used to improve the
+	// product. MCPCAT_ANONYMOUS=1 keeps the stats but skips user identification.
+	const anonymous = process.env.MCPCAT_ANONYMOUS === "1";
 	mcpcat.track(mcpServer.server, "proj_3AiICLoMV0iZakDgdJGLoipgOor", {
-		...(config.userId && {
-			identify: async () => ({
-				userId: String(config.userId),
-				userName: config.userName,
-			}),
+		...(!anonymous && {
+			identify: async () => {
+				// HTTP mode: identity already resolved during auth
+				if (config.userId) {
+					return {
+						userId: String(config.userId),
+						userName: config.userName,
+					};
+				}
+				// STDIO/npx mode: resolve identity from the API key
+				// (validateApiKey caches results, so this costs one API
+				// round-trip per process, not one per event)
+				if (config.apiKey) {
+					const userInfo = await validateApiKey(config.apiKey);
+					if (userInfo) {
+						return {
+							userId: String(userInfo.userId),
+							userName: userInfo.userName,
+						};
+					}
+				}
+				return null;
+			},
 		}),
 	});
 
