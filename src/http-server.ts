@@ -320,6 +320,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		button { width: 100%; padding: 12px; background: #4F46E5; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 20px; }
 		button:hover { background: #4338CA; }
 		.info { background: #F3F4F6; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; color: #666; }
+		.info a { color: #4F46E5; }
 	</style>
 </head>
 <body>
@@ -327,6 +328,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 	<p class="client-name">Application: <strong>${clientName}</strong></p>
 	<div class="info">
 		Enter your ${brand.name} API key to authorize this application to access your ${brand.name} data.
+		You can get your API key at <a href="https://${brand.domain}/api-access" target="_blank" rel="noopener noreferrer">${brand.domain}/api-access</a>.
 	</div>
 	<form method="POST" action="/oauth/authorize">
 		<input type="hidden" name="client_id" value="${safeClientId}">
