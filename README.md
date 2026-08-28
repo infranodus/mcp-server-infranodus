@@ -642,7 +642,7 @@ If you prefer these usage stats not to be linked to your InfraNodus account, set
 }
 ```
 
-With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account. It also disables the per-user `submit_workflow_feedback` log described under tool 34, and the objective per-call metrics (duration, error, retry of the previous call) that ride along on requests are only stored against your account through that same log.
+With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account. It also disables the per-user `submit_workflow_feedback` log described under tool 34 (the report includes duration / error / retry of the call it rates).
 
 ### Project learnings
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { brand } from "../config/brand.js";
 import { SubmitWorkflowFeedbackSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
+import { getCallContext } from "../api/config-store.js";
 import { buildFeedbackRecord } from "../utils/feedback.js";
 import type { ToolExtra } from "../types/index.js";
 
@@ -30,7 +31,14 @@ export const submitWorkflowFeedbackTool = {
 		params: z.infer<typeof SubmitWorkflowFeedbackSchema>,
 		extra?: ToolExtra,
 	) => {
-		const record = buildFeedbackRecord(params, extra?.clientName);
+		// The previous call in this session is the one whose output is being
+		// rated; its duration / error / retry go into the record as the
+		// objective cross-check (MCPcat has the same for every call).
+		const record = buildFeedbackRecord(
+			params,
+			extra?.clientName,
+			getCallContext()?.previousCall as any,
+		);
 
 		// MCPcat already captured this call with its parameters (and stays
 		// anonymous under MCPCAT_ANONYMOUS). The app log is per-user by design,
@@ -47,7 +55,10 @@ export const submitWorkflowFeedbackTool = {
 					// deploy tag in `source` classifies the row as web_app and the
 					// admin API-usage panel never shows it.
 					app: "api",
-					feedbackType: record.feedbackType,
+					// Row selector in log_ai (`type` is the client's self-reported
+					// request type). The record itself lands in json_response via
+					// saveValueAction → updateActionLog(user, body, body.feedback).
+					type: "mcp_feedback",
 					feedback: record,
 				},
 				"POST",

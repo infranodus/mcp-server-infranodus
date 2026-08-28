@@ -86,6 +86,10 @@ test("text fields are capped and the record carries versions and flags", () => {
 	assert.equal(record.consistent, true);
 	assert.equal(record.feedbackType, "partly");
 	assert.equal(record.client, "Claude Code");
+	assert.equal(record.previousCall, undefined);
+	const withPrev = buildFeedbackRecord(base, undefined, { tool: "develop_text_tool", durationMs: 1200, isError: false, retry: true, at: "2026-08-28T00:00:00.000Z" });
+	assert.equal(withPrev.previousCall.retry, true);
+	assert.equal(withPrev.client, undefined);
 });
 
 test("call tracking: retry detection and previousCall handoff", () => {

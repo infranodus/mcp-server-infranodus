@@ -54,6 +54,14 @@ export interface FeedbackObservations {
 	reason: string;
 }
 
+export interface PreviousCallMetrics {
+	tool: string;
+	durationMs: number;
+	isError: boolean;
+	retry: boolean;
+	at: string;
+}
+
 export interface FeedbackRecord extends FeedbackObservations {
 	workflowId: string;
 	grounded: boolean;
@@ -62,6 +70,8 @@ export interface FeedbackRecord extends FeedbackObservations {
 	schemaVersion: number;
 	ruleVersion: number;
 	client?: string;
+	/** Objective metrics of the call that produced the rated output (utils/callTracking.ts). */
+	previousCall?: PreviousCallMetrics;
 }
 
 /**
@@ -139,6 +149,7 @@ export function deriveFeedbackType(
 export function buildFeedbackRecord(
 	observations: FeedbackObservations,
 	client?: string,
+	previousCall?: PreviousCallMetrics,
 ): FeedbackRecord {
 	const workflow = capText(observations.workflow) ?? "";
 	const usedExample = capText(observations.usedExample);
@@ -159,5 +170,6 @@ export function buildFeedbackRecord(
 		schemaVersion: FEEDBACK_SCHEMA_VERSION,
 		ruleVersion: FEEDBACK_RULE_VERSION,
 		...(client ? { client } : {}),
+		...(previousCall ? { previousCall } : {}),
 	};
 }

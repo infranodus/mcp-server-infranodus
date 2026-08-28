@@ -6,8 +6,9 @@ const configStorage = new AsyncLocalStorage<Config>();
 const toolStorage = new AsyncLocalStorage<string>();
 
 /**
- * Per-invocation context that the API client attaches to request bodies:
- * the previous call's metrics in this session (see utils/callTracking.ts).
+ * Per-invocation context: the session and the previous call's metrics in
+ * it (see utils/callTracking.ts). Read by submit_workflow_feedback, which
+ * embeds the metrics of the call it is rating into its report.
  */
 export interface CallContext {
 	sessionId: string;
