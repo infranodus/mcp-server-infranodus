@@ -36,18 +36,20 @@ graph-save path it triggers. Verified by reading infranodus-app source.
 
 ## Model name normalization
 - `defineModelToUse` (ai.js:1213) maps dotted public names to dashed internal IDs:
-  `claude-opus-4.5`/`claude-opus-4.6` -> `claude-opus-4-6`;
-  `claude-sonnet-4.5`/`claude-sonnet-4.6` -> `claude-sonnet-4-6`;
+  `claude-opus-4.5`/`claude-opus-4.6`/`claude-opus-5` -> `claude-opus-5`;
+  `claude-sonnet-4.5`/`claude-sonnet-4.6`/`claude-sonnet-5` -> `claude-sonnet-5`; `claude-fable-5` -> `claude-fable-5`;
   `gpt-5`/`gpt-5.4` -> `gpt-5.4`; `grok-4.1-fast-*` -> `grok-4-1-fast-*`; etc.
 - Unknown model => silent fallback to `gpt-4o-mini` (ai.js:1298). No error surfaced.
 - `generateAiResponse` returns the NORMALIZED `modelToUse` (ai.js:553/561/597...),
   which flows to `convertGPTResponsesToArray` (ai.js:799-803). That function's content
   extraction switch checks the DASHED names (ai.js:924-946). So sending dotted names
   from a JSON client is safe — but ONLY because normalization happens first. Sending
-  an already-dashed internal name like `claude-opus-4-6` also works.
+  an already-dashed internal name like `grok-4-1-fast-reasoning` also works.
 - Valid public model list: `getModelsAvailable` (ai.js:892-915): gpt-4o-mini, gpt-4o,
-  gpt-4, gpt-3.5-turbo, gpt-5.4, gpt-5.4-mini, claude-opus-4.6, claude-sonnet-4.6,
-  grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gemini-2.5-flash, gemini-2.5-flash-lite.
+  gpt-4, gpt-3.5-turbo, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol, claude-opus-5,
+  claude-sonnet-5, claude-fable-5, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning,
+  gemini-2.5-flash, gemini-2.5-flash-lite (gemini-2.5-pro accepted by defineModelToUse but not advertised).
+  Updated 2026-08-28 from infranodus-app routes/ai.js:979 / lib/ai.js:1267.
 
 ## numberOfResults coercion (fragile)
 - `defineAiRequestParameters` (ai.js:828-831):

@@ -69,7 +69,7 @@ export const generateOntologyGraphTool = {
 				contextName: graphName,
 				aiQueryType: "ontology graph",
 				mode: "gptchat",
-				modelToUse: params.modelToUse ?? "claude-opus-4.6",
+				modelToUse: params.modelToUse ?? "claude-opus-5",
 				prompt: [{ role: "user", content: params.prompt }],
 				modifyAnalyzedText: "none",
 				contextType: "ONTOLOGY",

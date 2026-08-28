@@ -30,7 +30,7 @@ Available Tools:
 9. overlap_between_texts - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
 10. merged_graph_from_texts - Build a graph of all the texts, URLs, and existing graphs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
 11. difference_between_texts - Create knowledge graphs from two or more text and find what's not present in the first graph that's present in the others
-12. analyze_llm_results - Ask an LLM to describe a topic and turn its answer into a knowledge graph that reveals how the model frames it (main concepts, clusters, content gaps, relations). Useful for probing model bias or comparing how different models describe the same topic. Default model: claude-opus-4.6. Saves by default; returns analytics by default and omits raw graph (includeGraph: false) to keep responses compact
+12. analyze_llm_results - Ask an LLM to describe a topic and turn its answer into a knowledge graph that reveals how the model frames it (main concepts, clusters, content gaps, relations). Useful for probing model bias or comparing how different models describe the same topic. Default model: claude-opus-5. Saves by default; returns analytics by default and omits raw graph (includeGraph: false) to keep responses compact
 13. analyze_google_search_results - Generate a Google search results graph from search queries
 14. analyze_youtube_results - Generate a knowledge graph from YouTube results (search results, a channel's or playlist's videos, video comments, or transcribed subtitles) to reveal main topics, clusters, and content gaps
 15. analyze_related_search_queries - Generate a graph of search requests related to search queries provided

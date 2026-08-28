@@ -112,13 +112,13 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 16. **generate_ontology_graph**
     - Use AI to generate a reasoning ontology graph (entities and the relations between them) from a topic, prompt, or text — e.g. "build an ontology on AI attention mechanisms"
     - Saved as a persistent InfraNodus graph by default and a link is returned; set `saveGraph: false` if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later (the generated statements are returned directly without persisting)
-    - `modelToUse` defaults to `claude-opus-4.6` for richer ontologies; pick `-mini`/`-lite` variants (or `gpt-4o-mini`) for faster, cheaper generation
+    - `modelToUse` defaults to `claude-opus-5` for richer ontologies (also `claude-fable-5`, `gpt-5.6-terra`); pick `-mini`/`-lite` variants (or `gpt-4o-mini`) for faster, cheaper generation
     - Returns the compact graph structure (`knowledgeGraph`) and analytics (main topical clusters, content gaps, top influential nodes, top relations, statistics) by default. Set `includeGraph: false` to save context space when only the ontology statements or insights are needed. Set `includeAnalytics: false` if you just need the raw ontology without graph-derived insights — keep it on whenever you want to understand the structure, gaps, or key concepts
 
 17. **analyze_llm_results**
     - Ask an LLM to describe a topic and turn its response into a knowledge graph that reveals how the model frames it — main concepts, clusters, content gaps, and the relations between them
     - Use it to probe model bias, surface the implicit structure of an LLM's view on a subject, or compare how different models describe the same topic
-    - `modelToUse` defaults to `claude-opus-4.6`; pick the model you actually want to study
+    - `modelToUse` defaults to `claude-opus-5`; pick the model you actually want to study
     - `modifyAnalyzedText` controls how the LLM output is parsed: `'detectEntities'` (default — mixed entities + words), `'extractEntitiesOnly'` (entity-only graph), or `'none'` (plain co-occurrence)
     - Saves the graph by default; set `saveGraph: false` for a one-off probe. Returns analytics by default and omits the raw graph (`includeGraph: false`) to keep responses compact — enable `includeGraph` when you also need nodes/edges
 

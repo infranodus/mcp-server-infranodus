@@ -455,8 +455,9 @@ export const GenerateOntologyGraphSchema = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -466,10 +467,12 @@ export const GenerateOntologyGraphSchema = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
-		.default("claude-opus-4.6")
+		.default("claude-opus-5")
 		.describe(
-			"AI model used to generate the ontology. More capable models (claude-opus-4.6, gpt-5.4) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-4.6.",
+			"AI model used to generate the ontology. More capable models (claude-opus-5, claude-fable-5, gpt-5.6-terra) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-5.",
 		),
 	saveGraph: z
 		.boolean()
@@ -527,8 +530,9 @@ export const AnalyzeLlmResultsSchema = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -538,10 +542,12 @@ export const AnalyzeLlmResultsSchema = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
-		.default("claude-opus-4.6")
+		.default("claude-opus-5")
 		.describe(
-			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-4.6.",
+			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-5.",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -669,8 +675,9 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -680,10 +687,12 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
 		),
 });
 
@@ -755,8 +764,9 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -766,10 +776,12 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
 		),
 });
 export const GenerateResearchIdeasSchema =
@@ -814,8 +826,9 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -825,10 +838,12 @@ export const OptimizeTextStructureSchemaBase = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating optimization suggestions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating optimization suggestions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
 		),
 });
 export const OptimizeTextStructureSchema =
@@ -853,8 +868,9 @@ export const OptimizeReasoningSchemaBase = z.object({
 	timestamps: timestampsField,
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -864,10 +880,12 @@ export const OptimizeReasoningSchemaBase = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating the reasoning-optimization suggestions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating the reasoning-optimization suggestions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
 		),
 });
 export const OptimizeReasoningSchema = OptimizeReasoningSchemaBase;
@@ -904,8 +922,9 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -915,10 +934,12 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
 		),
 });
 export const DevelopLatentConceptsSchema =
@@ -1010,8 +1031,9 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.describe("Prompt to generate responses to from the graph"),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -1021,10 +1043,12 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
 		),
 });
 export const GenerateResponsesFromGraphSchema =
@@ -1737,8 +1761,9 @@ export const DevelopTextToolSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum([
-			"claude-opus-4.6",
-			"claude-sonnet-4.6",
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
 			"gemini-2.5-pro",
 			"gemini-2.5-flash",
 			"gemini-2.5-flash-lite",
@@ -1748,10 +1773,12 @@ export const DevelopTextToolSchemaBase = z.object({
 			"gpt-4o-mini",
 			"gpt-5.4",
 			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
 		])
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating insights: claude-opus-4.6, claude-sonnet-4.6, gemini-2.5-flash, gemini-2.5-flash-lite, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini",
+			"AI model to use for generating insights: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
 		),
 });
 export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
