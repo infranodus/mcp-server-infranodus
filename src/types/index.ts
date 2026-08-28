@@ -217,6 +217,10 @@ export interface TopicsOutput {
 }
 
 export interface OntologyGraphOutput {
+	/** 'prompt' | 'text' | 'graph' — where the ontology was generated from. */
+	source?: string;
+	chunksTotal?: number;
+	chunksProcessed?: number;
 	// Core
 	saved?: boolean;
 	message?: string;

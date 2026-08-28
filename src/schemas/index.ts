@@ -443,9 +443,36 @@ export const generateContextualHintSchema =
 export const GenerateOntologyGraphSchema = z.object({
 	prompt: z
 		.string()
-		.min(1, "Provide a topic, prompt, or text to generate an ontology for")
+		.optional()
 		.describe(
-			"The topic, prompt, or text to generate a reasoning ontology graph for. For example: 'build an ontology on AI attention mechanisms' or 'the main principles of Ray Dalio applied to investment'. The AI generates entities and the relations between them.",
+			"A topic or short prompt to generate a reasoning ontology for, e.g. 'build an ontology on AI attention mechanisms' or 'the main principles of Ray Dalio applied to investment'. Sent to the AI as-is in one call. Provide exactly one of: prompt, text, sourceGraphName.",
+		),
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"A long text, document, or structural digest of a project (file tree, imports, exports, docstring headlines) to EXTRACT an ontology from. Chunked server-side (see chunkSize); every chunk's ontology is appended to the same graph. Provide exactly one of: prompt, text, sourceGraphName.",
+		),
+	sourceGraphName: z
+		.string()
+		.optional()
+		.describe(
+			`Name of an existing ${brand.name} graph whose statements are the source: they are read back, chunked, and an ontology is generated from each chunk into the graph named by graphName. Use it to condense a fully ingested repo, vault, or corpus graph (e.g. repo-<project>-docs or repo-<project>-digest) into an ontology. Provide exactly one of: prompt, text, sourceGraphName.`,
+		),
+	ontologyMode: z
+		.enum(["general", "codebase"])
+		.default("general")
+		.describe(
+			"'general' (default): entities and relations of any domain. 'codebase': the source is a software project digest or code documentation — entities are modules/files, functions, classes, data stores, external services, configuration, and the domain concepts they implement; relations favour dependsOn / partOf / exposes / calls / stores / implements. Applies to text and sourceGraphName inputs.",
+		),
+	chunkSize: z
+		.number()
+		.int()
+		.min(2000)
+		.max(40000)
+		.default(12000)
+		.describe(
+			"Characters per chunk for text / sourceGraphName inputs (split on line boundaries). Smaller chunks give more detailed, more expensive ontologies. Default 12000.",
 		),
 	graphName: z
 		.string()

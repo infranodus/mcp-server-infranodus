@@ -7,7 +7,62 @@ import {
 	extractLineSeparatedStatements,
 	transformToStructuredOutput,
 } from "../utils/transformers.js";
-import { OntologyGraphOutput } from "../types/index.js";
+import { OntologyGraphOutput, ToolHandlerContext } from "../types/index.js";
+import { ProgressReporter } from "../utils/progress.js";
+
+/** Split on line boundaries so no statement is cut in half. */
+export function chunkByLines(text: string, chunkSize: number): string[] {
+	const chunks: string[] = [];
+	let current: string[] = [];
+	let size = 0;
+	for (const line of text.split("\n")) {
+		if (size + line.length + 1 > chunkSize && current.length > 0) {
+			chunks.push(current.join("\n"));
+			current = [];
+			size = 0;
+		}
+		current.push(line);
+		size += line.length + 1;
+	}
+	if (current.length > 0) chunks.push(current.join("\n"));
+	return chunks.filter((chunk) => chunk.trim().length > 0);
+}
+
+const PREAMBLES: Record<"general" | "codebase", string> = {
+	general:
+		"Extract an ontology from the text below: the entities it contains and the relations between them, covering the whole text, not only its main theme.",
+	codebase:
+		"The text below is a structural digest of a software project (directories, files, imports and dependencies, exported symbols, docstring headlines) or its documentation. Extract an ontology of its ARCHITECTURE. Entities: modules and files (keep paths exactly as written), functions and classes, data stores, external services and packages, configuration, and the domain concepts they implement. Relations: prefer [dependentOn] for imports and dependencies, [partOf] for containment, [isA] for kinds of components, [hasAttribute] for exposed symbols and configuration, [relatedTo] / [derivedFrom] for the concepts a module implements. Connect the modules to the concepts, not only to each other.",
+};
+
+/** Read an existing graph's statements (doNotSave; a missing name errors). */
+async function readGraphStatements(graphName: string): Promise<string[]> {
+	const query = new URLSearchParams({
+		doNotSave: "true",
+		addStats: "false",
+		includeStatements: "true",
+		includeGraphSummary: "false",
+		extendedGraphSummary: "false",
+		includeGraph: "false",
+		compactGraph: "true",
+		compactStatements: "true",
+		aiTopics: "false",
+	});
+	const response = await makeInfraNodusRequest(`/graphAndStatements?${query}`, {
+		name: graphName,
+		aiTopics: "false",
+	});
+	if (response.error) {
+		throw new Error(
+			typeof response.error === "object"
+				? JSON.stringify(response.error)
+				: String(response.error),
+		);
+	}
+	return (response.statements ?? [])
+		.map((statement: any) => statement.content)
+		.filter((content: unknown): content is string => typeof content === "string" && content.trim().length > 0);
+}
 
 function errorContent(message: string) {
 	return {
@@ -42,8 +97,8 @@ function defaultOntologyName(prompt: string): string {
 export const generateOntologyGraphTool = {
 	name: "generate_ontology_graph",
 	definition: {
-		title: "Generate an AI Ontology Graph from a Topic or Prompt",
-		description: `Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) for a topic, prompt, or text, and optionally save it as a ${brand.name} graph. Use to get a rich overview or to produce a reasoning map of a topic for expert workflows.`,
+		title: "Generate an AI Ontology Graph from a Topic, Text, or Existing Graph",
+		description: `Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) and optionally save it as a ${brand.name} graph. Three sources, provide exactly one: prompt (a topic — one AI call), text (a long document or a structural digest of a project, chunked server-side), or sourceGraphName (an existing graph — e.g. a fully ingested repo, vault, or corpus — whose statements are read back, chunked, and condensed into an ontology). Set ontologyMode: 'codebase' for software projects. Use to get a rich overview, a reasoning map of a topic, or a condensed 'how it fits together' graph of a large corpus.`,
 		inputSchema: GenerateOntologyGraphSchema.shape,
 		annotations: {
 			readOnlyHint: false,
@@ -51,7 +106,10 @@ export const generateOntologyGraphTool = {
 			destructiveHint: false,
 		},
 	},
-	handler: async (params: z.infer<typeof GenerateOntologyGraphSchema>) => {
+	handler: async (
+		params: z.infer<typeof GenerateOntologyGraphSchema>,
+		context?: ToolHandlerContext,
+	) => {
 		try {
 			const saveGraph = params.saveGraph !== false;
 			const fullGraph = params.fullGraph === true;
@@ -61,42 +119,91 @@ export const generateOntologyGraphTool = {
 			const includeGraph = params.includeGraph === true || fullGraph;
 			const includeAnalytics = params.includeAnalytics !== false;
 			const includeStatements = params.includeStatements !== false;
-			const graphName =
-				params.graphName?.trim() || defaultOntologyName(params.prompt);
-
-			const requestBody: any = {
-				saveToGraphAndRedirect: saveGraph,
-				contextName: graphName,
-				aiQueryType: "ontology graph",
-				mode: "gptchat",
-				modelToUse: params.modelToUse ?? "claude-opus-5",
-				prompt: [{ role: "user", content: params.prompt }],
-				modifyAnalyzedText: "none",
-				contextType: "ONTOLOGY",
-				replaceEntities: false,
-				hideSearchTerms: true,
-			};
-
-			const response = await makeInfraNodusRequest("/aiAdvice", requestBody);
-
-			// The /aiAdvice endpoint returns error envelopes with HTTP 200, so the
-			// request does not throw — we must check response.error explicitly.
-			if (response.error) {
+			// Exactly one source: a topic prompt (one AI call), a long text
+			// (chunked), or an existing graph's statements (read back, chunked).
+			const prompt = params.prompt?.trim();
+			const text = params.text?.trim();
+			const sourceGraphName = params.sourceGraphName?.trim();
+			const provided = [prompt, text, sourceGraphName].filter(Boolean).length;
+			if (provided !== 1) {
 				return errorContent(
-					typeof response.error === "object"
-						? JSON.stringify(response.error)
-						: String(response.error),
+					"Provide exactly one of: prompt (a topic), text (a document or digest to extract from), or sourceGraphName (an existing graph to condense).",
 				);
 			}
+			const mode = params.ontologyMode ?? "general";
+			let source: "prompt" | "text" | "graph";
+			let chunks: string[];
+			if (prompt) {
+				source = "prompt";
+				chunks = [prompt];
+			} else if (text) {
+				source = "text";
+				chunks = chunkByLines(text, params.chunkSize ?? 12000);
+			} else {
+				source = "graph";
+				const statements = await readGraphStatements(sourceGraphName as string);
+				if (statements.length === 0) {
+					return errorContent(
+						`Graph "${sourceGraphName}" has no statements to build an ontology from.`,
+					);
+				}
+				chunks = chunkByLines(statements.join("\n"), params.chunkSize ?? 12000);
+			}
+			const graphName =
+				params.graphName?.trim() ||
+				defaultOntologyName(
+					prompt ?? sourceGraphName ?? (text as string).slice(0, 60),
+				);
 
-			// Raw statements are present in the /aiAdvice response only when NOT
-			// saving — saving returns a redirect instead. Each completion is a
-			// newline-separated list of entity-relation statements, split the same
-			// way the host app does (convertGPTResponsesToArray). The graph builder
-			// (/graphAndStatements) returns the statements in their final,
-			// post-processing shape, so those are preferred for ontologyStatements
-			// whenever the graph is built; these raw ones are the fallback.
-			const rawOntologyStatements = extractLineSeparatedStatements(response);
+			// One AI call per chunk; with saveGraph every call appends to the same
+			// graph. Raw statements come back only when NOT saving — saving
+			// returns a redirect — so both are collected across chunks.
+			const progress = new ProgressReporter(context ?? {}, chunks.length);
+			const rawOntologyStatements: string[] = [];
+			let response: any = null;
+			let chunksProcessed = 0;
+			for (const [index, chunk] of chunks.entries()) {
+				await progress.report(
+					index,
+					`Generating ontology: chunk ${index + 1} of ${chunks.length}`,
+				);
+				const content =
+					source === "prompt"
+						? chunk
+						: `${PREAMBLES[mode]}${
+								chunks.length > 1 ? ` (part ${index + 1} of ${chunks.length})` : ""
+							}\n\n${chunk}`;
+				const requestBody: any = {
+					saveToGraphAndRedirect: saveGraph,
+					contextName: graphName,
+					aiQueryType: "ontology graph",
+					mode: "gptchat",
+					modelToUse: params.modelToUse ?? "claude-opus-5",
+					prompt: [{ role: "user", content }],
+					modifyAnalyzedText: "none",
+					contextType: "ONTOLOGY",
+					replaceEntities: false,
+					hideSearchTerms: true,
+				};
+				const chunkResponse = await makeInfraNodusRequest("/aiAdvice", requestBody);
+				// The /aiAdvice endpoint returns error envelopes with HTTP 200, so
+				// the request does not throw — check response.error explicitly.
+				if (chunkResponse.error) {
+					const message =
+						typeof chunkResponse.error === "object"
+							? JSON.stringify(chunkResponse.error)
+							: String(chunkResponse.error);
+					return errorContent(
+						chunksProcessed > 0
+							? `Chunk ${index + 1} of ${chunks.length} failed after ${chunksProcessed} chunk(s) were ${saveGraph ? `saved to "${graphName}"` : "generated"}: ${message}. Resend the remaining part of the source with the same graphName to continue.`
+							: message,
+					);
+				}
+				response = chunkResponse;
+				chunksProcessed += 1;
+				rawOntologyStatements.push(...extractLineSeparatedStatements(chunkResponse));
+			}
+			await progress.report(chunks.length, "Ontology generated");
 
 			let output: OntologyGraphOutput;
 
@@ -113,14 +220,23 @@ export const generateOntologyGraphTool = {
 				const viewUrl = redirectUrl.replace(/\/edit\/?$/, "");
 
 				output = {
+					source,
+					chunksTotal: chunks.length,
+					chunksProcessed,
 					saved: true,
 					graphName,
 					graphUrl: `${base}${viewUrl}`,
 					editUrl: `${base}${redirectUrl}`,
-					message: `Ontology graph "${graphName}" generated and saved.`,
+					message:
+						chunks.length > 1
+							? `Ontology graph "${graphName}" generated from ${chunks.length} chunks and saved.`
+							: `Ontology graph "${graphName}" generated and saved.`,
 				};
 			} else {
 				output = {
+					source,
+					chunksTotal: chunks.length,
+					chunksProcessed,
 					saved: false,
 					message:
 						rawOntologyStatements.length > 0
