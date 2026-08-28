@@ -30,6 +30,8 @@ WORKFLOW PATTERNS:
 
 AI MODELS: Tools that generate AI responses accept modelToUse parameter. Available: gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol, claude-opus-5, claude-sonnet-5, claude-fable-5, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite. No additional API keys needed.
 
+PROJECT LEARNINGS: When operating inside a named project (a repo, folder, or vault), call get_project_learnings with the task as prompt at the start of a substantive task; if it returns enabled: false, carry on and do not suggest enabling unless the user asks about memory. At the end of a substantive task (multi-step, involved discovery, corrections, or a non-obvious fix), reflect: what was not derivable from the code, would have saved time, survived verification, is about the project (never the user), and ideally connects things not obviously connected. If learnings are enabled, propose them with add_project_learnings (dry run), show them to the user, and write with confirm: true only on their agreement — unless they said not to ask. Zero learnings is normal. Never call enable_project_learnings without an explicit request.
+
 RESPONSE TYPES: For idea-generating tools, responseType can be 'response' (default analytical), 'idea' (business-oriented), 'question' (research questions), or 'transcend' (broader discourse connection).
 
 DIVERSITY METRICS: Graph analysis returns diversity_score (biased/focused/diversified/dispersed) indicating text structure balance. Use this to choose the right development approach.

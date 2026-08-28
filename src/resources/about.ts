@@ -39,6 +39,9 @@ Available Tools:
 18. list_graphs - List all graphs for the currently logged in user with optional filtering by name, type, date, language, or favorite status
 19. search - Search through existing ${brand.name} graphs
 20. fetch - Fetch a specific search result from a ${brand.name} graph
+21. enable_project_learnings - Create the opt-in, per-project, append-only learnings graph (learn-<project>) in the user's account; call only on the user's explicit request, idempotent
+22. add_project_learnings - Save what the assistant learned about operating in a project (where things live, traps, conventions, decisions, workflows) as typed statements; refuses when the project is not enabled, dry run by default, writes with confirm: true or via an MCP elicitation form the user approves
+23. get_project_learnings - Retrieve a project's learnings by prompt (GraphRAG), by entity (file path, module, concept), or as an overview; with no project, lists the projects that have learnings. Returns enabled: false without error when there is no learnings graph
 
 Key Features:
 - Topic modeling and clustering

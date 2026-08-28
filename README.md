@@ -188,6 +188,24 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 
+31. **enable_project_learnings**
+    - Create the opt-in, per-project, append-only learnings graph (`learn-<project>`) in your account — the place where the assistant saves what it learned about operating in a project
+    - Called only when you explicitly ask to start saving learnings for a project; idempotent, so calling it again just returns the existing graph
+    - The assistant tells you first what will be stored (project knowledge only, never anything about you), where (a private graph you can delete at any time), and that batches are shown before saving
+
+32. **add_project_learnings**
+    - Save learnings about a project — where things live, traps, conventions, decisions, workflows — as statements with a `type` category each, for later sessions on any client
+    - Refuses (without error) when the project has not been enabled and never creates the graph itself
+    - Dry run by default: returns what would be written, marking near-duplicates as `reinforced`; writes only with `confirm: true` — or in the same call when your client supports MCP elicitation and you approve the form
+    - Rejects statements with secret-like content server-side (indices only, never the content)
+
+33. **get_project_learnings**
+    - Retrieve learnings for a project: by `prompt` (GraphRAG — most relevant statements plus an overview of what is known), by `entity` (a file path, module, or concept), or a structural overview with neither
+    - Call with no `project` to list the projects that have learnings in your account
+    - Returns `enabled: false` with an empty list when a project has no learnings graph — not an error
+
+    _Also available as the `save-learnings` prompt in clients that expose MCP prompts. Set `INFRANODUS_LEARNINGS=0` to remove these three tools from the server entirely (see [Project learnings](#project-learnings))._
+
 _More capabilites coming soon!_
 
 ### Key Capabilities
@@ -619,6 +637,10 @@ If you prefer these usage stats not to be linked to your InfraNodus account, set
 ```
 
 With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account.
+
+### Project learnings
+
+The `enable_project_learnings`, `add_project_learnings`, and `get_project_learnings` tools let the assistant keep an append-only graph of what it learned about operating in a project (`learn-<project>` in your InfraNodus account). They are opt-in per project: the graph exists only after you explicitly ask to enable it, the write tool refuses when the graph is missing and never creates one, and every batch is shown to you before it is saved. If you never want these tools exposed, set `INFRANODUS_LEARNINGS=0` in the server's environment (same place as `MCPCAT_ANONYMOUS`). To stop collecting for a project, delete its `learn-<project>` graph in InfraNodus.
 
 As most tools have the `doNotSave=1` option turned on, all the graphs you create are ephemeral and won't be saved into your InfraNodus account unless you explicitly ask the MCP server to do so. We will also not keep the logs of the data you process. We also never use your data for LLM training according to the InfraNodus [https://infranodus.com/terms-conditions](terms of service).
 

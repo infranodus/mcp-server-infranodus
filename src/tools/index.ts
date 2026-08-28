@@ -29,3 +29,6 @@ export { generateResearchIdeasTool } from "./generateResearchIdeas.js";
 export { optimizeTextStructureTool } from "./optimizeTextStructure.js";
 export { optimizeReasoningTool } from "./optimizeReasoning.js";
 export { retrieveContextForPromptFromGraphTool } from "./retrieveContextForPromptFromGraph.js";
+export { enableProjectLearningsTool } from "./enableProjectLearnings.js";
+export { addProjectLearningsTool } from "./addProjectLearnings.js";
+export { getProjectLearningsTool } from "./getProjectLearnings.js";

@@ -92,6 +92,11 @@ const BRANDS: Record<BrandId, BrandDef> = {
 			"develop_latent_topics",
 			"generate_contextual_hint",
 			"retrieve_from_knowledge_base",
+			// Project learnings are for people operating in repos/projects,
+			// not the SEO/keyword audience.
+			"enable_project_learnings",
+			"add_project_learnings",
+			"get_project_learnings",
 		],
 		npm: {
 			packageName: "keywordgraph-mcp-server",

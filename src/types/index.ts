@@ -402,3 +402,32 @@ export interface ToolHandlerContext {
 		progressTotal?: number;
 	};
 }
+
+// ---------------------------------------------------------------------------
+// Per-invocation context handed to tool handlers by wrapHandler (src/index.ts)
+// ---------------------------------------------------------------------------
+
+export interface ElicitRequestParams {
+	message: string;
+	requestedSchema: {
+		type: "object";
+		properties: Record<string, Record<string, unknown>>;
+		required?: string[];
+	};
+}
+
+export interface ElicitResultLike {
+	action: "accept" | "decline" | "cancel";
+	content?: Record<string, unknown>;
+}
+
+export interface ToolExtra {
+	progressToken?: string | number;
+	sendNotification?: (notification: any) => Promise<void>;
+	/** Server-initiated user prompt (MCP elicitation); undefined when unavailable. */
+	elicit?: (params: ElicitRequestParams) => Promise<ElicitResultLike>;
+	/** Capabilities the connected client declared at initialize. */
+	clientCapabilities?: { elicitation?: object; [key: string]: unknown };
+	/** Client name from initialize (e.g. "claude-ai", "cursor"). */
+	clientName?: string;
+}

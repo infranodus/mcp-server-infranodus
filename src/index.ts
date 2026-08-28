@@ -40,6 +40,9 @@ import {
 	generateGoogleResultsVsQueriesGraphTool,
 	generateSEOGraphTool,
 	developTextTool,
+	enableProjectLearningsTool,
+	addProjectLearningsTool,
+	getProjectLearningsTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 import { llmsTxtResource, llmsFullTxtResource } from "./resources/llms-txt.js";
@@ -70,6 +73,9 @@ export default function createServer({
 	// Wrap tool handlers so each invocation runs in an AsyncLocalStorage
 	// carrying both the config and the invoking tool's name (so API requests
 	// can tag which tool triggered them — see makeInfraNodusRequest).
+	// Handlers also get access to MCP elicitation (server-initiated user
+	// prompts) and the client's identity/capabilities, so a tool can ask the
+	// user directly when the client supports it (see add_project_learnings).
 	const wrapHandler = (handler: any, toolName: string) => {
 		return async (params: any, extra: any) => {
 			return runWithConfig(config, () =>
@@ -77,11 +83,17 @@ export default function createServer({
 					handler(params, {
 						progressToken: extra?._meta?.progressToken,
 						sendNotification: extra?.sendNotification,
+						elicit: (elicitParams: any) =>
+							mcpServer.server.elicitInput(elicitParams),
+						clientCapabilities: mcpServer.server.getClientCapabilities(),
+						clientName: mcpServer.server.getClientVersion()?.name,
 					}),
 				),
 			);
 		};
 	};
+
+	const learningsEnabled = process.env.INFRANODUS_LEARNINGS !== "0";
 
 	// All tools are compiled in; the active brand decides which are exposed
 	// (see excludedTools in config/brand.ts). New tools added here appear in
@@ -118,6 +130,15 @@ export default function createServer({
 		generateGoogleResultsVsQueriesGraphTool,
 		analyzeLlmResultsTool,
 		generateSEOGraphTool,
+		// Project learnings (agent self-reflection saved to the user's own
+		// graph). Hidden entirely when INFRANODUS_LEARNINGS=0.
+		...(learningsEnabled
+			? [
+					enableProjectLearningsTool,
+					addProjectLearningsTool,
+					getProjectLearningsTool,
+				]
+			: []),
 	];
 
 	// Register tools enabled for the active brand
@@ -154,6 +175,12 @@ export default function createServer({
 
 	// Register prompts
 	prompts.forEach((prompt) => {
+		if (prompt.name === "save-learnings" && !learningsEnabled) return;
+		if (
+			prompt.name === "save-learnings" &&
+			!isToolEnabled("add_project_learnings")
+		)
+			return;
 		mcpServer.registerPrompt(prompt.name, prompt.definition, prompt.handler);
 	});
 

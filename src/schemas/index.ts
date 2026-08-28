@@ -1829,3 +1829,81 @@ export const ListGraphsSchema = z.object({
 		),
 	favorite: z.boolean().optional().describe("Filter by favorite status"),
 });
+
+// ---------------------------------------------------------------------------
+// Project learnings (see docs/drafts/project-learnings-graph.md)
+// ---------------------------------------------------------------------------
+
+const projectField = z
+	.string()
+	.min(1, "Project name is required")
+	.describe(
+		"Name of the project the learnings belong to — the repo or folder name, git remote basename, or whatever the user calls it. Use the same name every time for the same project (call get_project_learnings without a project to list the names already in use). Becomes the graph name learn-<slug>.",
+	);
+
+export const EnableProjectLearningsSchema = z.object({
+	project: projectField,
+});
+
+// Length parity between `types` and `statements` is checked in the handler
+// (a .refine() would hide `.shape`, which tool registration needs).
+export const AddProjectLearningsSchema = z.object({
+		project: projectField,
+		statements: z
+			.array(z.string().min(1))
+			.min(1)
+			.max(10)
+			.describe(
+				"One learning per statement, at most 2 sentences each, with at least two [[wikilinked]] entities (file paths, modules, concepts, tools). Only project knowledge that is not derivable from the code in a few reads, would have saved time up front, survived verification, and ideally connects things that are not obviously connected. Never anything about the user; never secrets, hostnames, env values, or verbatim error output.",
+			),
+		types: z
+			.array(
+				z.enum([
+					"location",
+					"trap",
+					"convention",
+					"decision",
+					"workflow",
+					"question",
+				]),
+			)
+			.min(1)
+			.max(10)
+			.describe(
+				"One type per statement, parallel to `statements`: location (where X lives), trap (what went wrong first), convention (how things are done here), decision (what was chosen and why), workflow (how to run/test/build/deploy), question (open, unresolved).",
+			),
+		confirm: z
+			.boolean()
+			.default(false)
+			.describe(
+				"false (default) = dry run: returns what would be written (new vs reinforced duplicates) and writes nothing — show it to the user and ask whether to save. true = write. Pass true directly only when the user has said they don't want to be asked each time.",
+			),
+	});
+
+export const GetProjectLearningsSchema = z.object({
+	project: z
+		.string()
+		.optional()
+		.describe(
+			"Project name (same as used when enabling). Omit to list the projects that have learnings enabled in this account.",
+		),
+	prompt: z
+		.string()
+		.optional()
+		.describe(
+			"The task or question at hand. Retrieves the most relevant learnings for it (GraphRAG) plus a structural overview of what is known. Use at the start of a substantive task.",
+		),
+	entity: z
+		.string()
+		.optional()
+		.describe(
+			"A file path, module, or concept. Returns every learning that mentions it. Use before working on an unfamiliar area.",
+		),
+	limit: z
+		.number()
+		.int()
+		.min(1)
+		.max(50)
+		.default(15)
+		.describe("Maximum number of learnings to return."),
+});
