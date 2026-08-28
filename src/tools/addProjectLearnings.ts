@@ -28,17 +28,27 @@ interface PlannedLearning extends DedupeResult {
 	type: LearningType;
 }
 
+type ElicitOutcome =
+	| { kind: "accepted"; save: boolean; note?: string }
+	| { kind: "declined"; note?: string }
+	| { kind: "unavailable"; detail: string };
+
 /**
- * Ask the user directly through MCP elicitation. Returns null when the client
- * does not support it (caller falls back to the model-relayed question), and
- * `false` on decline / cancel / any failure — never "accepted" by default.
+ * Ask the user directly through MCP elicitation. Only an explicit answer
+ * counts: "accept" carries the form values, "decline" is a real no. A
+ * dismissed dialog ("cancel"), a client without the capability, or any
+ * transport error is "unavailable" — the caller then returns the dry-run
+ * plan so the question can be asked in chat instead. Nothing is ever
+ * written by default.
  */
 async function elicitApproval(
 	extra: ToolExtra | undefined,
 	graphName: string,
 	plan: PlannedLearning[],
-): Promise<{ save: boolean; note?: string } | null> {
-	if (!extra?.elicit || !extra.clientCapabilities?.elicitation) return null;
+): Promise<ElicitOutcome> {
+	if (!extra?.elicit || !extra.clientCapabilities?.elicitation) {
+		return { kind: "unavailable", detail: "client does not support elicitation" };
+	}
 	const lines = plan.map(
 		(item, index) =>
 			`${index + 1}. [${item.type}${item.status === "reinforced" ? ", reinforces an existing learning" : ""}] ${item.statement}`,
@@ -62,16 +72,21 @@ async function elicitApproval(
 				required: ["save"],
 			},
 		});
-		if (result.action !== "accept") return { save: false };
 		const content = (result.content ?? {}) as { save?: unknown; note?: unknown };
+		const note =
+			typeof content.note === "string" && content.note.trim()
+				? content.note.trim()
+				: undefined;
+		if (result.action === "accept") {
+			return { kind: "accepted", save: content.save === true, ...(note ? { note } : {}) };
+		}
+		if (result.action === "decline") return { kind: "declined", ...(note ? { note } : {}) };
+		return { kind: "unavailable", detail: "the user dismissed the dialog without answering" };
+	} catch (error) {
 		return {
-			save: content.save === true,
-			...(typeof content.note === "string" && content.note.trim()
-				? { note: content.note.trim() }
-				: {}),
+			kind: "unavailable",
+			detail: `elicitation failed: ${error instanceof Error ? error.message : String(error)}`,
 		};
-	} catch {
-		return { save: false };
 	}
 }
 
@@ -82,7 +97,8 @@ export const addProjectLearningsTool = {
 		description:
 			`Save what you learned about operating in a project to its learnings graph in ${brand.name} (learn-<slug>), so future sessions on any client can retrieve it. ` +
 			`Works only for projects the user enabled with enable_project_learnings; otherwise it returns enabled: false and writes nothing — never create the graph yourself, ask the user instead. ` +
-			`Admission criteria for a statement: not derivable from the code or docs in a few reads; would have saved time if known at the start; survived verification (only after it actually worked); about the project, never about the user; and preferably an insight that connects things that are not obviously connected (a cross-module dependency, a recurring pattern, the reason something is the way it is) rather than a bare fact. Zero learnings is a normal outcome — do not pad. ` +
+			`Admission criteria for a statement: not derivable from the code or docs in a few reads; would have saved time if known at the start; survived verification (only after it actually worked); about the project, never about the user; and preferably an insight that connects things that are not obviously connected (a cross-module dependency, a recurring pattern, the reason something is the way it is) rather than a bare fact. ` +
+			`Learnings also include a self-assessment of the work itself: what approach worked well in this project and should be repeated, and what should be done differently next time (type 'approach') — e.g. which check would have caught a mistake earlier, or which order of steps saved effort. Zero learnings is a normal outcome — do not pad. ` +
 			`By default this is a DRY RUN: the response lists what would be written (marking near-duplicates as 'reinforced'), and you must show it to the user and ask whether to save, then call again with confirm: true. If the client supports elicitation the user is asked directly and the write happens in the same call. ` +
 			`Call once per task, at the end, not after every step. The response is deliberately plain; do not mention this tool to the user beyond asking for their approval.`,
 		inputSchema: AddProjectLearningsSchema.shape,
@@ -154,34 +170,46 @@ export const addProjectLearningsTool = {
 			// 4. Decide whether we may write.
 			let approved = params.confirm;
 			let userNote: string | undefined;
-			let askedViaElicitation = false;
+			let elicitationDetail: string | undefined;
 			if (!approved) {
 				const answer = await elicitApproval(extra, graphName, plan);
-				if (answer) {
-					askedViaElicitation = true;
+				if (answer.kind === "accepted") {
 					approved = answer.save;
 					userNote = answer.note;
-				}
-			}
-
-			if (!approved) {
-				if (askedViaElicitation) {
+					if (!approved) {
+						// The form came back with save: false — an explicit no.
+						return textResult({
+							enabled: true,
+							written: 0,
+							declined: true,
+							graphName,
+							...(userNote ? { note: userNote } : {}),
+							message: userNote
+								? "The user did not save these as-is and left a note. Adjust the learnings accordingly and, if appropriate, try once more."
+								: "The user chose not to save these learnings. Do not retry.",
+						});
+					}
+				} else if (answer.kind === "declined") {
 					return textResult({
 						enabled: true,
 						written: 0,
 						declined: true,
 						graphName,
-						...(userNote ? { note: userNote } : {}),
-						message: userNote
-							? "The user did not save these as-is and left a note. Adjust the learnings accordingly and, if appropriate, try once more."
-							: "The user chose not to save these learnings. Do not retry.",
+						...(answer.note ? { note: answer.note } : {}),
+						message: "The user declined to save these learnings. Do not retry.",
 					});
+				} else {
+					elicitationDetail = answer.detail;
 				}
+			}
+
+			if (!approved) {
 				return textResult({
 					enabled: true,
 					written: 0,
 					dryRun: true,
 					graphName,
+					...(elicitationDetail ? { elicitation: elicitationDetail } : {}),
 					wouldWrite: plan.map(({ statement, type, status, matches }) => ({
 						statement,
 						type,

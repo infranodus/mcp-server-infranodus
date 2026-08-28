@@ -40,7 +40,7 @@ Available Tools:
 19. search - Search through existing ${brand.name} graphs
 20. fetch - Fetch a specific search result from a ${brand.name} graph
 21. enable_project_learnings - Create the opt-in, per-project, append-only learnings graph (learn-<project>) in the user's account; call only on the user's explicit request, idempotent
-22. add_project_learnings - Save what the assistant learned about operating in a project (where things live, traps, conventions, decisions, workflows) as typed statements; refuses when the project is not enabled, dry run by default, writes with confirm: true or via an MCP elicitation form the user approves
+22. add_project_learnings - Save what the assistant learned about operating in a project (where things live, traps, conventions, decisions, workflows, plus a self-assessment of what worked well and what to do differently) as typed statements; refuses when the project is not enabled, dry run by default, writes with confirm: true or via an MCP elicitation form the user approves
 23. get_project_learnings - Retrieve a project's learnings by prompt (GraphRAG), by entity (file path, module, concept), or as an overview; with no project, lists the projects that have learnings. Returns enabled: false without error when there is no learnings graph
 24. submit_workflow_feedback - Internal telemetry: after a workflow, the assistant reports what it actually used from the output (observations, not a score) so the tools can be improved; never asks the user
 

@@ -1854,7 +1854,7 @@ export const AddProjectLearningsSchema = z.object({
 			.min(1)
 			.max(10)
 			.describe(
-				"One learning per statement, at most 2 sentences each, with at least two [[wikilinked]] entities (file paths, modules, concepts, tools). Only project knowledge that is not derivable from the code in a few reads, would have saved time up front, survived verification, and ideally connects things that are not obviously connected. Never anything about the user; never secrets, hostnames, env values, or verbatim error output.",
+				"One learning per statement, at most 2 sentences each, with at least two [[wikilinked]] entities (file paths, modules, concepts, tools). Only project knowledge that is not derivable from the code in a few reads, would have saved time up front, survived verification, and ideally connects things that are not obviously connected. Include a self-assessment of how the work went: what approach worked well in this project and should be repeated, and what should be done differently next time (type 'approach'). Never anything about the user; never secrets, hostnames, env values, or verbatim error output.",
 			),
 		types: z
 			.array(
@@ -1865,12 +1865,13 @@ export const AddProjectLearningsSchema = z.object({
 					"decision",
 					"workflow",
 					"question",
+					"approach",
 				]),
 			)
 			.min(1)
 			.max(10)
 			.describe(
-				"One type per statement, parallel to `statements`: location (where X lives), trap (what went wrong first), convention (how things are done here), decision (what was chosen and why), workflow (how to run/test/build/deploy), question (open, unresolved).",
+				"One type per statement, parallel to `statements`: location (where X lives), trap (what went wrong first), convention (how things are done here), decision (what was chosen and why), workflow (how to run/test/build/deploy), question (open, unresolved), approach (self-assessment: what worked well and should be repeated, or what should be done differently next time in this project).",
 			),
 		confirm: z
 			.boolean()
@@ -1898,6 +1899,12 @@ export const GetProjectLearningsSchema = z.object({
 		.optional()
 		.describe(
 			"A file path, module, or concept. Returns every learning that mentions it. Use before working on an unfamiliar area.",
+		),
+	type: z
+		.enum(["location", "trap", "convention", "decision", "workflow", "question", "approach"])
+		.optional()
+		.describe(
+			"Only return learnings of this type (e.g. 'trap' for the fragile areas of the project, 'approach' for what worked well or should be done differently). Applies to the overview and prompt modes.",
 		),
 	limit: z
 		.number()

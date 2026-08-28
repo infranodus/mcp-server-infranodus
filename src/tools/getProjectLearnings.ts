@@ -23,12 +23,17 @@ function textResult(payload: unknown, isError = false) {
 	};
 }
 
-function toLearnings(statements: Statement[], limit: number): StoredLearning[] {
+function toLearnings(
+	statements: Statement[],
+	limit: number,
+	type?: string,
+): StoredLearning[] {
 	return newestFirst(
 		statements
 			.filter((statement) => !isMarkerStatement(statement))
 			.map(toStoredLearning)
-			.filter((item): item is StoredLearning => item !== null),
+			.filter((item): item is StoredLearning => item !== null)
+			.filter((item) => !type || item.types.includes(type)),
 	).slice(0, limit);
 }
 
@@ -126,6 +131,11 @@ export const getProjectLearningsTool = {
 				if (response.error) throw new Error(response.error);
 				const ranked = (response.statements ?? [])
 					.filter((statement) => !isMarkerStatement(statement))
+					.filter(
+						(statement) =>
+							!params.type ||
+							(statement.categories ?? []).includes(`type-${params.type}`),
+					)
 					.sort(
 						(a, b) => (b.similarityScore ?? 0) - (a.similarityScore ?? 0),
 					)
@@ -158,10 +168,11 @@ export const getProjectLearningsTool = {
 				graphName,
 				...(state.info.url ? { url: state.info.url } : {}),
 				total: statements.filter((s) => !isMarkerStatement(s)).length,
+				...(params.type ? { type: params.type } : {}),
 				...(summary?.mainTopics?.length ? { knownAreas: summary.mainTopics } : {}),
 				...(summary?.mainConcepts?.length ? { mainConcepts: summary.mainConcepts } : {}),
 				...(summary?.contentGaps?.length ? { gaps: summary.contentGaps } : {}),
-				learnings: toLearnings(statements, params.limit),
+				learnings: toLearnings(statements, params.limit, params.type),
 			});
 		} catch (error) {
 			return textResult(

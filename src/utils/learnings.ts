@@ -6,12 +6,14 @@
  * Consent model (see docs/drafts/project-learnings-graph.md): the graph only
  * exists if the user explicitly asked for it via `enable_project_learnings`.
  * `add_project_learnings` refuses when the graph is missing and never creates
- * one. Category processing (which turns `type-*` / `source-*` labels into
- * [[label]] mention nodes) binds when the graph is FIRST created, so creation
- * must always go through `createLearningsGraph` below.
+ * one. Statements carry their `type-*` label as plain per-statement metadata
+ * (`categories`), deliberately WITHOUT `categoriesAsMentions`: with that
+ * flag each label becomes a [[label]] mention node linked to every statement
+ * of that type, which in testing made the labels the most central nodes of
+ * the graph. As metadata the labels are returned with each statement and
+ * filterable, while the graph's nodes stay the real entities.
  */
 import { makeInfraNodusRequest } from "../api/client.js";
-import { prepareStatementsPayload } from "./wikilinksMode.js";
 import type { GraphResponse, Statement } from "../types/index.js";
 
 export const GRAPH_PREFIX = "learn-";
@@ -25,6 +27,7 @@ export const LEARNING_TYPES = [
 	"decision",
 	"workflow",
 	"question",
+	"approach",
 ] as const;
 export type LearningType = (typeof LEARNING_TYPES)[number];
 
@@ -199,7 +202,11 @@ function stripConfirmedPrefix(statement: string): string {
 
 export interface LearningsGraphInfo {
 	exists: boolean;
-	/** True when the graph was created with category processing on. */
+	/**
+	 * True for graphs created before 2026-08-28 with `categoriesAsMentions`
+	 * on (labels are nodes there). Informational only; consent is the marker
+	 * statement.
+	 */
 	categoriesOn: boolean;
 	id?: number;
 	url?: string;
@@ -348,9 +355,11 @@ export async function fetchLearningsGraph(graphName: string): Promise<{
 }
 
 /**
- * Resolve whether learnings are enabled for a graph name. Cheap path: the
- * graph exists and was created with categories on. Fallback (older graphs or
- * a listing without settings): look for the marker statement.
+ * Resolve whether learnings are enabled for a graph name: the graph exists
+ * and holds the marker statement written by `createLearningsGraph`. The
+ * listing supplies url/createdAt; reading by name is authoritative for
+ * existence (a missing graph errors and is never created) and is also what
+ * catches a graph the listing does not show yet (see firstPositive).
  */
 export async function checkEnabled(graphName: string): Promise<{
 	enabled: boolean;
@@ -358,11 +367,7 @@ export async function checkEnabled(graphName: string): Promise<{
 	reason?: "missing" | "not-a-learnings-graph";
 }> {
 	const info = await findLearningsGraph(graphName);
-	if (info.exists && info.categoriesOn) return { enabled: true, info };
 
-	// Either the listing lags behind a graph created moments ago, or the graph
-	// exists without the category flag. Reading by name is authoritative and
-	// never creates anything (a missing graph errors).
 	let statements: Statement[];
 	try {
 		({ statements } = await fetchLearningsGraph(graphName));
@@ -385,19 +390,23 @@ export interface AppendResult {
 	response: GraphResponse;
 }
 
-/** Append statements (with parallel categories/timestamps) to an existing graph. */
+/**
+ * Append statements (with parallel categories/timestamps) to an existing
+ * graph. Sent as a plain statements payload — NOT via prepareStatementsPayload,
+ * which would switch `categoriesAsMentions` on and turn the labels into nodes.
+ */
 export async function appendLearnings(params: {
 	graphName: string;
 	statements: string[];
 	categories: string[][];
 	timestamps: string[];
 }): Promise<AppendResult> {
-	const payload = prepareStatementsPayload(
-		params.statements,
-		params.categories,
-		"default",
-		params.timestamps,
-	);
+	const payload = {
+		text: "",
+		statements: params.statements,
+		categories: params.categories,
+		timestamps: params.timestamps,
+	};
 	const queryParams = new URLSearchParams({
 		doNotSave: "false",
 		addStats: "false",
@@ -440,9 +449,8 @@ export async function appendLearnings(params: {
 }
 
 /**
- * Create the learnings graph. The marker statement carries a category so the
- * graph is created with category processing ON — the only way later `type-*`
- * labels become nodes (settings bind at creation).
+ * Create the learnings graph. The marker statement (and its
+ * `learnings-enabled` category) is what `checkEnabled` looks for.
  */
 export async function createLearningsGraph(params: {
 	graphName: string;

@@ -194,7 +194,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - The assistant tells you first what will be stored (project knowledge only, never anything about you), where (a private graph you can delete at any time), and that batches are shown before saving
 
 32. **add_project_learnings**
-    - Save learnings about a project — where things live, traps, conventions, decisions, workflows — as statements with a `type` category each, for later sessions on any client
+    - Save learnings about a project — where things live, traps, conventions, decisions, workflows, and a self-assessment of what worked well and what should be done differently next time — as statements with a `type` category each, for later sessions on any client
     - Refuses (without error) when the project has not been enabled and never creates the graph itself
     - Dry run by default: returns what would be written, marking near-duplicates as `reinforced`; writes only with `confirm: true` — or in the same call when your client supports MCP elicitation and you approve the form
     - Rejects statements with secret-like content server-side (indices only, never the content)
