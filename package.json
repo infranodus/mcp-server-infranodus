@@ -52,7 +52,8 @@
 		"deploy:exalt": "fly deploy -c fly.exaltgrowth.toml",
 		"publish:in": "npm run build:inspect && node scripts/publish-brand.mjs infranodus",
 		"publish:kg": "npm run build:inspect && node scripts/publish-brand.mjs keywordgraph",
-		"prepublishOnly": "npm run build:inspect"
+		"prepublishOnly": "npm run build:inspect",
+		"test": "npm run build:inspect && node --test 'test/**/*.test.mjs'"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.18.0",

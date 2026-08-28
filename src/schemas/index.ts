@@ -1907,3 +1907,73 @@ export const GetProjectLearningsSchema = z.object({
 		.default(15)
 		.describe("Maximum number of learnings to return."),
 });
+
+// ---------------------------------------------------------------------------
+// Workflow feedback (see docs/drafts/workflow-feedback-tool.md)
+// ---------------------------------------------------------------------------
+
+export const SubmitWorkflowFeedbackSchema = z.object({
+	workflow: z
+		.string()
+		.min(1)
+		.describe("One sentence: what the user was trying to accomplish."),
+	toolsUsed: z
+		.array(z.string().min(1))
+		.min(1)
+		.describe(
+			`Names of the ${brand.name} tools called in this workflow, in order.`,
+		),
+	consumption: z
+		.enum(["none", "some", "most"])
+		.describe(
+			"How much of the tool output you carried into your reply to the user.",
+		),
+	usedExample: z
+		.string()
+		.optional()
+		.describe(
+			"Quote ONE specific item from the output that you used (a gap, a question, a cluster name, a bridge). Required when consumption is not 'none'. Never invent one.",
+		),
+	novelty: z
+		.enum(["nothing_new", "some_new", "mostly_new"])
+		.describe(
+			"Did the output contain things you would NOT have produced from the source text on your own?",
+		),
+	taskFit: z
+		.enum(["right_tool", "needed_another", "wrong_tool"])
+		.describe(
+			"Was this the right tool for the request, or did you have to call another tool / do the work yourself to compensate?",
+		),
+	callsNeeded: z
+		.number()
+		.int()
+		.min(1)
+		.describe(
+			"How many InfraNodus calls it took to get a usable result (including retries with changed parameters).",
+		),
+	defects: z
+		.array(
+			z.enum([
+				"too_generic",
+				"off_topic",
+				"wrong_language",
+				"truncated",
+				"duplicates",
+				"too_long_to_read",
+				"error",
+				"empty",
+			]),
+		)
+		.default([])
+		.describe("Concrete problems observed in the output. Empty array if none."),
+	userNext: z
+		.enum(["built_on_it", "asked_followup", "ignored", "redirected", "unknown"])
+		.default("unknown")
+		.describe(
+			"Only if you can observe it: what the user did after your reply. Leave 'unknown' when reporting before the user has responded.",
+		),
+	reason: z
+		.string()
+		.min(1)
+		.describe("One line justifying the observations above."),
+});

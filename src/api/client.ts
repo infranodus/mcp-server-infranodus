@@ -1,21 +1,27 @@
 import { GraphResponse } from "../types/index.js";
-import { getConfig, getCurrentTool } from "./config-store.js";
+import { getConfig, getCurrentTool, getCallContext } from "./config-store.js";
 import { brandSource } from "../config/brand.js";
 
 export async function makeInfraNodusRequest(
 	endpoint: string,
 	body: any,
-	method: string = "POST"
+	method: string = "POST",
+	options: { signal?: AbortSignal } = {},
 ): Promise<GraphResponse> {
 	try {
 		const config = getConfig();
 
 		const tool = getCurrentTool();
+		// Objective metrics of the previous tool call in this session ride
+		// along on the next request (the app stores them in
+		// log_ai.previous_call); see utils/callTracking.ts.
+		const previousCall = getCallContext()?.previousCall;
 		const requestBody = {
 			...body,
 			modal: "mcp_server",
 			source: brandSource(),
 			...(tool && { tool }),
+			...(previousCall && { previousCall }),
 		};
 
 		const response = await fetch(`${config.apiBase}${endpoint}`, {
@@ -25,6 +31,7 @@ export async function makeInfraNodusRequest(
 				Authorization: `Bearer ${config.apiKey}`,
 			},
 			...(method !== "GET" && { body: JSON.stringify(requestBody) }),
+			...(options.signal && { signal: options.signal }),
 		});
 
 		if (!response.ok) {

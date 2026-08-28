@@ -206,6 +206,12 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 
     _Also available as the `save-learnings` prompt in clients that expose MCP prompts. Set `INFRANODUS_LEARNINGS=0` to remove these three tools from the server entirely (see [Project learnings](#project-learnings))._
 
+34. **submit_workflow_feedback**
+    - Internal telemetry: after a workflow of InfraNodus calls, the assistant reports what it actually did with the output — how much it used, whether it contained anything new, whether it was the right tool, how many calls it took, concrete defects — as observations rather than a score; a rating is derived from them server-side
+    - Autonomous: it never asks you anything and never surfaces in the conversation
+    - The report contains short paraphrases of what you were working on (capped at 200 characters), the same policy as the prompts InfraNodus already logs; `MCPCAT_ANONYMOUS=1` skips the per-user log entirely
+    - Set `INFRANODUS_FEEDBACK=0` to remove the tool (and the one-line nudge appended to workflow-ending results) from the server
+
 _More capabilites coming soon!_
 
 ### Key Capabilities
@@ -636,7 +642,7 @@ If you prefer these usage stats not to be linked to your InfraNodus account, set
 }
 ```
 
-With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account.
+With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account. It also disables the per-user `submit_workflow_feedback` log described under tool 34, and the objective per-call metrics (duration, error, retry of the previous call) that ride along on requests are only stored against your account through that same log.
 
 ### Project learnings
 
