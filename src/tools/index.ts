@@ -35,3 +35,4 @@ export { getProjectLearningsTool } from "./getProjectLearnings.js";
 export { submitWorkflowFeedbackTool } from "./submitWorkflowFeedback.js";
 export { optimizeKnowledgeBaseTool } from "./optimizeKnowledgeBase.js";
 export { deleteStatementsTool } from "./deleteStatements.js";
+export { updateStatementsTool } from "./updateStatements.js";

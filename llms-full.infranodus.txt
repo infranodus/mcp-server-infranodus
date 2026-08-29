@@ -37,7 +37,7 @@ Get API key at: https://infranodus.com/api-access
 7. **Comparing texts**: `overlap_between_texts` (similarities), `difference_between_texts` (what's missing in first text), `merged_graph_from_texts` (combined overview).
 8. **SEO/content optimization**: `generate_seo_report` (comprehensive, ~90s timeout needed) or run `analyze_google_search_results` → `analyze_related_search_queries` → `search_queries_vs_search_results` individually.
 9. **Memory**: `memory_add_relations` to persist knowledge graphs, `memory_get_relations` to retrieve. Use `[[wikilinks]]` for entity marking.
-10. **Graph management**: `list_graphs` to discover existing graphs, `search` + `fetch` for content retrieval, `delete_statements` to remove statements from your own graph by filter (dry run unless `confirm: true`; irreversible).
+10. **Graph management**: `list_graphs` to discover existing graphs, `search` + `fetch` for content retrieval, `delete_statements` to remove statements from your own graph by filter and `update_statements` to edit them in place (both dry run unless `confirm: true`; irreversible).
 
 ---
 
@@ -338,6 +338,24 @@ Delete statements from a graph in the user's own account, selected by one filter
 **Returns**: dry run — `dryRun: true`, `matchedCount`, `matched` (id, content, categories, timestamp), `matchedByCategory`, `filter`, `nextStep`; after confirmation — `deleted`, `removedIds`, `ignoredIds`, `remaining`, `graphName`, `graphUrl`.
 
 **Typical use**: replace one source's statements after it changed (`delete_statements` with its category, then `create_knowledge_graph` to the same `graphName`), or rebuild a graph in place (`deleteAll`, then `create_knowledge_graph`).
+
+---
+
+### update_statements
+
+Edit statements of a graph in the user's own account IN PLACE — their content, categories, or timestamp — keeping each statement's id, date, and position (unlike deleting and re-creating it). Irreversible once confirmed: the previous text survives only in the dry-run output. Dry run by default: the response reports the matched count and the before → after of every change, and nothing is written until the same arguments are sent again with `confirm: true` (clients with MCP elicitation ask the user directly in the same call). A request that matches nothing returns `updated: 0` without asking. New content is capped at 1000 characters — for longer text use `delete_statements` then `create_knowledge_graph`. Never called on the assistant's own initiative.
+
+**Parameters** (one mode per call, besides `graphName`):
+- `graphName` (string, required): Graph in the user's own account (must exist; there is no `userName`)
+- Mode A — `edits` (array): one item per statement to rewrite, each with exactly one of `match` (its exact current text, e.g. from `analyze_existing_graph_by_name` with `includeStatements`) or `statementId`, and at least one of `content`, `categories` (full replacement), `timestamp` (ISO 8601). Items that match nothing are reported as `unmatched`
+- Mode B — exactly one selector: `categories` (string[]), `statements` (string[]), `query` (substring or `/regex/flags`), `before`/`after` (ISO 8601 window), `all` (boolean), `statementIds` (number[]) — plus at least one of:
+  - `set` (object): `addCategories`, `removeCategories`, `categories` (full replacement; exclusive with add/remove), `timestamp`
+  - `replace` (object): `{ pattern, with }` — substring or `/regex/flags`, applied to the text of every selected statement (e.g. rename a `[[concept]]` or a source path everywhere)
+- `confirm` (boolean, default false): Perform the update
+
+**Returns**: dry run — `dryRun: true`, `matchedCount`, `updatedCount` (how many would change), `changes` (id, before, after; capped at 50), `unchanged`, `unmatched`, `rejected`, `mode`, `filter`, `nextStep`; after confirmation — `updated`, `changes`, `unchanged`, `unmatched`, `rejected`, `graphName`, `graphUrl` (plus a `note` when the write's count differs from the preview).
+
+**Typical use**: fix a wrong statement without losing its place (`edits` with `match` and the new `content`), relabel a batch (`categories` selector with `set.addCategories`), or rename a concept or a source path across a graph (`all: true` with `replace`).
 
 ---
 

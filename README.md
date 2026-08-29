@@ -226,6 +226,12 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - The per-source replace path: `delete_statements` with the source's category, then `create_knowledge_graph` to the same graph name. `deleteAll` then `create_knowledge_graph` rebuilds a graph in place
     - Irreversible, own-account only (no `userName`), never creates a graph, and the assistant is instructed never to call it on its own initiative. Set `INFRANODUS_DELETE=0` to remove the tool from the server
 
+37. **update_statements**
+    - Edit statements of a graph in your own account **in place** — content, categories, or timestamp — keeping each statement's id, date, and position (unlike deleting and re-creating it)
+    - Two modes: `edits` rewrites specific statements, each named by its exact current text (`match`, e.g. from `analyze_existing_graph_by_name` with `includeStatements`) or `statementId`; or one selector (the same as `delete_statements`, with `all` instead of `deleteAll`) plus `set` (`addCategories`, `removeCategories`, `categories`, `timestamp`) and/or `replace` (`{ pattern, with }`, substring or `/regex/flags`) for bulk relabelling or a find-and-replace across the graph — renaming a `[[concept]]` or a source path everywhere
+    - Dry run by default: returns the matched count and the before → after of every change; nothing is written until the same arguments are sent again with `confirm: true` — or, on clients with MCP elicitation, until you accept the form in the same call. A request that matches nothing returns `updated: 0` without asking
+    - New content is capped at 1000 characters; for longer text use `delete_statements` then `create_knowledge_graph`. Irreversible (the old text survives only in the dry-run output), own-account only, never creates a graph, and the assistant is instructed never to call it on its own initiative. `INFRANODUS_DELETE=0` removes it together with `delete_statements`
+
 _More capabilites coming soon!_
 
 ### Key Capabilities

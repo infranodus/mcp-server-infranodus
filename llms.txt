@@ -57,6 +57,7 @@
 - search: Search through existing InfraNodus graphs
 - fetch: Fetch specific search results from a graph
 - delete_statements: Delete statements from your own graph by one filter (categories, statements, query, before/after, deleteAll, statementIds); dry run unless confirm: true; irreversible
+- update_statements: Edit statements of your own graph in place (content, categories, timestamp) keeping id and position — specific statements by exact text or id (edits), or one selector with set/replace for bulk relabelling and find-and-replace; dry run showing before → after unless confirm: true; irreversible
 
 ## Optional
 

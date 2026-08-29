@@ -51,12 +51,30 @@ export type SelectorResult =
 	| { ok: true; selector: Selector; kind: string }
 	| { ok: false; error: string };
 
+/** The selector fields shared by delete_statements and update_statements. */
+export interface SelectorParams {
+	categories?: string[];
+	statements?: string[];
+	query?: string;
+	before?: string;
+	after?: string;
+	deleteAll?: boolean;
+	all?: boolean;
+	statementIds?: number[];
+}
+
 /**
  * Resolve exactly one selector from the parameters. Empty arrays, blank
  * strings and `deleteAll: false` count as "not given". `before` and `after`
  * are one selector together (a time window). Pure; no network.
+ *
+ * `allField` names the whole-graph flag: `deleteAll` for delete_statements,
+ * `all` for update_statements (both are sent to the app as `all: true`).
  */
-export function buildSelector(params: Partial<Params>): SelectorResult {
+export function buildSelector(
+	params: SelectorParams,
+	allField: "deleteAll" | "all" = "deleteAll",
+): SelectorResult {
 	const given: { kind: string; selector: Selector }[] = [];
 
 	if (Array.isArray(params.categories) && params.categories.length > 0) {
@@ -87,7 +105,7 @@ export function buildSelector(params: Partial<Params>): SelectorResult {
 			selector: { ...(before ? { before } : {}), ...(after ? { after } : {}) },
 		});
 	}
-	if (params.deleteAll === true) given.push({ kind: "deleteAll", selector: { all: true } });
+	if (params[allField] === true) given.push({ kind: allField, selector: { all: true } });
 	if (Array.isArray(params.statementIds) && params.statementIds.length > 0) {
 		given.push({ kind: "statementIds", selector: { statementIds: params.statementIds } });
 	}
@@ -96,13 +114,13 @@ export function buildSelector(params: Partial<Params>): SelectorResult {
 		return {
 			ok: false,
 			error:
-				"No selector given. Provide exactly one of: categories, statements, query, before/after, deleteAll: true, or statementIds.",
+				`No selector given. Provide exactly one of: categories, statements, query, before/after, ${allField}: true, or statementIds.`,
 		};
 	}
 	if (given.length > 1) {
 		return {
 			ok: false,
-			error: `Exactly one selector per call; got ${given.map((g) => g.kind).join(" and ")}. Split the deletion into separate calls.`,
+			error: `Exactly one selector per call; got ${given.map((g) => g.kind).join(" and ")}. Split the ${allField === "all" ? "update" : "deletion"} into separate calls.`,
 		};
 	}
 	return { ok: true, selector: given[0].selector, kind: given[0].kind };
@@ -136,9 +154,10 @@ interface DeleteResponse {
 /**
  * makeInfraNodusRequest throws `API request failed (status): body` on a
  * non-2xx; the body is `{ error }`. Turn that into one readable line, with
- * the status-specific meaning the model needs to act on it.
+ * the status-specific meaning the model needs to act on it. Shared with
+ * update_statements, whose endpoint answers the same status codes.
  */
-function describeRequestError(error: unknown): string {
+export function describeRequestError(error: unknown): string {
 	const message = error instanceof Error ? error.message : String(error);
 	const match = /^API request failed \((\d+)\): ([\s\S]*)$/.exec(message);
 	if (!match) return message;
@@ -152,7 +171,7 @@ function describeRequestError(error: unknown): string {
 	}
 	const hint =
 		status === 400
-			? "The filter was rejected."
+			? "The request was rejected."
 			: status === 403
 				? "The graph is not in this account (or the request was anonymous); only your own graphs can be edited."
 				: status === 404
