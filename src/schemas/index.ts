@@ -2035,7 +2035,7 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			"With statements/text: save the submitted digest as this graph first (e.g. repo-<project>-digest, vault-<project>-digest), then analyse the saved graph. `## [[Topic]]` heading lines become the parent of the statements under them. Makes compareWith available in the same call and keeps the digest for later questions. Ignored when graphName is given.",
+			"With statements/text: save the submitted digest as this graph first (e.g. repo-<project>-digest, vault-<project>-digest), then analyse the saved graph. `## [[Topic]]` heading lines become the parent of the statements under them. Makes compareWith available in the same call and keeps the digest for later questions. Use a name no other producer writes to: a graph created here is in parent mode, and appending generate_ontology_graph 'procedural' output (whose [type] tags are categories) to it would turn those tags into central nodes. Ignored when graphName is given.",
 		),
 	focus: z
 		.enum(["general", "codebase", "vault", "procedural"])
