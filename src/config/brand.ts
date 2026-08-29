@@ -98,6 +98,9 @@ const BRANDS: Record<BrandId, BrandDef> = {
 			"add_project_learnings",
 			"get_project_learnings",
 			"optimize_knowledge_base",
+			// Graph maintenance (destructive) is for the knowledge-base
+			// audience, not the SEO/keyword one.
+			"delete_statements",
 		],
 		npm: {
 			packageName: "keywordgraph-mcp-server",

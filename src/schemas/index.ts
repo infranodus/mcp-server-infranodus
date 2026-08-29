@@ -2076,3 +2076,67 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		.default("gpt-5.4")
 		.describe("AI model for the development suggestions and latent-topic ideas."),
 });
+
+// ---------------------------------------------------------------------------
+// delete_statements (see docs/drafts/delete-statements-tool.md)
+// ---------------------------------------------------------------------------
+
+// "Exactly one selector" is checked in the handler (a .refine() would hide
+// `.shape`, which tool registration needs). There is deliberately no
+// `userName`: the tool only ever addresses graphs in the caller's own account.
+export const DeleteStatementsSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "graphName is required")
+		.describe(
+			`Name of the graph in your own ${brand.name} account to delete from. It must already exist (use list_graphs to check the exact name); other users' graphs cannot be targeted and this tool never creates a graph.`,
+		),
+	categories: z
+		.array(z.string().min(1))
+		.optional()
+		.describe(
+			"Delete every statement that carries any of these category labels (exact match). Categories are the source labels statements were uploaded with — a file path, a page name, the [[label]] parent from a '## [[Topic]]' heading — so this is how you remove everything that came from one source before re-uploading its new version with create_knowledge_graph to the same graphName.",
+		),
+	statements: z
+		.array(z.string().min(1))
+		.optional()
+		.describe(
+			"Delete statements whose text equals one of these exactly (whitespace-normalised).",
+		),
+	query: z
+		.string()
+		.optional()
+		.describe(
+			"Delete statements containing this text (case-insensitive substring), or matching a regular expression written as /pattern/flags.",
+		),
+	before: z
+		.string()
+		.optional()
+		.describe(
+			"Delete statements dated before this ISO 8601 date or datetime (e.g. 2026-08-01 or 2026-08-01T12:00:00Z). Combine with after for a window; the two together count as one selector.",
+		),
+	after: z
+		.string()
+		.optional()
+		.describe(
+			"Delete statements dated after this ISO 8601 date or datetime. Combine with before for a window.",
+		),
+	deleteAll: z
+		.boolean()
+		.optional()
+		.describe(
+			"Delete every statement but keep the graph: its name, URL, and settings (e.g. wikilinksMode) stay valid, so it can be rebuilt in place with create_knowledge_graph.",
+		),
+	statementIds: z
+		.array(z.number().int())
+		.optional()
+		.describe(
+			"Advanced: delete by statement id (ids come from an earlier dry run of this tool or from retrieve_from_knowledge_base). Ids that do not belong to this graph are ignored and reported as ignoredIds.",
+		),
+	confirm: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Without this (the default) the call is a DRY RUN that only reports what would be deleted. Set true, with the same filter, only after the user has agreed to delete what the dry run showed. The deletion is irreversible.",
+		),
+});

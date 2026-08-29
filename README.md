@@ -220,6 +220,12 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - The report contains short paraphrases of what you were working on (capped at 200 characters), the same policy as the prompts InfraNodus already logs; `MCPCAT_ANONYMOUS=1` skips the per-user log entirely
     - Set `INFRANODUS_FEEDBACK=0` to remove the tool (and the one-line nudge appended to workflow-ending results) from the server
 
+36. **delete_statements**
+    - Delete statements from a graph in your own account by a filter the server resolves — exactly one of `categories` (everything uploaded under a source label: a file path, a page name, a `[[label]]` parent), `statements` (exact text), `query` (substring or `/regex/`), `before`/`after` (ISO 8601 window), `deleteAll` (empties the graph but keeps its name, URL, and settings), or `statementIds`
+    - Dry run by default: returns the matched count, a sample of the statements, and a per-category breakdown; nothing is removed until the same filter is sent again with `confirm: true` — or, on clients with MCP elicitation, until you accept the form in the same call. A filter that matches nothing returns `deleted: 0` without asking
+    - The per-source replace path: `delete_statements` with the source's category, then `create_knowledge_graph` to the same graph name. `deleteAll` then `create_knowledge_graph` rebuilds a graph in place
+    - Irreversible, own-account only (no `userName`), never creates a graph, and the assistant is instructed never to call it on its own initiative. Set `INFRANODUS_DELETE=0` to remove the tool from the server
+
 _More capabilites coming soon!_
 
 ### Key Capabilities

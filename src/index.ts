@@ -45,6 +45,7 @@ import {
 	getProjectLearningsTool,
 	submitWorkflowFeedbackTool,
 	optimizeKnowledgeBaseTool,
+	deleteStatementsTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 import { llmsTxtResource, llmsFullTxtResource } from "./resources/llms-txt.js";
@@ -208,6 +209,9 @@ export default function createServer({
 		...(process.env.INFRANODUS_FEEDBACK !== "0"
 			? [submitWorkflowFeedbackTool]
 			: []),
+		// Filtered deletion from the user's own graphs (dry run by default,
+		// irreversible with confirm). Hidden entirely when INFRANODUS_DELETE=0.
+		...(process.env.INFRANODUS_DELETE !== "0" ? [deleteStatementsTool] : []),
 	];
 
 	// Register tools enabled for the active brand

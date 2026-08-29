@@ -203,6 +203,23 @@ POST /graphAndAdvice?doNotSave=true&addStats=true&includeGraph=<includeGraph>&in
 }
 ```
 
+## Other endpoints used by non-advice tools
+
+Not `/graphAndAdvice`, and no `requestMode`, but listed here so the endpoint
+map is complete in one place.
+
+| MCP tool | source file | endpoint | method | body (before `modal`/`source`/`tool` are injected) |
+|---|---|---|---|---|
+| `delete_statements` | `deleteStatements.ts` | `/listGraphs`, then `/deleteStatements` twice (preview, then write) | `POST` | lookup: `{ query: <graphName>, attempt: n }`; deletion: `{ name: <graphName>, <one selector>, dryRun: true \| false }` where the selector is one of `categories: string[]`, `statements: string[]`, `query: string`, `before?/after?: ISO`, `all: true`, `statementIds: number[]` |
+
+`/deleteStatements` answers `200` with `{ graphName, graphUrl, matchedCount,
+matched: [{ id, content, categories, timestamp }] (capped at 200),
+matchedByCategory?, removedIds, removedCount, ignoredIds?, remaining, dryRun }`
+and a non-200 `{ error }` for a bad selector (400), an anonymous request or
+another user's graph (403), an unknown graph (404), or a server failure (500).
+The tool sends the identical selector for the preview and for the write; the
+only difference between the two calls is `dryRun`.
+
 ## Notes / things to be aware of
 
 - Every body also carries `modal: "mcp_server"`, injected centrally in

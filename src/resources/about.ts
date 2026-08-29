@@ -44,6 +44,7 @@ Available Tools:
 23. get_project_learnings - Retrieve a project's learnings by prompt (GraphRAG), by entity (file path, module, concept), or as an overview; with no project, lists the projects that have learnings. Returns enabled: false without error when there is no learnings graph
 24. optimize_knowledge_base - Structural feedback on a code base, document vault, or set of rules/frameworks from its digest graph (or a digest passed as text, saved with saveAs; generate_ontology_graph in 'procedural' mode writes one from an uploaded graph): diagnosis (biased/focused/diversified/dispersed) read for the chosen focus, dominant and under-developed areas, missing bridges, AI suggestions; compareWith other layers of the same project to find what one has that the other lacks
 25. submit_workflow_feedback - Internal telemetry: after a workflow, the assistant reports what it actually used from the output (observations, not a score) so the tools can be improved; never asks the user
+26. delete_statements - Delete statements from a graph in the user's own account by one filter (categories = everything from one source, statements, query, before/after, deleteAll, or statementIds); dry run by default, irreversible only with confirm: true or an accepted elicitation form; the per-source replace and in-place rebuild path together with create_knowledge_graph. Never called on the assistant's own initiative
 
 Key Features:
 - Topic modeling and clustering

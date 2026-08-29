@@ -15,6 +15,12 @@
  */
 import { makeInfraNodusRequest } from "../api/client.js";
 import type { GraphResponse, Statement } from "../types/index.js";
+import {
+	READ_ATTEMPTS,
+	errorText,
+	findGraphByName,
+	firstPositive,
+} from "./graphLookup.js";
 
 export const GRAPH_PREFIX = "learn-";
 export const MAX_GRAPH_NAME_LENGTH = 28;
@@ -213,64 +219,16 @@ export interface LearningsGraphInfo {
 	createdAt?: string;
 }
 
-interface ListedGraph {
-	id?: number;
-	contextName?: string;
-	createdAt?: string;
-	defaultRevisionUrl?: string | null;
-	textProcessingSettings?: { categoriesAsMentions?: boolean };
-}
-
-/**
- * The API runs on several instances, each with its own per-user contexts-list
- * cache (6 min TTL) that is only invalidated on the instance that handled a
- * write. Right after a graph is created, a read may therefore land on an
- * instance that still says it does not exist. A positive answer is
- * authoritative (a graph cannot be listed unless it exists), so reads retry a
- * few times and accept the first positive; a negative is trusted only after
- * every attempt agreed.
- */
-export const READ_ATTEMPTS = 4;
-
-async function firstPositive<T>(
-	attempt: (n: number) => Promise<T | null>,
-	attempts: number = READ_ATTEMPTS,
-): Promise<T | null> {
-	for (let n = 0; n < attempts; n++) {
-		const result = await attempt(n);
-		if (result !== null) return result;
-	}
-	return null;
-}
-
-/** The API sometimes returns `error` as an object ({ statusCode, message[] }). */
-export function errorText(error: unknown): string {
-	if (typeof error === "string") return error;
-	if (error && typeof error === "object") {
-		const message = (error as { message?: unknown }).message;
-		if (Array.isArray(message)) return message.join("; ");
-		if (typeof message === "string") return message;
-		return JSON.stringify(error);
-	}
-	return String(error);
-}
+// The retrying lookup and the error-envelope normaliser live in
+// graphLookup.ts (shared with delete_statements); re-exported here so the
+// existing imports and tests keep working.
+export { READ_ATTEMPTS, errorText };
 
 /** Exact-name lookup through /listGraphs (read-only; never creates anything). */
 export async function findLearningsGraph(
 	graphName: string,
 ): Promise<LearningsGraphInfo> {
-	const found = await firstPositive(async (n) => {
-		const response = (await makeInfraNodusRequest("/listGraphs", {
-			query: graphName,
-			// Varies the body so no intermediate layer can collapse the retries.
-			attempt: n,
-		})) as unknown;
-		if (!Array.isArray(response)) return null;
-		const match = (response as ListedGraph[]).find(
-			(graph) => graph.contextName === graphName,
-		);
-		return match ?? null;
-	});
+	const found = await findGraphByName(graphName);
 	if (!found) return { exists: false, categoriesOn: false };
 	return {
 		exists: true,

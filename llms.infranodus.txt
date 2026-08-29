@@ -56,6 +56,7 @@
 - list_graphs: List all graphs with filtering by name, type, date, language
 - search: Search through existing InfraNodus graphs
 - fetch: Fetch specific search results from a graph
+- delete_statements: Delete statements from your own graph by one filter (categories, statements, query, before/after, deleteAll, statementIds); dry run unless confirm: true; irreversible
 
 ## Optional
 

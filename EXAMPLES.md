@@ -1098,6 +1098,67 @@ Fetches the statements found using the `search` tool above using the ID provided
 }
 ```
 
+### delete_statements
+
+Deletes statements from a graph in the user's own account by a filter the server resolves. Exactly one selector per call: `categories`, `statements`, `query`, `before`/`after`, `deleteAll`, or `statementIds`. The deletion is irreversible, so the tool runs as a **dry run** unless `confirm: true` is set (or the client supports MCP elicitation and the user accepts the form).
+
+The typical use is replacing one source's statements after it changed: everything uploaded from a file, page, or `## [[Topic]]` heading carries that source as a category, so deleting by category and then calling `create_knowledge_graph` with the new content to the same `graphName` keeps the rest of the graph intact.
+
+**Parameters (JSON) — dry run**
+
+```json
+{
+	"graphName": "repo-mcp-server-docs",
+	"categories": ["docs/ai-to-api.md"]
+}
+```
+
+**Result (nothing deleted yet)**
+
+```json
+{
+	"deleted": 0,
+	"dryRun": true,
+	"matchedCount": 3,
+	"matchedShown": 3,
+	"matched": [
+		{ "id": 4471, "content": "Every body also carries [[modal]]: mcp_server, injected in [[makeInfraNodusRequest]].", "categories": ["docs/ai-to-api.md"], "timestamp": "2026-08-20T09:12:00Z" },
+		{ "id": 4472, "content": "[[requestMode]] tells the backend how to use the analyzed graph when generating advice.", "categories": ["docs/ai-to-api.md"], "timestamp": "2026-08-20T09:12:00Z" },
+		{ "id": 4473, "content": "[[optimize]] is a query parameter selecting which structural feature the advice targets.", "categories": ["docs/ai-to-api.md"], "timestamp": "2026-08-20T09:12:00Z" }
+	],
+	"matchedByCategory": { "docs/ai-to-api.md": 3 },
+	"graphName": "repo-mcp-server-docs",
+	"graphUrl": "https://infranodus.com/deemeetree/repo-mcp-server-docs",
+	"selector": "categories",
+	"filter": { "categories": ["docs/ai-to-api.md"] },
+	"nextStep": "Nothing was deleted. Show these to the user; if they agree, call delete_statements again with the SAME filter and confirm: true."
+}
+```
+
+**Parameters (JSON) — after the user agreed**
+
+```json
+{
+	"graphName": "repo-mcp-server-docs",
+	"categories": ["docs/ai-to-api.md"],
+	"confirm": true
+}
+```
+
+**Result**
+
+```json
+{
+	"deleted": 3,
+	"removedIds": [4471, 4472, 4473],
+	"remaining": 212,
+	"graphName": "repo-mcp-server-docs",
+	"graphUrl": "https://infranodus.com/deemeetree/repo-mcp-server-docs"
+}
+```
+
+To rebuild a graph in place, use `"deleteAll": true` instead of a category: the graph keeps its name, URL, and settings (such as `wikilinksMode`), and `create_knowledge_graph` to the same name refills it. A filter that matches nothing returns `deleted: 0, matchedCount: 0` without asking for confirmation.
+
 ## Knowledge-Graph Based Memory
 
 InfraNodus has a set of tools for generating "memories" in InfraNodus that have the structure of knowledge graphs.

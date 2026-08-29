@@ -27,7 +27,7 @@ export type GraphInputResult =
 // visible to the caller, so anything ambiguous is refused here instead.
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 
-function timestampIsParsable(value: string): boolean {
+export function timestampIsParsable(value: string): boolean {
 	const trimmed = value.trim();
 	return ISO_DATE.test(trimmed) && Number.isFinite(Date.parse(trimmed));
 }
