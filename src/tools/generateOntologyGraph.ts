@@ -28,11 +28,13 @@ export function chunkByLines(text: string, chunkSize: number): string[] {
 	return chunks.filter((chunk) => chunk.trim().length > 0);
 }
 
-const PREAMBLES: Record<"general" | "codebase", string> = {
+const PREAMBLES: Record<"general" | "codebase" | "procedural", string> = {
 	general:
 		"Extract an ontology from the text below: the entities it contains and the relations between them, covering the whole text, not only its main theme.",
 	codebase:
-		"The text below is a structural digest of a software project (directories, files, imports and dependencies, exported symbols, docstring headlines) or its documentation. Extract an ontology of its ARCHITECTURE. Entities: modules and files (keep paths exactly as written), functions and classes, data stores, external services and packages, configuration, and the domain concepts they implement. Relations: prefer [dependentOn] for imports and dependencies, [partOf] for containment, [isA] for kinds of components, [hasAttribute] for exposed symbols and configuration, [relatedTo] / [derivedFrom] for the concepts a module implements. Connect the modules to the concepts, not only to each other.",
+		"The text below is a structure map of a software project (directories, files, imports and dependencies, exported symbols, docstring headlines) or its documentation. Extract an ontology of its ARCHITECTURE. Entities: modules and files (keep paths exactly as written), functions and classes, data stores, external services and packages, configuration, and the domain concepts they implement. Relations: prefer [dependentOn] for imports and dependencies, [partOf] for containment, [isA] for kinds of components, [hasAttribute] for exposed symbols and configuration, [relatedTo] / [derivedFrom] for the concepts a module implements. Connect the modules to the concepts, not only to each other.",
+	procedural:
+		"The text below is content from a project — its documentation, notes, source code, or a structure map of files, imports and exports. Write the digest of how this project works.",
 };
 
 /** Read an existing graph's statements (doNotSave; a missing name errors). */
@@ -98,7 +100,7 @@ export const generateOntologyGraphTool = {
 	name: "generate_ontology_graph",
 	definition: {
 		title: "Generate an AI Ontology Graph from a Topic, Text, or Existing Graph",
-		description: `Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) and optionally save it as a ${brand.name} graph. Three sources, provide exactly one: prompt (a topic — one AI call), text (a long document or a structural digest of a project, chunked server-side), or sourceGraphName (an existing graph — e.g. a fully ingested repo, vault, or corpus — whose statements are read back, chunked, and condensed into an ontology). Set ontologyMode: 'codebase' for software projects. Use to get a rich overview, a reasoning map of a topic, or a condensed 'how it fits together' graph of a large corpus.`,
+		description: `Use AI to generate a reasoning ontology knowledge graph (entities and the relations between them) and optionally save it as a ${brand.name} graph. Three sources, provide exactly one: prompt (a topic — one AI call), text (a long document or a structural digest of a project, chunked server-side), or sourceGraphName (an existing graph — e.g. a fully ingested repo, vault, or corpus — whose statements are read back, chunked, and condensed into an ontology). Set ontologyMode: 'codebase' for software projects, or 'procedural' to write a DIGEST of how the project works (prose statements with [[wikilinks]], not relation triples) from an already-uploaded graph — save it as <repo|vault>-<project>-digest for optimize_knowledge_base. Use to get a rich overview, a reasoning map of a topic, or a condensed 'how it fits together' graph of a large corpus.`,
 		inputSchema: GenerateOntologyGraphSchema.shape,
 		annotations: {
 			readOnlyHint: false,
@@ -165,7 +167,7 @@ export const generateOntologyGraphTool = {
 			for (const [index, chunk] of chunks.entries()) {
 				await progress.report(
 					index,
-					`Generating ontology: chunk ${index + 1} of ${chunks.length}`,
+					`${mode === "procedural" ? "Writing digest" : "Generating ontology"}: chunk ${index + 1} of ${chunks.length}`,
 				);
 				const content =
 					source === "prompt"
@@ -176,12 +178,16 @@ export const generateOntologyGraphTool = {
 				const requestBody: any = {
 					saveToGraphAndRedirect: saveGraph,
 					contextName: graphName,
-					aiQueryType: "ontology graph",
+					// 'digest' is the app's prose-statements prompt (principles,
+					// procedures, hand-offs with [[wikilinks]]); the two ontology
+					// modes use its [[entity]] [relation] [[entity]] prompt.
+					aiQueryType: mode === "procedural" ? "digest" : "ontology graph",
 					mode: "gptchat",
 					modelToUse: params.modelToUse ?? "claude-opus-5",
 					prompt: [{ role: "user", content }],
 					modifyAnalyzedText: "none",
-					contextType: "ONTOLOGY",
+					// A digest is an ordinary statements graph, not an ontology context.
+					...(mode === "procedural" ? {} : { contextType: "ONTOLOGY" }),
 					replaceEntities: false,
 					hideSearchTerms: true,
 				};

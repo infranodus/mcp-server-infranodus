@@ -84,9 +84,10 @@ export const optimizeKnowledgeBaseTool = {
 		title: `Optimize the Structure of a Knowledge Base, Code Base, or Rule Set`,
 		description:
 			`Structural feedback on a whole body of knowledge — a code base, a document vault, or procedural knowledge (rules, frameworks, principles) — from its ${brand.name} graph. ` +
-			`Give it the graph built from the project (graphName: e.g. repo-<project>-principles, repo-<project>-digest, repo-<project>-docs, vault-<project>-*, learn-<project>) or a digest as statements/text, and set focus to how the reading should be framed (codebase, vault, procedural, general). ` +
+			`Give it the graph built from the project (graphName: e.g. repo-<project>-digest or vault-<project>-digest — the LLM-written digest of how it works — repo-<project>-structure, repo-<project>-docs, vault-<project>-links, learn-<project>) and set focus to how the reading should be framed (codebase, vault, procedural, general). ` +
+			`No graph yet? If you can read the project's files, write the digest yourself and pass it as text with saveAs: read the docs, notes, code and config the user pointed you at, then write 100–300 one-line statements in your own words on how it works — principles (why), rules (must / must not), procedures (when X do Y then Z), hand-offs, main ideas, gaps — with [[wikilinks]] on the modules, concepts, tools and files, grouped under \`## [[Topic]]\` headings, no tags; saveAs: repo-<project>-digest (vault-<project>-digest for a notes vault). If you cannot read the files but the content is already a graph (docs, structure, notes), run generate_ontology_graph with ontologyMode 'procedural' and sourceGraphName first, saving to that digest name. ` +
 			`It diagnoses the structure (biased / focused / diversified / dispersed) and translates it: what dominates, which areas are under-developed, which clusters never connect (missing integrations, missing bridge notes, missing hand-offs between frameworks), with AI suggestions for what to develop next. ` +
-			`compareWith names other layers of the same project (e.g. principles vs digest, docs vs code) and reports what each layer has that the other lacks — rules without code, code without documentation, features claimed but not built. ` +
+			`compareWith names other layers of the same project (e.g. digest vs structure, docs vs code) and reports what each layer has that the other lacks — rules without code, code without documentation, features claimed but not built. ` +
 			`Use it after the infranodus skill has ingested a repo or vault, or on any saved graph, when the user asks to optimize, review, or find what is missing or under-developed in a project, vault, or set of rules.`,
 		inputSchema: OptimizeKnowledgeBaseSchema.shape,
 		annotations: {
@@ -116,15 +117,43 @@ export const optimizeKnowledgeBaseTool = {
 			if (params.graphName?.trim()) {
 				sourceBody = { name: params.graphName.trim() };
 				sourceLabel = params.graphName.trim();
+			} else if (params.saveAs?.trim()) {
+				// Save the submitted digest as a graph first (heading lines become
+				// parents, as the skill's upload does), then analyse the saved graph
+				// so compareWith and later questions work on it.
+				const saveAs = params.saveAs.trim();
+				const input = await resolveGraphInput({
+					...params,
+					wikilinksMode: "parentAndConcepts",
+				});
+				if (!input.ok) return errorContent(input.error);
+				const saveQuery = new URLSearchParams({
+					doNotSave: "false",
+					addStats: "false",
+					includeStatements: "false",
+					includeGraphSummary: "false",
+					extendedGraphSummary: "false",
+					includeGraph: "false",
+					compactGraph: "true",
+					aiTopics: "false",
+				});
+				const saved = await makeInfraNodusRequest(
+					`/graphAndStatements?${saveQuery.toString()}`,
+					{ name: saveAs, aiTopics: "false", ...input.payload },
+				);
+				if (saved.error) return errorContent(errorText(saved.error));
+				sourceBody = { name: saveAs };
+				sourceLabel = saveAs;
 			} else {
 				const input = await resolveGraphInput(params);
 				if (!input.ok) return errorContent(input.error);
 				sourceBody = { ...input.payload };
 				sourceLabel = "submitted statements";
 			}
-			if (compareWith.length > 0 && !params.graphName?.trim()) {
+			const primaryGraph = params.graphName?.trim() || params.saveAs?.trim();
+			if (compareWith.length > 0 && !primaryGraph) {
 				return errorContent(
-					"compareWith needs the primary source to be a saved graph (graphName) so the layers can be compared on the server.",
+					"compareWith needs the primary source to be a saved graph (graphName, or statements/text with saveAs) so the layers can be compared on the server.",
 				);
 			}
 
@@ -191,7 +220,7 @@ export const optimizeKnowledgeBaseTool = {
 
 			// 3. Layer comparisons, both directions.
 			const comparisons: Comparison[] = [];
-			const primary = params.graphName?.trim() as string;
+			const primary = primaryGraph as string;
 			for (const other of compareWith) {
 				await progress.report(step++, `Comparing with ${other}`);
 				const missingFromPrimary = await differenceTopics(primary, other);

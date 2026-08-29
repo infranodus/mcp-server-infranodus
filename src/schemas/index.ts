@@ -451,19 +451,19 @@ export const GenerateOntologyGraphSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			"A long text, document, or structural digest of a project (file tree, imports, exports, docstring headlines) to EXTRACT an ontology from. Chunked server-side (see chunkSize); every chunk's ontology is appended to the same graph. Provide exactly one of: prompt, text, sourceGraphName.",
+			"A long text, document, or structure map of a project (file tree, imports, exports, docstring headlines) to EXTRACT an ontology from. Chunked server-side (see chunkSize); every chunk's ontology is appended to the same graph. Provide exactly one of: prompt, text, sourceGraphName.",
 		),
 	sourceGraphName: z
 		.string()
 		.optional()
 		.describe(
-			`Name of an existing ${brand.name} graph whose statements are the source: they are read back, chunked, and an ontology is generated from each chunk into the graph named by graphName. Use it to condense a fully ingested repo, vault, or corpus graph (e.g. repo-<project>-docs or repo-<project>-digest) into an ontology. Provide exactly one of: prompt, text, sourceGraphName.`,
+			`Name of an existing ${brand.name} graph whose statements are the source: they are read back, chunked, and an ontology is generated from each chunk into the graph named by graphName. Use it to condense a fully ingested repo, vault, or corpus graph (e.g. repo-<project>-docs or repo-<project>-structure) into an ontology, or — with ontologyMode 'procedural' — into a digest of how the project works. Provide exactly one of: prompt, text, sourceGraphName.`,
 		),
 	ontologyMode: z
-		.enum(["general", "codebase"])
+		.enum(["general", "codebase", "procedural"])
 		.default("general")
 		.describe(
-			"'general' (default): entities and relations of any domain. 'codebase': the source is a software project digest or code documentation — entities are modules/files, functions, classes, data stores, external services, configuration, and the domain concepts they implement; relations favour dependsOn / partOf / exposes / calls / stores / implements. Applies to text and sourceGraphName inputs.",
+			"'general' (default): entities and relations of any domain. 'codebase': the source is a software project's structure map or code documentation — entities are modules/files, functions, classes, data stores, external services, configuration, and the domain concepts they implement; relations favour dependsOn / partOf / exposes / calls / stores / implements. 'procedural': instead of an ontology, write a DIGEST of how the project works — one prose statement per line with [[wikilinks]] on the modules, concepts, and files involved, each ending with its type in [brackets] — [principles], [rules], [procedures], [handoffs], [main_ideas], [gaps] — which is saved as the statement's category; save it as repo-<project>-digest or vault-<project>-digest and feed it to optimize_knowledge_base. Use it when the content already lives in a graph (docs, structure, notes) and nobody can or should re-read the files. Applies to text and sourceGraphName inputs.",
 		),
 	chunkSize: z
 		.number()
@@ -2021,7 +2021,7 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			`Name of the saved ${brand.name} graph that represents the project: e.g. repo-<project>-principles (rules, frameworks, main ideas), repo-<project>-digest (structure), repo-<project>-docs, vault-<project>-*, or learn-<project>. Provide this or statements/text.`,
+			`Name of the saved ${brand.name} graph that represents the project: e.g. repo-<project>-digest or vault-<project>-digest (the LLM-written digest of how it works), repo-<project>-structure (the deterministic map of files, imports, exports), repo-<project>-docs, vault-<project>-links, or learn-<project>. Provide this or statements/text.`,
 		),
 	statements: statementsField,
 	categories: categoriesField,
@@ -2029,7 +2029,13 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		.string()
 		.optional()
 		.describe(
-			"Alternative to graphName: a digest of the project as text — one statement per line: the rules, frameworks, features, or main ideas it contains, with [[wikilinks]] on the entities. Analyzed without saving.",
+			"Alternative to graphName: a digest of the project as text that YOU write after reading its files — one statement per line describing how it works (principles, rules, procedures, hand-offs, main ideas, gaps), in your own words, with [[wikilinks]] on the modules, concepts, tools, and files each statement is about, grouped under `## [[Topic]]` heading lines; no tags; 100–300 lines. Analyzed without saving unless saveAs is given.",
+		),
+	saveAs: z
+		.string()
+		.optional()
+		.describe(
+			"With statements/text: save the submitted digest as this graph first (e.g. repo-<project>-digest, vault-<project>-digest), then analyse the saved graph. `## [[Topic]]` heading lines become the parent of the statements under them. Makes compareWith available in the same call and keeps the digest for later questions. Ignored when graphName is given.",
 		),
 	focus: z
 		.enum(["general", "codebase", "vault", "procedural"])
@@ -2042,7 +2048,7 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		.max(2)
 		.optional()
 		.describe(
-			"Up to two other saved graphs of the same project to compare against (e.g. the digest when the primary is principles, or docs when the primary is code). Each comparison reports what the other layer covers that the primary lacks, and the reverse — rules without code, code without documentation, features described but not built. Requires graphName as the primary source.",
+			"Up to two other saved graphs of the same project to compare against (e.g. repo-<project>-structure when the primary is the digest, or docs when the primary is code). Each comparison reports what the other layer covers that the primary lacks, and the reverse — rules without code, code without documentation, features described but not built. Requires the primary to be a saved graph: graphName, or statements/text with saveAs.",
 		),
 	includeLatent: z
 		.boolean()
