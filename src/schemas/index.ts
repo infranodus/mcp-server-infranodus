@@ -2011,3 +2011,62 @@ export const SubmitWorkflowFeedbackSchema = z.object({
 		.min(1)
 		.describe("One line justifying the observations above."),
 });
+
+// ---------------------------------------------------------------------------
+// optimize_knowledge_base — structural feedback on a code base / vault / rule set
+// ---------------------------------------------------------------------------
+
+export const OptimizeKnowledgeBaseSchema = z.object({
+	graphName: z
+		.string()
+		.optional()
+		.describe(
+			`Name of the saved ${brand.name} graph that represents the project: e.g. repo-<project>-principles (rules, frameworks, main ideas), repo-<project>-digest (structure), repo-<project>-docs, vault-<project>-*, or learn-<project>. Provide this or statements/text.`,
+		),
+	statements: statementsField,
+	categories: categoriesField,
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"Alternative to graphName: a digest of the project as text — one statement per line: the rules, frameworks, features, or main ideas it contains, with [[wikilinks]] on the entities. Analyzed without saving.",
+		),
+	focus: z
+		.enum(["general", "codebase", "vault", "procedural"])
+		.default("general")
+		.describe(
+			"How to read the structure: 'codebase' (modules, features, integrations), 'vault' (notes, themes, bridge notes), 'procedural' (rules, frameworks, hand-offs between them), or 'general'. Changes the interpretation of the diagnosis, not the analysis.",
+		),
+	compareWith: z
+		.array(z.string().min(1))
+		.max(2)
+		.optional()
+		.describe(
+			"Up to two other saved graphs of the same project to compare against (e.g. the digest when the primary is principles, or docs when the primary is code). Each comparison reports what the other layer covers that the primary lacks, and the reverse — rules without code, code without documentation, features described but not built. Requires graphName as the primary source.",
+		),
+	includeLatent: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Also run the latent-topics pass (one extra AI call) to list under-developed areas with ideas on how to develop them. Default true.",
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
+		])
+		.default("gpt-5.4")
+		.describe("AI model for the development suggestions and latent-topic ideas."),
+});

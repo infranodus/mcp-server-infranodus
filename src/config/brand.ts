@@ -97,6 +97,7 @@ const BRANDS: Record<BrandId, BrandDef> = {
 			"enable_project_learnings",
 			"add_project_learnings",
 			"get_project_learnings",
+			"optimize_knowledge_base",
 		],
 		npm: {
 			packageName: "keywordgraph-mcp-server",

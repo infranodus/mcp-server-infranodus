@@ -207,7 +207,13 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 
     _Also available as the `save-learnings` prompt in clients that expose MCP prompts. Set `INFRANODUS_LEARNINGS=0` to remove these three tools from the server entirely (see [Project learnings](#project-learnings))._
 
-34. **submit_workflow_feedback**
+34. **optimize_knowledge_base**
+    - Structural feedback on a whole code base, document vault, or body of procedural knowledge (rules, frameworks, principles) from its saved graph — or from a digest passed as statements/text
+    - Diagnoses the structure (biased / focused / diversified / dispersed) and reads it for the chosen `focus` (`codebase`, `vault`, `procedural`, `general`): what dominates, which areas are under-developed (with latent-topic ideas), which clusters never connect — missing integrations, missing bridge notes, missing hand-offs between frameworks — plus AI suggestions for what to develop next
+    - `compareWith` up to two other layers of the same project (e.g. principles vs digest, docs vs code) and get what each has that the other lacks: rules without code, code without documentation, features described but not built
+    - Pairs with the infranodus skill's build modes: full ingestion, digest, principles digest, ontology
+
+35. **submit_workflow_feedback**
     - Internal telemetry: after a workflow of InfraNodus calls, the assistant reports what it actually did with the output — how much it used, whether it contained anything new, whether it was the right tool, how many calls it took, concrete defects — as observations rather than a score; a rating is derived from them server-side
     - Autonomous: it never asks you anything and never surfaces in the conversation
     - The report contains short paraphrases of what you were working on (capped at 200 characters), the same policy as the prompts InfraNodus already logs; `MCPCAT_ANONYMOUS=1` skips the per-user log entirely

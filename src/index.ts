@@ -44,6 +44,7 @@ import {
 	addProjectLearningsTool,
 	getProjectLearningsTool,
 	submitWorkflowFeedbackTool,
+	optimizeKnowledgeBaseTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 import { llmsTxtResource, llmsFullTxtResource } from "./resources/llms-txt.js";
@@ -192,6 +193,7 @@ export default function createServer({
 		generateGoogleResultsVsQueriesGraphTool,
 		analyzeLlmResultsTool,
 		generateSEOGraphTool,
+		optimizeKnowledgeBaseTool,
 		// Project learnings (agent self-reflection saved to the user's own
 		// graph). Hidden entirely when INFRANODUS_LEARNINGS=0.
 		...(learningsEnabled
