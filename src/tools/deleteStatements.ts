@@ -221,11 +221,13 @@ function sampleLine(statement: MatchedStatement, index: number): string {
 }
 
 /**
- * Ask the user directly through MCP elicitation. Only an explicit "accept"
- * with the box ticked deletes. "decline", or accept with the box unticked,
+ * Ask the user directly through MCP elicitation. The dialog is a plain
+ * Accept / Decline: the spec defines "accept" as the user's explicit
+ * approval, so no extra checkbox is asked for (a checkbox defaulting to
+ * false made a plain Accept read as a decline in Claude Code). "decline"
  * is a real no. A dismissed dialog, a client without the capability, or a
  * transport error is "unavailable": the caller then returns the dry run so
- * the question can be asked in chat. The form's default is NOT to delete.
+ * the question can be asked in chat.
  */
 async function elicitApproval(
 	extra: ToolExtra | undefined,
@@ -247,22 +249,9 @@ async function elicitApproval(
 	try {
 		const result = await extra.elicit({
 			message: lines.join("\n"),
-			requestedSchema: {
-				type: "object",
-				properties: {
-					delete: {
-						type: "boolean",
-						title: `Delete these ${matchedCount} statement(s)`,
-						default: false,
-					},
-				},
-				required: ["delete"],
-			},
+			requestedSchema: { type: "object", properties: {} },
 		});
-		const content = (result.content ?? {}) as { delete?: unknown };
-		if (result.action === "accept") {
-			return content.delete === true ? { kind: "accepted" } : { kind: "declined" };
-		}
+		if (result.action === "accept") return { kind: "accepted" };
 		if (result.action === "decline") return { kind: "declined" };
 		return { kind: "unavailable", detail: "the user dismissed the dialog without answering" };
 	} catch (error) {

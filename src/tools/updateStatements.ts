@@ -233,6 +233,17 @@ interface UpdateResponse {
 	error?: unknown;
 }
 
+/**
+ * How many statements a dry run would change. The API's updatedCount is the
+ * number confirmed written, so it is 0 on a dry run by contract; every matched
+ * statement lands in exactly one of updated / unchanged / rejected, and
+ * `updated` is capped for the response, so the planned count is derived.
+ */
+function plannedChanges(plan: UpdateResponse): number {
+	const matched = plan.matchedCount ?? 0;
+	return Math.max(0, matched - (plan.unchanged ?? 0) - (plan.rejected?.length ?? 0));
+}
+
 async function requestUpdate(
 	graphName: string,
 	body: EditsBody | BulkBody,
@@ -283,11 +294,13 @@ function sampleLine(change: UpdatedStatement, index: number): string {
 }
 
 /**
- * Ask the user directly through MCP elicitation. Only an explicit "accept"
- * with the box ticked writes. "decline", or accept with the box unticked,
+ * Ask the user directly through MCP elicitation. The dialog is a plain
+ * Accept / Decline: the spec defines "accept" as the user's explicit
+ * approval, so no extra checkbox is asked for (a checkbox defaulting to
+ * false made a plain Accept read as a decline in Claude Code). "decline"
  * is a real no. A dismissed dialog, a client without the capability, or a
  * transport error is "unavailable": the caller then returns the dry run so
- * the question can be asked in chat. The form's default is NOT to apply.
+ * the question can be asked in chat.
  */
 async function elicitApproval(
 	extra: ToolExtra | undefined,
@@ -298,7 +311,7 @@ async function elicitApproval(
 		return { kind: "unavailable", detail: "client does not support elicitation" };
 	}
 	const matchedCount = plan.matchedCount ?? 0;
-	const updatedCount = plan.updatedCount ?? plan.updated?.length ?? matchedCount;
+	const updatedCount = plannedChanges(plan);
 	const sample = (plan.updated ?? []).slice(0, SAMPLE_IN_PROMPT).map(sampleLine);
 	const more = updatedCount - sample.length;
 	const lines = [
@@ -310,22 +323,9 @@ async function elicitApproval(
 	try {
 		const result = await extra.elicit({
 			message: lines.join("\n"),
-			requestedSchema: {
-				type: "object",
-				properties: {
-					apply: {
-						type: "boolean",
-						title: `Apply these ${updatedCount} change(s)`,
-						default: false,
-					},
-				},
-				required: ["apply"],
-			},
+			requestedSchema: { type: "object", properties: {} },
 		});
-		const content = (result.content ?? {}) as { apply?: unknown };
-		if (result.action === "accept") {
-			return content.apply === true ? { kind: "accepted" } : { kind: "declined" };
-		}
+		if (result.action === "accept") return { kind: "accepted" };
 		if (result.action === "decline") return { kind: "declined" };
 		return { kind: "unavailable", detail: "the user dismissed the dialog without answering" };
 	} catch (error) {
@@ -393,7 +393,7 @@ export const updateStatementsTool = {
 			}
 			const plan = preview.data;
 			const matchedCount = plan.matchedCount ?? 0;
-			const plannedCount = plan.updatedCount ?? plan.updated?.length ?? 0;
+			const plannedCount = plannedChanges(plan);
 			const graphUrl = plan.graphUrl ?? graph.defaultRevisionUrl ?? undefined;
 
 			if (matchedCount === 0) {

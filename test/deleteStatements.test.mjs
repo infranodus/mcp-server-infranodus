@@ -178,7 +178,7 @@ test(
 			clientCapabilities: { elicitation: {} },
 			elicit: async () => {
 				elicited = true;
-				return { action: "accept", content: { delete: true } };
+				return { action: "accept", content: {} };
 			},
 		};
 		const result = await run({ graphName: GRAPH, query: "nothing-like-this" }, extra);
@@ -208,7 +208,7 @@ test(
 			clientCapabilities: { elicitation: {} },
 			elicit: async (request) => {
 				message = request.message;
-				return { action: "accept", content: { delete: true } };
+				return { action: "accept", content: {} };
 			},
 		};
 		const result = await run({ graphName: GRAPH, deleteAll: true }, extra);
@@ -223,11 +223,10 @@ test(
 );
 
 test(
-	"(h) declined, unticked, or dismissed elicitation never writes",
+	"(h) declined or dismissed elicitation never writes",
 	withStub({}, async (calls) => {
 		const outcomes = [
 			{ answer: { action: "decline" }, expect: "declined" },
-			{ answer: { action: "accept", content: { delete: false } }, expect: "declined" },
 			{ answer: { action: "cancel" }, expect: "dryRun" },
 		];
 		for (const { answer, expect } of outcomes) {

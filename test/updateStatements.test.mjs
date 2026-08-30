@@ -53,7 +53,7 @@ function stubFetch({
 				graphName: GRAPH,
 				graphUrl: GRAPH_URL,
 				matchedCount,
-				updatedCount: updated.length,
+				updatedCount: body.dryRun ? 0 : updated.length,
 				updated,
 				unchanged: matchedCount - updated.length,
 				rejected: [],
@@ -216,7 +216,7 @@ test(
 			clientCapabilities: { elicitation: {} },
 			elicit: async () => {
 				elicited = true;
-				return { action: "accept", content: { apply: true } };
+				return { action: "accept", content: {} };
 			},
 		};
 		const result = await run({ graphName: GRAPH, query: "nothing-like-this", replace: { pattern: "a", with: "b" } }, extra);
@@ -270,7 +270,7 @@ test(
 			clientCapabilities: { elicitation: {} },
 			elicit: async (request) => {
 				message = request.message;
-				return { action: "accept", content: { apply: true } };
+				return { action: "accept", content: {} };
 			},
 		};
 		const result = await run(BULK, extra);
@@ -284,11 +284,10 @@ test(
 );
 
 test(
-	"(j) declined, unticked, or dismissed elicitation never writes",
+	"(j) declined or dismissed elicitation never writes",
 	withStub({}, async (calls) => {
 		const outcomes = [
 			{ answer: { action: "decline" }, expect: "declined" },
-			{ answer: { action: "accept", content: { apply: false } }, expect: "declined" },
 			{ answer: { action: "cancel" }, expect: "dryRun" },
 		];
 		for (const { answer, expect } of outcomes) {
@@ -335,7 +334,7 @@ test(
 			return fakeResponse({
 				graphName: GRAPH,
 				matchedCount: 2,
-				updatedCount: body.dryRun ? 2 : 1,
+				updatedCount: body.dryRun ? 0 : 1,
 				updated: body.dryRun ? UPDATED : UPDATED.slice(0, 1),
 				unchanged: 0,
 				unmatched: [{ match: "gone" }],
