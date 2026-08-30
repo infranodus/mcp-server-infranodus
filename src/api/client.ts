@@ -5,7 +5,8 @@ import { brandSource } from "../config/brand.js";
 export async function makeInfraNodusRequest(
 	endpoint: string,
 	body: any,
-	method: string = "POST"
+	method: string = "POST",
+	options: { signal?: AbortSignal } = {},
 ): Promise<GraphResponse> {
 	try {
 		const config = getConfig();
@@ -25,6 +26,7 @@ export async function makeInfraNodusRequest(
 				Authorization: `Bearer ${config.apiKey}`,
 			},
 			...(method !== "GET" && { body: JSON.stringify(requestBody) }),
+			...(options.signal && { signal: options.signal }),
 		});
 
 		if (!response.ok) {

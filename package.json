@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-mcp-server",
-	"version": "1.7.4",
+	"version": "1.8.4",
 	"description": "InfraNodus MCP server - A Model Context Protocol server for network thinking and graph analysis",
 	"type": "module",
 	"module": "src/index.ts",
@@ -52,7 +52,8 @@
 		"deploy:exalt": "fly deploy -c fly.exaltgrowth.toml",
 		"publish:in": "npm run build:inspect && node scripts/publish-brand.mjs infranodus",
 		"publish:kg": "npm run build:inspect && node scripts/publish-brand.mjs keywordgraph",
-		"prepublishOnly": "npm run build:inspect"
+		"prepublishOnly": "npm run build:inspect",
+		"test": "npm run build:inspect && node --test 'test/**/*.test.mjs'"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.18.0",

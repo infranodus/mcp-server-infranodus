@@ -443,9 +443,36 @@ export const generateContextualHintSchema =
 export const GenerateOntologyGraphSchema = z.object({
 	prompt: z
 		.string()
-		.min(1, "Provide a topic, prompt, or text to generate an ontology for")
+		.optional()
 		.describe(
-			"The topic, prompt, or text to generate a reasoning ontology graph for. For example: 'build an ontology on AI attention mechanisms' or 'the main principles of Ray Dalio applied to investment'. The AI generates entities and the relations between them.",
+			"A topic or short prompt to generate a reasoning ontology for, e.g. 'build an ontology on AI attention mechanisms' or 'the main principles of Ray Dalio applied to investment'. Sent to the AI as-is in one call. Provide exactly one of: prompt, text, sourceGraphName.",
+		),
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"A long text, document, or structure map of a project (file tree, imports, exports, docstring headlines) to EXTRACT an ontology from. Chunked server-side (see chunkSize); every chunk's ontology is appended to the same graph. Provide exactly one of: prompt, text, sourceGraphName.",
+		),
+	sourceGraphName: z
+		.string()
+		.optional()
+		.describe(
+			`Name of an existing ${brand.name} graph whose statements are the source: they are read back, chunked, and an ontology is generated from each chunk into the graph named by graphName. Use it to condense a fully ingested repo, vault, or corpus graph (e.g. repo-<project>-docs or repo-<project>-structure) into an ontology, or — with ontologyMode 'procedural' — into a digest of how the project works. Provide exactly one of: prompt, text, sourceGraphName.`,
+		),
+	ontologyMode: z
+		.enum(["general", "codebase", "procedural"])
+		.default("general")
+		.describe(
+			"'general' (default): entities and relations of any domain. 'codebase': the source is a software project's structure map or code documentation — entities are modules/files, functions, classes, data stores, external services, configuration, and the domain concepts they implement; relations favour dependsOn / partOf / exposes / calls / stores / implements. 'procedural': instead of an ontology, write a DIGEST of how the project works — one prose statement per line with [[wikilinks]] on the modules, concepts, and files involved, each ending with its type in [brackets] — [principles], [rules], [procedures], [handoffs], [main_ideas], [gaps] — which is saved as the statement's category; save it as repo-<project>-digest or vault-<project>-digest and feed it to optimize_knowledge_base. Use it when the content already lives in a graph (docs, structure, notes) and nobody can or should re-read the files. Applies to text and sourceGraphName inputs.",
+		),
+	chunkSize: z
+		.number()
+		.int()
+		.min(2000)
+		.max(40000)
+		.default(12000)
+		.describe(
+			"Characters per chunk for text / sourceGraphName inputs (split on line boundaries). Smaller chunks give more detailed, more expensive ontologies. Default 12000.",
 		),
 	graphName: z
 		.string()
@@ -1828,4 +1855,458 @@ export const ListGraphsSchema = z.object({
 			"Filter by language code (e.g., 'EN', 'AUTO', 'DE', 'FR', 'ES', etc.)",
 		),
 	favorite: z.boolean().optional().describe("Filter by favorite status"),
+});
+
+// ---------------------------------------------------------------------------
+// Project learnings (see docs/drafts/project-learnings-graph.md)
+// ---------------------------------------------------------------------------
+
+const projectField = z
+	.string()
+	.min(1, "Project name is required")
+	.describe(
+		"Name of the project the learnings belong to — the repo or folder name, git remote basename, or whatever the user calls it. Use the same name every time for the same project (call get_project_learnings without a project to list the names already in use). Becomes the graph name learn-<slug>.",
+	);
+
+export const EnableProjectLearningsSchema = z.object({
+	project: projectField,
+});
+
+// Length parity between `types` and `statements` is checked in the handler
+// (a .refine() would hide `.shape`, which tool registration needs).
+export const AddProjectLearningsSchema = z.object({
+		project: projectField,
+		statements: z
+			.array(z.string().min(1))
+			.min(1)
+			.max(10)
+			.describe(
+				"One learning per statement, at most 2 sentences each, with at least two [[wikilinked]] entities (file paths, modules, concepts, tools). Only project knowledge that is not derivable from the code in a few reads, would have saved time up front, survived verification, and ideally connects things that are not obviously connected. Include a self-assessment of how the work went: what approach worked well in this project and should be repeated, and what should be done differently next time (type 'approach'). Never anything about the user; never secrets, hostnames, env values, or verbatim error output.",
+			),
+		types: z
+			.array(
+				z.enum([
+					"location",
+					"trap",
+					"convention",
+					"decision",
+					"workflow",
+					"question",
+					"approach",
+				]),
+			)
+			.min(1)
+			.max(10)
+			.describe(
+				"One type per statement, parallel to `statements`: location (where X lives), trap (what went wrong first), convention (how things are done here), decision (what was chosen and why), workflow (how to run/test/build/deploy), question (open, unresolved), approach (self-assessment: what worked well and should be repeated, or what should be done differently next time in this project).",
+			),
+		confirm: z
+			.boolean()
+			.default(false)
+			.describe(
+				"false (default) = dry run: returns what would be written (new vs reinforced duplicates) and writes nothing — show it to the user and ask whether to save. true = write. Pass true directly only when the user has said they don't want to be asked each time.",
+			),
+	});
+
+export const GetProjectLearningsSchema = z.object({
+	project: z
+		.string()
+		.optional()
+		.describe(
+			"Project name (same as used when enabling). Omit to list the projects that have learnings enabled in this account.",
+		),
+	prompt: z
+		.string()
+		.optional()
+		.describe(
+			"The task or question at hand. Retrieves the most relevant learnings for it (GraphRAG) plus a structural overview of what is known. Use at the start of a substantive task.",
+		),
+	entity: z
+		.string()
+		.optional()
+		.describe(
+			"A file path, module, or concept. Returns every learning that mentions it. Use before working on an unfamiliar area.",
+		),
+	type: z
+		.enum(["location", "trap", "convention", "decision", "workflow", "question", "approach"])
+		.optional()
+		.describe(
+			"Only return learnings of this type (e.g. 'trap' for the fragile areas of the project, 'approach' for what worked well or should be done differently). Applies to the overview and prompt modes.",
+		),
+	limit: z
+		.number()
+		.int()
+		.min(1)
+		.max(50)
+		.default(15)
+		.describe("Maximum number of learnings to return."),
+});
+
+// ---------------------------------------------------------------------------
+// Workflow feedback (see docs/drafts/workflow-feedback-tool.md)
+// ---------------------------------------------------------------------------
+
+export const SubmitWorkflowFeedbackSchema = z.object({
+	workflow: z
+		.string()
+		.min(1)
+		.describe("One sentence: what the user was trying to accomplish."),
+	toolsUsed: z
+		.array(z.string().min(1))
+		.min(1)
+		.describe(
+			`Names of the ${brand.name} tools called in this workflow, in order.`,
+		),
+	consumption: z
+		.enum(["none", "some", "most"])
+		.describe(
+			"How much of the tool output you carried into your reply to the user.",
+		),
+	usedExample: z
+		.string()
+		.optional()
+		.describe(
+			"Quote ONE specific item from the output that you used (a gap, a question, a cluster name, a bridge). Required when consumption is not 'none'. Never invent one.",
+		),
+	novelty: z
+		.enum(["nothing_new", "some_new", "mostly_new"])
+		.describe(
+			"Did the output contain things you would NOT have produced from the source text on your own?",
+		),
+	taskFit: z
+		.enum(["right_tool", "needed_another", "wrong_tool"])
+		.describe(
+			"Was this the right tool for the request, or did you have to call another tool / do the work yourself to compensate?",
+		),
+	callsNeeded: z
+		.number()
+		.int()
+		.min(1)
+		.describe(
+			"How many InfraNodus calls it took to get a usable result (including retries with changed parameters).",
+		),
+	defects: z
+		.array(
+			z.enum([
+				"too_generic",
+				"off_topic",
+				"wrong_language",
+				"truncated",
+				"duplicates",
+				"too_long_to_read",
+				"error",
+				"empty",
+			]),
+		)
+		.default([])
+		.describe("Concrete problems observed in the output. Empty array if none."),
+	userNext: z
+		.enum(["built_on_it", "asked_followup", "ignored", "redirected", "unknown"])
+		.default("unknown")
+		.describe(
+			"Only if you can observe it: what the user did after your reply. Leave 'unknown' when reporting before the user has responded.",
+		),
+	reason: z
+		.string()
+		.min(1)
+		.describe("One line justifying the observations above."),
+});
+
+// ---------------------------------------------------------------------------
+// optimize_knowledge_base — structural feedback on a code base / vault / rule set
+// ---------------------------------------------------------------------------
+
+export const OptimizeKnowledgeBaseSchema = z.object({
+	graphName: z
+		.string()
+		.optional()
+		.describe(
+			`Name of the saved ${brand.name} graph that represents the project: e.g. repo-<project>-digest or vault-<project>-digest (the LLM-written digest of how it works), repo-<project>-structure (the deterministic map of files, imports, exports), repo-<project>-docs, vault-<project>-links, or learn-<project>. Provide this or statements/text.`,
+		),
+	statements: statementsField,
+	categories: categoriesField,
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"Alternative to graphName: a digest of the project as text that YOU write after reading its files — one statement per line describing how it works (principles, rules, procedures, hand-offs, main ideas, gaps), in your own words, with [[wikilinks]] on the modules, concepts, tools, and files each statement is about, grouped under `## [[Topic]]` heading lines; no tags; 100–300 lines. Analyzed without saving unless saveAs is given.",
+		),
+	saveAs: z
+		.string()
+		.optional()
+		.describe(
+			"With statements/text: save the submitted digest as this graph first (e.g. repo-<project>-digest, vault-<project>-digest), then analyse the saved graph. `## [[Topic]]` heading lines become the parent of the statements under them. Makes compareWith available in the same call and keeps the digest for later questions. Use a name no other producer writes to: a graph created here is in parent mode, and appending generate_ontology_graph 'procedural' output (whose [type] tags are categories) to it would turn those tags into central nodes. Ignored when graphName is given.",
+		),
+	focus: z
+		.enum(["general", "codebase", "vault", "procedural"])
+		.default("general")
+		.describe(
+			"How to read the structure: 'codebase' (modules, features, integrations), 'vault' (notes, themes, bridge notes), 'procedural' (rules, frameworks, hand-offs between them), or 'general'. Changes the interpretation of the diagnosis, not the analysis.",
+		),
+	compareWith: z
+		.array(z.string().min(1))
+		.max(2)
+		.optional()
+		.describe(
+			"Up to two other saved graphs of the same project to compare against (e.g. repo-<project>-structure when the primary is the digest, or docs when the primary is code). Each comparison reports what the other layer covers that the primary lacks, and the reverse — rules without code, code without documentation, features described but not built. Requires the primary to be a saved graph: graphName, or statements/text with saveAs.",
+		),
+	includeLatent: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Also run the latent-topics pass (one extra AI call) to list under-developed areas with ideas on how to develop them. Default true.",
+		),
+	modelToUse: z
+		.enum([
+			"claude-opus-5",
+			"claude-sonnet-5",
+			"claude-fable-5",
+			"gemini-2.5-pro",
+			"gemini-2.5-flash",
+			"gemini-2.5-flash-lite",
+			"grok-4.1-fast-non-reasoning",
+			"grok-4.1-fast-reasoning",
+			"gpt-4o",
+			"gpt-4o-mini",
+			"gpt-5.4",
+			"gpt-5.4-mini",
+			"gpt-5.6-terra",
+			"gpt-5.6-sol",
+		])
+		.default("gpt-5.4")
+		.describe("AI model for the development suggestions and latent-topic ideas."),
+});
+
+// ---------------------------------------------------------------------------
+// delete_statements (see docs/drafts/delete-statements-tool.md)
+// ---------------------------------------------------------------------------
+
+// "Exactly one selector" is checked in the handler (a .refine() would hide
+// `.shape`, which tool registration needs). There is deliberately no
+// `userName`: the tool only ever addresses graphs in the caller's own account.
+export const DeleteStatementsSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "graphName is required")
+		.describe(
+			`Name of the graph in your own ${brand.name} account to delete from. It must already exist (use list_graphs to check the exact name); other users' graphs cannot be targeted and this tool never creates a graph.`,
+		),
+	categories: z
+		.array(z.string().min(1))
+		.optional()
+		.describe(
+			"Delete every statement that carries any of these category labels (exact match). Categories are the source labels statements were uploaded with — a file path, a page name, the [[label]] parent from a '## [[Topic]]' heading — so this is how you remove everything that came from one source before re-uploading its new version with create_knowledge_graph to the same graphName.",
+		),
+	statements: z
+		.array(z.string().min(1))
+		.optional()
+		.describe(
+			"Delete statements whose text equals one of these exactly (whitespace-normalised).",
+		),
+	query: z
+		.string()
+		.optional()
+		.describe(
+			"Delete statements containing this text (case-insensitive substring), or matching a regular expression written as /pattern/flags.",
+		),
+	before: z
+		.string()
+		.optional()
+		.describe(
+			"Delete statements dated before this ISO 8601 date or datetime (e.g. 2026-08-01 or 2026-08-01T12:00:00Z). Combine with after for a window; the two together count as one selector.",
+		),
+	after: z
+		.string()
+		.optional()
+		.describe(
+			"Delete statements dated after this ISO 8601 date or datetime. Combine with before for a window.",
+		),
+	deleteAll: z
+		.boolean()
+		.optional()
+		.describe(
+			"Delete every statement but keep the graph: its name, URL, and settings (e.g. wikilinksMode) stay valid, so it can be rebuilt in place with create_knowledge_graph.",
+		),
+	statementIds: z
+		.array(z.number().int())
+		.optional()
+		.describe(
+			"Advanced: delete by statement id (ids come from an earlier dry run of this tool or from retrieve_from_knowledge_base). Ids that do not belong to this graph are ignored and reported as ignoredIds.",
+		),
+	confirm: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Without this (the default) the call is a DRY RUN that only reports what would be deleted. Set true, with the same filter, only after the user has agreed to delete what the dry run showed. The deletion is irreversible.",
+		),
+});
+
+// ---------------------------------------------------------------------------
+// delete_graph
+// ---------------------------------------------------------------------------
+
+export const DeleteGraphSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "graphName is required")
+		.describe(
+			`Exact name of the graph in your own ${brand.name} account to delete (use list_graphs to check it). Other users' graphs cannot be targeted.`,
+		),
+	confirm: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Without this (the default) the call is a DRY RUN that only confirms the graph exists and reports what would be removed. Set true, with the same graphName, only after the user has agreed to delete that graph. The deletion is irreversible.",
+		),
+});
+
+// ---------------------------------------------------------------------------
+// update_statements (see docs/drafts/update-statements-tool.md)
+// ---------------------------------------------------------------------------
+
+/** One targeted edit for update_statements (Mode A). */
+export const UpdateStatementEditSchema = z.object({
+	match: z
+		.string()
+		.min(1)
+		.optional()
+		.describe(
+			"The exact current text of the statement to edit (whitespace-normalised), e.g. as returned by analyze_existing_graph_by_name with includeStatements, retrieve_from_knowledge_base, or an earlier dry run. Give exactly one of match or statementId.",
+		),
+	statementId: z
+		.number()
+		.int()
+		.optional()
+		.describe(
+			"Advanced: the id of the statement to edit (ids come from a dry run of this tool, of delete_statements, or from retrieve_from_knowledge_base). Give exactly one of match or statementId.",
+		),
+	content: z
+		.string()
+		.min(1)
+		.optional()
+		.describe(
+			"The new text of the statement (at most 1000 characters). [[wikilinks]] are honoured as in create_knowledge_graph. Omit to keep the current text.",
+		),
+	categories: z
+		.array(z.string().min(1))
+		.optional()
+		.describe(
+			"The new full list of category labels for this statement (replaces the current list). Omit to keep the current categories.",
+		),
+	timestamp: z
+		.string()
+		.optional()
+		.describe(
+			"The new ISO 8601 date or datetime for this statement (e.g. 2026-08-01 or 2026-08-01T12:00:00Z). Omit to keep the current one.",
+		),
+});
+
+// Cross-field rules (Mode A xor Mode B, exactly one selector, at least one
+// operation, one of match/statementId per edit) are checked in the handler
+// (a .refine() would hide `.shape`, which tool registration needs). No
+// `userName`: the tool only ever addresses graphs in the caller's own account.
+export const UpdateStatementsSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "graphName is required")
+		.describe(
+			`Name of the graph in your own ${brand.name} account to edit. It must already exist (use list_graphs to check the exact name); other users' graphs cannot be targeted and this tool never creates a graph.`,
+		),
+	edits: z
+		.array(UpdateStatementEditSchema)
+		.optional()
+		.describe(
+			"Mode A — rewrite specific statements. Each item names one statement (exactly one of match — its exact current text — or statementId) and at least one field to change (content, categories, timestamp). Cannot be combined with the Mode B fields below. Items that match no statement are reported as unmatched, not errors.",
+		),
+	categories: z
+		.array(z.string().min(1))
+		.optional()
+		.describe(
+			"Mode B selector: every statement carrying any of these category labels (exact match) — everything uploaded under one source (a file path, a page name, the [[label]] parent of a '## [[Topic]]' heading).",
+		),
+	statements: z
+		.array(z.string().min(1))
+		.optional()
+		.describe(
+			"Mode B selector: statements whose text equals one of these exactly (whitespace-normalised).",
+		),
+	query: z
+		.string()
+		.optional()
+		.describe(
+			"Mode B selector: statements containing this text (case-insensitive substring), or matching a regular expression written as /pattern/flags.",
+		),
+	before: z
+		.string()
+		.optional()
+		.describe(
+			"Mode B selector: statements dated before this ISO 8601 date or datetime (e.g. 2026-08-01 or 2026-08-01T12:00:00Z). Combine with after for a window; the two together count as one selector.",
+		),
+	after: z
+		.string()
+		.optional()
+		.describe(
+			"Mode B selector: statements dated after this ISO 8601 date or datetime. Combine with before for a window.",
+		),
+	all: z
+		.boolean()
+		.optional()
+		.describe(
+			"Mode B selector: every statement in the graph (e.g. to rename a [[concept]] or a source path everywhere with replace).",
+		),
+	statementIds: z
+		.array(z.number().int())
+		.optional()
+		.describe(
+			"Mode B selector (advanced): statements by id (ids come from an earlier dry run of this tool or of delete_statements, or from retrieve_from_knowledge_base). Ids that do not belong to this graph are reported as unmatched.",
+		),
+	set: z
+		.object({
+			addCategories: z
+				.array(z.string().min(1))
+				.optional()
+				.describe("Category labels to add to every selected statement (existing ones are kept)."),
+			removeCategories: z
+				.array(z.string().min(1))
+				.optional()
+				.describe("Category labels to remove from every selected statement."),
+			categories: z
+				.array(z.string().min(1))
+				.optional()
+				.describe(
+					"The new full list of category labels for every selected statement (replaces the current list). Cannot be combined with addCategories or removeCategories.",
+				),
+			timestamp: z
+				.string()
+				.optional()
+				.describe("The new ISO 8601 date or datetime for every selected statement."),
+		})
+		.optional()
+		.describe(
+			"Mode B operation: change the metadata of every selected statement — addCategories, removeCategories, categories (full replacement; exclusive with add/remove), timestamp. At least one of set or replace is required in Mode B.",
+		),
+	replace: z
+		.object({
+			pattern: z
+				.string()
+				.min(1)
+				.describe(
+					"What to find in the text of every selected statement: a plain substring (every occurrence, case-sensitive) or a regular expression written as /pattern/flags (e.g. /\\[\\[Old Name\\]\\]/g).",
+				),
+			with: z
+				.string()
+				.describe(
+					"The replacement text ($1-style backreferences work with a regex pattern). An empty string removes the match. The resulting statement must stay at most 1000 characters.",
+				),
+		})
+		.optional()
+		.describe(
+			"Mode B operation: find-and-replace in the text of every selected statement, e.g. to rename a [[concept]] or a source path across the graph. At least one of set or replace is required in Mode B.",
+		),
+	confirm: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Without this (the default) the call is a DRY RUN that only reports what would change (before → after for each statement). Set true, with the same arguments, only after the user has agreed to the changes the dry run showed. The edit is irreversible: the previous text survives only in the dry-run output.",
+		),
 });

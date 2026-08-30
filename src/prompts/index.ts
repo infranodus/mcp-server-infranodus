@@ -413,4 +413,38 @@ Use the memory_add_relations tool to save this information.`,
 			};
 		},
 	},
+	{
+		name: "save-learnings",
+		definition: {
+			title: "Save what you learned about this project",
+			description:
+				"Reflect on the current session and save project-operating learnings (where things live, traps, conventions, decisions, workflows) to the project's learnings graph — after showing them to the user.",
+			arguments: [
+				{
+					name: "project",
+					description:
+						"Project name (repo or folder name). Optional — if omitted, infer it from the conversation and check get_project_learnings for the names already in use.",
+					required: false,
+				},
+			],
+		},
+		handler: async (args: { [key: string]: string | undefined }) => {
+			const project = args.project?.trim();
+			return {
+				messages: [
+					{
+						role: "user" as const,
+						content: {
+							type: "text" as const,
+							text: `Reflect on this session${project ? ` in the project "${project}"` : ""} and save what you learned about operating in the project.
+
+1. Identify the project name${project ? "" : " (call get_project_learnings with no project to see which names already have learnings)"}, then call get_project_learnings with a short description of what we worked on to see whether learnings are enabled and what is already known. If they are not enabled, tell me and stop — do not enable them unless I ask.
+2. Draft 0–5 learnings. Each must be: not derivable from the code or docs in a few reads; something that would have saved time if known at the start; verified (it actually worked); about the project, never about me; and preferably an insight that connects things that are not obviously connected, not a bare fact. Include a self-assessment of how the work went: what approach worked well in this project and should be repeated, and what should be done differently next time (type 'approach'). One statement each, at most two sentences, with at least two [[wikilinked]] entities (file paths, modules, concepts). No secrets, hostnames, env values, or verbatim error output. Zero is a fine answer.
+3. Call add_project_learnings as a dry run, show me the result, and write with confirm: true only if I agree.`,
+						},
+					},
+				],
+			};
+		},
+	},
 ];

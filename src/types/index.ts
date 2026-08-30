@@ -217,12 +217,17 @@ export interface TopicsOutput {
 }
 
 export interface OntologyGraphOutput {
+	/** 'prompt' | 'text' | 'graph' — where the ontology was generated from. */
+	source?: string;
+	chunksTotal?: number;
+	chunksProcessed?: number;
 	// Core
 	saved?: boolean;
 	message?: string;
 	graphName?: string;
-	graphUrl?: string;
+	graphUrl?: string; // the owner's /edit link (same as editUrl)
 	editUrl?: string;
+	viewUrl?: string; // read-only page, for sharing
 	// When not saved (preview): the generated ontology statements
 	ontologyStatements?: string[];
 	// The raw LLM completions, one per item (for analyze_llm_results); returned when includeStatements is true, whether or not the graph is saved
@@ -401,4 +406,33 @@ export interface ToolHandlerContext {
 	_meta?: {
 		progressTotal?: number;
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Per-invocation context handed to tool handlers by wrapHandler (src/index.ts)
+// ---------------------------------------------------------------------------
+
+export interface ElicitRequestParams {
+	message: string;
+	requestedSchema: {
+		type: "object";
+		properties: Record<string, Record<string, unknown>>;
+		required?: string[];
+	};
+}
+
+export interface ElicitResultLike {
+	action: "accept" | "decline" | "cancel";
+	content?: Record<string, unknown>;
+}
+
+export interface ToolExtra {
+	progressToken?: string | number;
+	sendNotification?: (notification: any) => Promise<void>;
+	/** Server-initiated user prompt (MCP elicitation); undefined when unavailable. */
+	elicit?: (params: ElicitRequestParams) => Promise<ElicitResultLike>;
+	/** Capabilities the connected client declared at initialize. */
+	clientCapabilities?: { elicitation?: object; [key: string]: unknown };
+	/** Client name from initialize (e.g. "claude-ai", "cursor"). */
+	clientName?: string;
 }

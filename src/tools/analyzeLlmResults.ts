@@ -106,13 +106,16 @@ export const analyzeLlmResultsTool = {
 				}
 
 				const base = appBaseUrl();
+				// graphUrl is the owner's /edit link, consistent with the other
+				// graph-saving tools; viewUrl is the read-only page for sharing.
 				const viewUrl = redirectUrl.replace(/\/edit\/?$/, "");
 
 				output = {
 					saved: true,
 					graphName,
-					graphUrl: `${base}${viewUrl}`,
+					graphUrl: `${base}${redirectUrl}`,
 					editUrl: `${base}${redirectUrl}`,
+					viewUrl: `${base}${viewUrl}`,
 					message: `LLM overview graph "${graphName}" generated and saved.`,
 				};
 			} else {

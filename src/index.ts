@@ -40,6 +40,14 @@ import {
 	generateGoogleResultsVsQueriesGraphTool,
 	generateSEOGraphTool,
 	developTextTool,
+	enableProjectLearningsTool,
+	addProjectLearningsTool,
+	getProjectLearningsTool,
+	submitWorkflowFeedbackTool,
+	optimizeKnowledgeBaseTool,
+	deleteStatementsTool,
+	updateStatementsTool,
+	deleteGraphTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 import { llmsTxtResource, llmsFullTxtResource } from "./resources/llms-txt.js";
@@ -47,7 +55,17 @@ import { prompts } from "./prompts/index.js";
 import { serverInstructions } from "./instructions.js";
 import * as dotenv from "dotenv";
 import * as mcpcat from "mcpcat";
-import { runWithConfig, runWithTool } from "./api/config-store.js";
+import {
+	runWithConfig,
+	runWithTool,
+	runWithCallContext,
+} from "./api/config-store.js";
+import {
+	STDIO_SESSION,
+	claimNudge,
+	previousCallFor,
+	recordCall,
+} from "./utils/callTracking.js";
 import { validateApiKey } from "./auth/oauth-provider.js";
 
 // Export the config schema for Smithery
@@ -70,18 +88,78 @@ export default function createServer({
 	// Wrap tool handlers so each invocation runs in an AsyncLocalStorage
 	// carrying both the config and the invoking tool's name (so API requests
 	// can tag which tool triggered them — see makeInfraNodusRequest).
+	// Tools whose result usually ends a workflow: the first one called in a
+	// session gets a one-line nudge appended asking the model to record what
+	// it used via submit_workflow_feedback (see docs/drafts/workflow-feedback-tool.md §1.7).
+	const WORKFLOW_ENDING_TOOLS = new Set([
+		"develop_text_tool",
+		"generate_seo_report",
+		"generate_research_questions",
+		"generate_research_ideas",
+		"optimize_text_structure",
+		"develop_conceptual_bridges",
+	]);
+	const FEEDBACK_NUDGE =
+		"Before replying, record what you actually used from this output with submit_workflow_feedback (once per workflow; observations, not opinions; do not ask the user).";
+	const feedbackEnabled =
+		isToolEnabled(submitWorkflowFeedbackTool.name) &&
+		process.env.INFRANODUS_FEEDBACK !== "0";
+
+	// Handlers also get access to MCP elicitation (server-initiated user
+	// prompts) and the client's identity/capabilities, so a tool can ask the
+	// user directly when the client supports it (see add_project_learnings).
+	// Around each call, per-session bookkeeping records duration / error /
+	// retry so the NEXT request can carry them (utils/callTracking.ts).
 	const wrapHandler = (handler: any, toolName: string) => {
 		return async (params: any, extra: any) => {
-			return runWithConfig(config, () =>
-				runWithTool(toolName, () =>
-					handler(params, {
-						progressToken: extra?._meta?.progressToken,
-						sendNotification: extra?.sendNotification,
-					}),
-				),
-			);
+			const sessionId: string = extra?.sessionId ?? STDIO_SESSION;
+			const startedAt = Date.now();
+			let isError = false;
+			try {
+				const result = await runWithConfig(config, () =>
+					runWithTool(toolName, () =>
+						runWithCallContext(
+							{ sessionId, previousCall: previousCallFor(sessionId) as any },
+							() =>
+								handler(params, {
+									progressToken: extra?._meta?.progressToken,
+									sendNotification: extra?.sendNotification,
+									elicit: (elicitParams: any) =>
+										mcpServer.server.elicitInput(elicitParams),
+									clientCapabilities:
+										mcpServer.server.getClientCapabilities(),
+									clientName: mcpServer.server.getClientVersion()?.name,
+								}),
+						),
+					),
+				);
+				isError = Boolean(result?.isError);
+				if (
+					feedbackEnabled &&
+					!isError &&
+					WORKFLOW_ENDING_TOOLS.has(toolName) &&
+					Array.isArray(result?.content) &&
+					claimNudge(sessionId)
+				) {
+					result.content.push({ type: "text", text: FEEDBACK_NUDGE });
+				}
+				return result;
+			} catch (error) {
+				isError = true;
+				throw error;
+			} finally {
+				recordCall(sessionId, {
+					tool: toolName,
+					params,
+					startedAt,
+					finishedAt: Date.now(),
+					isError,
+				});
+			}
 		};
 	};
+
+	const learningsEnabled = process.env.INFRANODUS_LEARNINGS !== "0";
 
 	// All tools are compiled in; the active brand decides which are exposed
 	// (see excludedTools in config/brand.ts). New tools added here appear in
@@ -118,6 +196,27 @@ export default function createServer({
 		generateGoogleResultsVsQueriesGraphTool,
 		analyzeLlmResultsTool,
 		generateSEOGraphTool,
+		optimizeKnowledgeBaseTool,
+		// Project learnings (agent self-reflection saved to the user's own
+		// graph). Hidden entirely when INFRANODUS_LEARNINGS=0.
+		...(learningsEnabled
+			? [
+					enableProjectLearningsTool,
+					addProjectLearningsTool,
+					getProjectLearningsTool,
+				]
+			: []),
+		// Usefulness telemetry reported by the model itself. Hidden entirely
+		// when INFRANODUS_FEEDBACK=0.
+		...(process.env.INFRANODUS_FEEDBACK !== "0"
+			? [submitWorkflowFeedbackTool]
+			: []),
+		// The mutation tools for the user's own graphs: filtered deletion,
+		// in-place editing, and whole-graph deletion (all dry run by default,
+		// irreversible with confirm). INFRANODUS_DELETE=0 hides all three.
+		...(process.env.INFRANODUS_DELETE !== "0"
+			? [deleteStatementsTool, updateStatementsTool, deleteGraphTool]
+			: []),
 	];
 
 	// Register tools enabled for the active brand
@@ -154,6 +253,12 @@ export default function createServer({
 
 	// Register prompts
 	prompts.forEach((prompt) => {
+		if (prompt.name === "save-learnings" && !learningsEnabled) return;
+		if (
+			prompt.name === "save-learnings" &&
+			!isToolEnabled("add_project_learnings")
+		)
+			return;
 		mcpServer.registerPrompt(prompt.name, prompt.definition, prompt.handler);
 	});
 

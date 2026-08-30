@@ -203,6 +203,33 @@ POST /graphAndAdvice?doNotSave=true&addStats=true&includeGraph=<includeGraph>&in
 }
 ```
 
+## Other endpoints used by non-advice tools
+
+Not `/graphAndAdvice`, and no `requestMode`, but listed here so the endpoint
+map is complete in one place.
+
+| MCP tool | source file | endpoint | method | body (before `modal`/`source`/`tool` are injected) |
+|---|---|---|---|---|
+| `delete_statements` | `deleteStatements.ts` | `/listGraphs`, then `/deleteStatements` twice (preview, then write) | `POST` | lookup: `{ query: <graphName>, attempt: n }`; deletion: `{ name: <graphName>, <one selector>, dryRun: true \| false }` where the selector is one of `categories: string[]`, `statements: string[]`, `query: string`, `before?/after?: ISO`, `all: true`, `statementIds: number[]` |
+| `update_statements` | `updateStatements.ts` | `/listGraphs`, then `/updateStatements` twice (preview, then write) | `POST` | lookup as above; update, Mode A: `{ name, edits: [{ match? \| statementId?, content?, categories?, timestamp? }], dryRun }`; Mode B: `{ name, <one selector as for deletion>, set?: { addCategories?, removeCategories?, categories?, timestamp? }, replace?: { pattern, with }, dryRun }` |
+
+`/deleteStatements` answers `200` with `{ graphName, graphUrl, matchedCount,
+matched: [{ id, content, categories, timestamp }] (capped at 200),
+matchedByCategory?, removedIds, removedCount, ignoredIds?, remaining, dryRun }`
+and a non-200 `{ error }` for a bad selector (400), an anonymous request or
+another user's graph (403), an unknown graph (404), or a server failure (500).
+The tool sends the identical selector for the preview and for the write; the
+only difference between the two calls is `dryRun`.
+
+`/updateStatements` answers `200` with `{ graphName, graphUrl, matchedCount,
+updatedCount, updated: [{ id, before: { content, categories, timestamp },
+after: { … } }] (capped at 200), unchanged, unmatched?, rejected: [{ id, reason }],
+dryRun }` and the same non-200 `{ error }` codes as `/deleteStatements`. Mode A
+edits that match no statement are listed in `unmatched`; changes the app refuses
+(for instance content over 1000 characters) are listed in `rejected`. As with
+deletion, the body of the write is byte-identical to the body of the preview
+except for `dryRun`.
+
 ## Notes / things to be aware of
 
 - Every body also carries `modal: "mcp_server"`, injected centrally in
