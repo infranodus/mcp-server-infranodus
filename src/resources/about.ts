@@ -46,6 +46,7 @@ Available Tools:
 25. submit_workflow_feedback - Internal telemetry: after a workflow, the assistant reports what it actually used from the output (observations, not a score) so the tools can be improved; never asks the user
 26. delete_statements - Delete statements from a graph in the user's own account by one filter (categories = everything from one source, statements, query, before/after, deleteAll, or statementIds); dry run by default, irreversible only with confirm: true or an accepted elicitation form; the per-source replace and in-place rebuild path together with create_knowledge_graph. Never called on the assistant's own initiative
 27. update_statements - Edit statements of a graph in the user's own account in place (content, categories, timestamp) keeping their id, date, and position: edits (specific statements by exact current text or id) or one selector with set/replace (bulk relabelling, find-and-replace such as renaming a [[concept]] or a source path); dry run showing before → after by default, irreversible only with confirm: true or an accepted elicitation form. Never called on the assistant's own initiative
+28. delete_graph - Delete one graph from the user's own account entirely (statements, revisions, settings, URL); dry run by default, irreversible only with confirm: true or an accepted elicitation form. delete_statements with deleteAll is the alternative that keeps the graph. Never called on the assistant's own initiative
 
 Key Features:
 - Topic modeling and clustering

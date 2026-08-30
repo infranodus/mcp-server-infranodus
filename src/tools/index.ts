@@ -36,3 +36,4 @@ export { submitWorkflowFeedbackTool } from "./submitWorkflowFeedback.js";
 export { optimizeKnowledgeBaseTool } from "./optimizeKnowledgeBase.js";
 export { deleteStatementsTool } from "./deleteStatements.js";
 export { updateStatementsTool } from "./updateStatements.js";
+export { deleteGraphTool } from "./deleteGraph.js";

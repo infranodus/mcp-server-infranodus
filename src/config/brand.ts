@@ -102,6 +102,7 @@ const BRANDS: Record<BrandId, BrandDef> = {
 			// audience, not the SEO/keyword one.
 			"delete_statements",
 			"update_statements",
+			"delete_graph",
 		],
 		npm: {
 			packageName: "keywordgraph-mcp-server",

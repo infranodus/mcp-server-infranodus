@@ -47,6 +47,7 @@ import {
 	optimizeKnowledgeBaseTool,
 	deleteStatementsTool,
 	updateStatementsTool,
+	deleteGraphTool,
 } from "./tools/index.js";
 import { aboutResource } from "./resources/about.js";
 import { llmsTxtResource, llmsFullTxtResource } from "./resources/llms-txt.js";
@@ -210,11 +211,11 @@ export default function createServer({
 		...(process.env.INFRANODUS_FEEDBACK !== "0"
 			? [submitWorkflowFeedbackTool]
 			: []),
-		// The two mutation tools for the user's own graphs: filtered deletion
-		// and in-place editing (both dry run by default, irreversible with
-		// confirm). INFRANODUS_DELETE=0 hides both.
+		// The mutation tools for the user's own graphs: filtered deletion,
+		// in-place editing, and whole-graph deletion (all dry run by default,
+		// irreversible with confirm). INFRANODUS_DELETE=0 hides all three.
 		...(process.env.INFRANODUS_DELETE !== "0"
-			? [deleteStatementsTool, updateStatementsTool]
+			? [deleteStatementsTool, updateStatementsTool, deleteGraphTool]
 			: []),
 	];
 

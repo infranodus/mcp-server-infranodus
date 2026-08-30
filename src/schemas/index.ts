@@ -2142,6 +2142,25 @@ export const DeleteStatementsSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// delete_graph
+// ---------------------------------------------------------------------------
+
+export const DeleteGraphSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "graphName is required")
+		.describe(
+			`Exact name of the graph in your own ${brand.name} account to delete (use list_graphs to check it). Other users' graphs cannot be targeted.`,
+		),
+	confirm: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Without this (the default) the call is a DRY RUN that only confirms the graph exists and reports what would be removed. Set true, with the same graphName, only after the user has agreed to delete that graph. The deletion is irreversible.",
+		),
+});
+
+// ---------------------------------------------------------------------------
 // update_statements (see docs/drafts/update-statements-tool.md)
 // ---------------------------------------------------------------------------
 

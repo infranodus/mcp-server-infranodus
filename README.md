@@ -232,6 +232,11 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Dry run by default: returns the matched count and the before → after of every change; nothing is written until the same arguments are sent again with `confirm: true` — or, on clients with MCP elicitation, until you accept the form in the same call. A request that matches nothing returns `updated: 0` without asking
     - New content is capped at 1000 characters; for longer text use `delete_statements` then `create_knowledge_graph`. Irreversible (the old text survives only in the dry-run output), own-account only, never creates a graph, and the assistant is instructed never to call it on its own initiative. `INFRANODUS_DELETE=0` removes it together with `delete_statements`
 
+38. **delete_graph**
+    - Delete one graph from your own account entirely — its statements, revisions, settings, and URL; the name becomes free again. `delete_statements` with `deleteAll` is the alternative that keeps the graph for a rebuild in place
+    - Dry run by default: confirms the graph exists and reports its URL and whether it is a live graph; nothing is removed until the same `graphName` is sent again with `confirm: true`. Clients that support elicitation ask you directly and delete in the same call
+    - Irreversible, own-account only (no `userName`; the graph is resolved from your API key's own graph list and the backend scopes the delete to the same user), and the assistant is instructed never to call it on its own initiative. `INFRANODUS_DELETE=0` removes it together with the other two mutation tools
+
 _More capabilites coming soon!_
 
 ### Key Capabilities
