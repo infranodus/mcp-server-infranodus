@@ -2,6 +2,10 @@
 
 A Model Context Protocol (MCP) server that integrates InfraNodus knowledge graph and text network analysis capabilities into LLM workflows and AI assistants like Claude Desktop.
 
+[![npm version](https://img.shields.io/npm/v/infranodus-mcp-server.svg)](https://www.npmjs.com/package/infranodus-mcp-server)
+
+Available on npm: [https://www.npmjs.com/package/infranodus-mcp-server](https://www.npmjs.com/package/infranodus-mcp-server)
+
 ## Overview
 
 InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text using advanced network science algorithms, generate knowledge graphs, detect content gaps, and identify key topics and concepts. It transforms unstructured text into structured insights using graph theory and network analysis.
