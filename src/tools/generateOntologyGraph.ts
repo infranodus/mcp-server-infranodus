@@ -222,7 +222,11 @@ export const generateOntologyGraphTool = {
 				}
 
 				const base = appBaseUrl();
-				// redirectUrl looks like /<userName>/<contextName>/edit
+				// redirectUrl looks like /<userName>/<contextName>/edit — the
+				// owner's editor. graphUrl keeps it, like every other tool that
+				// saves a graph (a link without /edit opens the read-only view,
+				// which is what agents were recording when this tool stripped it).
+				// viewUrl is the shareable read-only page.
 				const viewUrl = redirectUrl.replace(/\/edit\/?$/, "");
 
 				output = {
@@ -231,8 +235,9 @@ export const generateOntologyGraphTool = {
 					chunksProcessed,
 					saved: true,
 					graphName,
-					graphUrl: `${base}${viewUrl}`,
+					graphUrl: `${base}${redirectUrl}`,
 					editUrl: `${base}${redirectUrl}`,
+					viewUrl: `${base}${viewUrl}`,
 					message:
 						chunks.length > 1
 							? `Ontology graph "${graphName}" generated from ${chunks.length} chunks and saved.`

@@ -225,8 +225,9 @@ export interface OntologyGraphOutput {
 	saved?: boolean;
 	message?: string;
 	graphName?: string;
-	graphUrl?: string;
+	graphUrl?: string; // the owner's /edit link (same as editUrl)
 	editUrl?: string;
+	viewUrl?: string; // read-only page, for sharing
 	// When not saved (preview): the generated ontology statements
 	ontologyStatements?: string[];
 	// The raw LLM completions, one per item (for analyze_llm_results); returned when includeStatements is true, whether or not the graph is saved
