@@ -72,6 +72,11 @@ export function transformToStructuredOutput(
 			output.statistics.diversity_stats = graph.attributes.diversity_stats;
 		}
 
+		if (graph.attributes?.fractal_variability) {
+			output.statistics.fractal_variability =
+				graph.attributes.fractal_variability;
+		}
+
 		if (graph.attributes?.top_influential_nodes) {
 			output.topInfluentialNodes = graph.attributes.top_influential_nodes;
 		}
@@ -431,6 +436,11 @@ export function generateOptimizationResult(
 	if (data.graph?.graphologyGraph?.attributes?.diversity_stats) {
 		output.diversity_stats =
 			data.graph.graphologyGraph.attributes.diversity_stats;
+	}
+
+	if (data.graph?.graphologyGraph?.attributes?.fractal_variability) {
+		output.fractal_variability =
+			data.graph.graphologyGraph.attributes.fractal_variability;
 	}
 
 	if (data.extendedGraphSummary) {

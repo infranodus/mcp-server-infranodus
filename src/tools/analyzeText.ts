@@ -41,6 +41,7 @@ export const analyzeTextTool = {
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
+				...(params.multifractal ? { multifractal: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: "true",

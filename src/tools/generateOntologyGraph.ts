@@ -268,6 +268,7 @@ export const generateOntologyGraphTool = {
 				const graphQuery = new URLSearchParams({
 					doNotSave: "true",
 					addStats: "true",
+					...(params.multifractal ? { multifractal: "true" } : {}),
 					includeStatements: includeStatements ? "true" : "false",
 					includeGraphSummary: "false",
 					extendedGraphSummary: includeAnalytics ? "true" : "false",

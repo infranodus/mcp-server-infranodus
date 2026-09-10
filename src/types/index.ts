@@ -67,6 +67,46 @@ export interface StatementStringsOutput {
 	statements?: string[];
 }
 
+/**
+ * Fractal variability of the discourse, computed by the backend together with
+ * diversity_stats (same addstats gate) and attached to the graph attributes.
+ * Two series (statements, words) x two measures (byStepLength, byRadialDistance),
+ * each a DFA scaling exponent (alpha) with a label and optional multifractal spectrum.
+ */
+export interface FractalScaling {
+	n: number;
+	alphaBounded: number;
+	alphaLabel: string;
+	alpha1: number;
+	alpha1Label: string;
+	alpha2: number;
+	alpha2Label: string;
+	multifractal: {
+		label: string;
+		source?: string;
+		significant?: boolean;
+		z?: number;
+		p?: number;
+		width: number;
+		q: number[];
+		hq: number[];
+		hCurveSlope: number;
+		hCurveCurvature: number;
+		hCurveNonlinearity: number;
+		hMinLocation: number;
+	} | null;
+}
+
+export interface FractalSeries {
+	byStepLength: FractalScaling;
+	byRadialDistance: FractalScaling;
+}
+
+export interface FractalVariability {
+	statements: FractalSeries;
+	words: FractalSeries;
+}
+
 export interface GraphResponse {
 	statements?: Statement[];
 	graph?: {
@@ -78,6 +118,7 @@ export interface GraphResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
+				fractal_variability?: FractalVariability;
 				top_influential_nodes?: Array<{
 					node: string;
 					degree: number;
@@ -160,6 +201,7 @@ export interface SearchResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
+				fractal_variability?: FractalVariability;
 				top_influential_nodes?: Array<{
 					node: string;
 					degree: number;
@@ -181,6 +223,7 @@ export interface KnowledgeGraphOutput {
 	statistics: {
 		modularity: number;
 		diversity_stats?: any;
+		fractal_variability?: FractalVariability;
 		nodeCount?: number;
 		edgeCount?: number;
 		clusterCount?: number;
@@ -236,6 +279,7 @@ export interface OntologyGraphOutput {
 	statistics?: {
 		modularity: number;
 		diversity_stats?: any;
+		fractal_variability?: FractalVariability;
 		nodeCount?: number;
 		edgeCount?: number;
 		clusterCount?: number;
@@ -360,6 +404,7 @@ export interface OptimizeTextOutput {
 	topRelations?: string[];
 	topKeywordCombinations?: string[];
 	diversity_stats?: any;
+	fractal_variability?: FractalVariability;
 	diversityStatistics?: {
 		modularity: string;
 		diversity_score: string;

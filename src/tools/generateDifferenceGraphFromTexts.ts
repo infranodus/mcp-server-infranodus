@@ -96,6 +96,7 @@ export const generateDifferenceGraphFromTextsTool = {
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
+				...(params.multifractal ? { multifractal: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",

@@ -261,8 +261,15 @@ export const optimizeKnowledgeBaseTool = {
 				suggestions: dedupeList(optimization.suggestions ?? [], 6),
 				...(latentIdeas.length ? { latentIdeas } : {}),
 				...(comparisons.length ? { comparisons } : {}),
-				...(optimization.diversity_stats
-					? { statistics: optimization.diversity_stats }
+				...(optimization.diversity_stats || optimization.fractal_variability
+					? {
+							statistics: {
+								...(optimization.diversity_stats ?? {}),
+								...(optimization.fractal_variability
+									? { fractal_variability: optimization.fractal_variability }
+									: {}),
+							},
+						}
 					: {}),
 			};
 

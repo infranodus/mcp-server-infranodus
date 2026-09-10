@@ -10,6 +10,18 @@ import {
  * graph from content: discrete statements with optional per-statement
  * metadata. Reused across schemas — zod field instances are immutable.
  */
+/**
+ * Opt-in multifractal spectrum inside `fractal_variability`. Shared by the
+ * graph-generation tools whose endpoints (/graphAndStatements,
+ * /graphsAndStatements) honor the flag.
+ */
+const multifractalField = z
+	.boolean()
+	.default(false)
+	.describe(
+		"Compute the multifractal spectrum (q, h(q), width, label) inside the fractal_variability statistics. Off by default: it adds ~0.5 s per graph. Only meaningful when the graph statistics are returned (includeGraph, fullGraph, addNodesAndEdges, or extractEntitiesOnly); without them the basic fractal_variability block is returned with multifractal: null.",
+	);
+
 const statementsField = z
 	.array(z.string().min(1))
 	.min(1)
@@ -61,6 +73,7 @@ export const GenerateGraphSchema = z.object({
 		.describe(
 			"Include processed statements in response (true only if explicitly needed or requested)",
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(true)
@@ -128,6 +141,7 @@ export const CreateGraphSchema = z.object({
 		.describe(
 			"Include processed statements in response (add only if explicitly needed)",
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
@@ -190,6 +204,7 @@ export const AddMemorySchema = z.object({
 		.describe(
 			"Include processed statements in response (add only if needed for further analysis)",
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
@@ -233,6 +248,7 @@ export const AnalyzeTextSchemaBase = z.object({
 		.describe(
 			"Include processed statements in response (add only if explicitly needed or if user requested the text of the URL / YouTube transcript)",
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
@@ -292,6 +308,7 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.describe(
 			"Include processed statements in response (add only if explicitly needed)",
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
@@ -507,6 +524,7 @@ export const GenerateOntologyGraphSchema = z.object({
 		.describe(
 			`Whether to save the generated ontology as a persistent ${brand.name} graph (true by default). When true, the graph is stored under your account and a link is returned. Set to false if the user explicitly asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later — in that case the generated ontology statements are returned directly without being persisted.`,
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
@@ -588,6 +606,7 @@ export const AnalyzeLlmResultsSchema = z.object({
 		.describe(
 			`Whether to save the LLM overview as a persistent ${brand.name} graph (true by default). Set to false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.`,
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
@@ -1207,6 +1226,7 @@ const GenerateOverlapGraphFromTextsSchemaBase = z.object({
 		.describe(
 			"Include processed statements in response (add only if explicitly needed)",
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
@@ -1244,6 +1264,7 @@ const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 		.describe(
 			"Include processed statements in response (add only if explicitly needed)",
 		),
+	multifractal: multifractalField,
 	includeGraph: z
 		.boolean()
 		.default(false)
