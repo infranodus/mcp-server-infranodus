@@ -569,6 +569,20 @@ npm run build
 npm run watch
 ```
 
+### Running the Tests
+
+```bash
+npm test
+```
+
+Offline tests, no network: they compile the server and drive every tool handler through an intercepted `fetch`. `test/statsSurface.test.mjs` covers the network-statistics surface of all tools that return `diversity_stats` and `fractal_variability` (request flags and response shape). CI runs this on every pull request and on every push to `master`.
+
+```bash
+INFRANODUS_API_KEY=... npm run test:live
+```
+
+Live tests against the real API (`test/live/`): the same tools, checked for the actual data surface, including a computed multifractal spectrum on a long text. Set `INFRANODUS_API_BASE` to point at another API root, and `LIVE_SKIP_AI=1` to skip the tools that call an LLM. The saving tools create one throwaway graph and delete it afterwards. CI runs this after a merge into `master` and on demand from the Actions tab (workflow "Tests" → "Run workflow"); it needs the `INFRANODUS_API_KEY` repository secret and skips itself when the secret is absent.
+
 ## API Documentation
 
 ### generate_knowledge_graph
