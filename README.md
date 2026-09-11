@@ -251,7 +251,7 @@ _More capabilites coming soon!_
 - **AI Enhancement**: Optional AI-powered topic naming and analysis
 - **Structural Analysis**: Identify influential nodes and community structures
 - **Network Structure Statistics**: Modularity, centrality, betweenness, and other graph metrics
-- **Fractal Variability**: DFA scaling exponents (alpha) of the discourse for statements and words, by step length and radial distance, with multifractal spectra — returned as `fractal_variability` next to `diversity_stats` whenever the graph statistics are included
+- **Fractal Variability**: DFA scaling exponents (alpha) of the discourse at three levels (statements, words, and n-grams of 4 consecutive words), by step length and radial distance, with multifractal spectra — returned as `fractal_variability` next to `diversity_stats` whenever the graph statistics are included
 - **Knowledge Graph Memory**: Save and retrieve knowledge graph memories and analyze them to retrieve key nodes, clusters, and connectors
 
 ## Knowledge Graph Memory Use Advice

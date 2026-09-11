@@ -34,6 +34,7 @@ import {
 	assertDiversityStats,
 	assertFractalVariability,
 	parseToolResult,
+	FRACTAL_MEASURES,
 } from "../helpers/statsSurface.mjs";
 
 const apiKey = process.env.INFRANODUS_API_KEY || process.env.KEYWORDGRAPH_API_KEY;
@@ -71,6 +72,11 @@ const PARAGRAPHS = [
 	"The study of complex systems draws on physics, biology, economics, and computer science, and its central lesson is that structure and dynamics cannot be separated. To understand what a system does, one must understand how its parts are connected and how those connections change over time.",
 ];
 const SHORT_TEXT = PARAGRAPHS.slice(0, 8).join("\n");
+// Under 70 words: the word path has fewer than 64 steps and the n-gram path
+// (words - 3 points) even fewer, so every ngrams measure comes back null.
+const TINY_TEXT = PARAGRAPHS[0];
+// 300+ statements: the n-gram level carries numbers on both measures.
+const VERY_LONG_TEXT = Array.from({ length: 14 }, () => PARAGRAPHS).flat().join("\n");
 // The multifractal spectrum needs a word series of at least 512 steps
 // (MIN_STEPS_FOR_MULTIFRACTAL in the backend); three passes over the sample
 // get there with the default 150-node cap.
@@ -79,6 +85,14 @@ const CONTEXTS = [
 	{ text: PARAGRAPHS.slice(0, 11).join("\n") },
 	{ text: PARAGRAPHS.slice(11).join("\n") },
 ];
+
+/** The ngrams level carries numbers on both measures. */
+function assertNgramsComputed(fractal, where) {
+	assert.ok(fractal.ngrams && typeof fractal.ngrams === "object", `${where}.ngrams is missing`);
+	for (const measure of FRACTAL_MEASURES) {
+		assert.equal(typeof fractal.ngrams[measure]?.alphaBounded, "number", `${where}.ngrams.${measure}.alphaBounded`);
+	}
+}
 
 const graphName = `mcp-stats-surface-${Date.now()}`;
 let graphCreated = false;
@@ -104,7 +118,30 @@ describe(`live stats surface against ${apiBase}`, () => {
 		);
 		const { computedSpectra } = assertStructuredStatistics(output.statistics, { spectrum: "required" });
 		assert.ok(computedSpectra >= 1, "at least one word series carries the spectrum");
+		assertNgramsComputed(output.statistics.fractal_variability, "statistics.fractal_variability");
 		assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability, output.statistics.fractal_variability, "graph attributes and statistics agree");
+	});
+
+	live("generate_knowledge_graph on 300+ statements returns ngrams numbers with no extra parameter", async () => {
+		const output = parseToolResult(
+			await run(() => generateKnowledgeGraphTool.handler({ text: VERY_LONG_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
+		);
+		assertStructuredStatistics(output.statistics, { spectrum: "null" });
+		assertNgramsComputed(output.statistics.fractal_variability, "statistics.fractal_variability");
+		const { ngrams, words } = output.statistics.fractal_variability;
+		assert.equal(ngrams.byStepLength.n, words.byStepLength.n - 3, "the n-gram path is the word path minus three");
+	});
+
+	live("generate_knowledge_graph on a text under 70 words returns null ngrams series", async () => {
+		const output = parseToolResult(
+			await run(() => generateKnowledgeGraphTool.handler({ text: TINY_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
+		);
+		assertStructuredStatistics(output.statistics, { spectrum: "null" });
+		const { ngrams } = output.statistics.fractal_variability;
+		assert.ok(ngrams && typeof ngrams === "object", "ngrams level is present");
+		for (const measure of FRACTAL_MEASURES) {
+			assert.equal(ngrams[measure], null, `ngrams.${measure} should be null on a short text`);
+		}
 	});
 
 	live("analyze_text with fullGraph keeps the statistics on the non-compacted graph", async () => {

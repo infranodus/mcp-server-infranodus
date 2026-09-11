@@ -41,6 +41,8 @@ RESPONSE TYPES: For idea-generating tools, responseType can be 'response' (defau
 
 DIVERSITY METRICS: Graph analysis returns diversity_score (biased/focused/diversified/dispersed) indicating text structure balance. Use this to choose the right development approach.
 
+FRACTAL VARIABILITY: Whenever the graph statistics are returned, fractal_variability arrives next to diversity_stats with three levels — statements (one point per statement), words (one point per word occurrence), and ngrams (one point per window of 4 consecutive words, the word path smoothed by a moving average) — each with byStepLength and byRadialDistance DFA exponents (alphaBounded, alpha1, alpha2, each with a label: random/regular/fractal/complex). A measure is null when its path has fewer than 64 steps and alpha2 is null under about 80 points; the multifractal spectrum is opt-in via the multifractal parameter and applies to all three levels alike. The n-gram level's alpha1 is inflated by the moving average and must not be read; use its alphaBounded and alpha2. The three levels are not comparable with each other: the word level reads lowest and the n-gram level higher by construction, so compare a level only with the same level of another text.
+
 PERFORMANCE: generate_seo_report requires extended timeout (~90 seconds) as it chains multiple Google API calls. All other tools respond within standard timeouts.
 
 MULTI-SOURCE INPUTS: overlap_between_texts, merged_graph_from_texts, and difference_between_texts accept a 'contexts' array where each item can be {text: "..."}, {url: "..."}, or {graphName: "..."}. Minimum 2 contexts required.`;

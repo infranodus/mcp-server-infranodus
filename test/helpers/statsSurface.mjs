@@ -19,7 +19,9 @@ export const DIVERSITY_KEYS = [
 	"fair_influence_by_cluster",
 ];
 
-export const FRACTAL_SERIES = ["statements", "words"];
+export const FRACTAL_SERIES = ["statements", "words", "ngrams"];
+// Older backends omit the ngrams level; the tests keep a fixture without it.
+export const OPTIONAL_FRACTAL_SERIES = ["ngrams"];
 export const FRACTAL_MEASURES = ["byStepLength", "byRadialDistance"];
 
 export function assertDiversityStats(stats, where = "diversity_stats") {
@@ -79,17 +81,20 @@ function assertScaling(scaling, where, spectrum) {
  *   spectrum: "null"     — every multifractal must be null (flag off / short input)
  *             "required" — at least one series must carry a computed spectrum
  *             "any"      — null or a well-formed spectrum, either is fine
+ *   ngrams:   "required" — the ngrams level must be present (default)
+ *             "optional" — may be absent (response from an older backend)
  * Each measure may be null (series too short); when present it must be a
  * complete scaling record.
  */
 export function assertFractalVariability(
 	fractal,
-	{ spectrum = "any", where = "fractal_variability" } = {},
+	{ spectrum = "any", ngrams = "required", where = "fractal_variability" } = {},
 ) {
 	assert.ok(fractal && typeof fractal === "object", `${where} is missing`);
 	let computedSpectra = 0;
 	let computedSeries = 0;
 	for (const series of FRACTAL_SERIES) {
+		if (ngrams === "optional" && OPTIONAL_FRACTAL_SERIES.includes(series) && !(series in fractal)) continue;
 		assert.ok(fractal[series] && typeof fractal[series] === "object", `${where}.${series}`);
 		for (const measure of FRACTAL_MEASURES) {
 			const path = `${where}.${series}.${measure}`;
@@ -128,8 +133,14 @@ export function parseToolResult(result) {
 	return JSON.parse(result.content[0].text);
 }
 
-/** A fractal_variability fixture in the shape the backend returns. */
-export function fractalFixture({ withSpectrum = true } = {}) {
+/**
+ * A fractal_variability fixture in the shape the backend returns. The values
+ * follow the sample in the backend's docs/fractal-variability-response.md.
+ *   withSpectrum: the word and ngram levels carry a multifractal spectrum
+ *   ngrams: "present" (default), "null" (short text: both measures null), or
+ *           "absent" (response from an older backend without the level)
+ */
+export function fractalFixture({ withSpectrum = true, ngrams = "present" } = {}) {
 	const q = [-3, -2, -1, 0, 1, 2, 3];
 	const spectrum = withSpectrum
 		? {
@@ -166,6 +177,16 @@ export function fractalFixture({ withSpectrum = true } = {}) {
 			byStepLength: scaling(899, 0.476, "random", spectrum),
 			byRadialDistance: scaling(900, 1.506, "complex", spectrum),
 		},
+		...(ngrams === "present"
+			? {
+					ngrams: {
+						byStepLength: scaling(896, 0.643, "regular", spectrum),
+						byRadialDistance: scaling(897, 1.571, "complex", spectrum),
+					},
+				}
+			: ngrams === "null"
+				? { ngrams: { byStepLength: null, byRadialDistance: null } }
+				: {}),
 	};
 }
 
