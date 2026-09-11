@@ -41,6 +41,11 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Extract and analyze a graph from text or URL; provide either text or url
    - Get topics, clusters, statements, graph structure, and AI summary as requested
 
+   **analyze_text_signature**
+   - Structural and rhythmic signature of a text, URL, or YouTube transcript
+   - Every measure with a plain-language reading, a named profile (essay, digest, anthology...), and a hedged AI-likeness estimate
+   - Use to compare writing styles, characterise an author or genre, or flag flat, uniformly paced text
+
 4. **generate_content_gaps**
    - Detect missing connections in discourse
    - Identify underexplored topics
@@ -619,6 +624,26 @@ Analyze a text, URL, or YouTube transcript. Extract and analyze a graph from tex
 - `multifractal` (boolean): Also compute the multifractal spectrum inside `fractal_variability` (off by default, ~0.5 s per graph; only returned together with the graph statistics)
 - `includeGraphSummary` (boolean): Include AI-generated graph summary for RAG prompt augmentation
 - `modifyAnalyzedText` (string): Entity detection — "none", "detectEntities", or "extractEntitiesOnly"
+
+### analyze_text_signature
+
+Returns the structural and rhythmic signature of one text: how the discourse moves through its concept network, how its topics are distributed, and the sentence-length rhythm of the source. Every number comes with a one-sentence reading. Not a detector on its own.
+
+**Parameters:**
+
+- `text` / `url` / `statements`: the content, as in `analyze_text`
+- `multifractal` (boolean, default true): compute the multifractal spectrum of the topic path (adds ~0.5–1 s)
+- `maxNodes` (number): concepts kept in the graph (default 150); raise for long texts so the word path is complete
+- `modifyAnalyzedText` (string): entity detection, as in `analyze_text`
+
+**Response:**
+
+- `signature`: a named profile from structure x rhythm (biased / focused / diversified / dispersed x alternating / random / fractal / blocks), e.g. `essay`, `report`, `narrative`, `digest`, `anthology`, `notes`, with a one-line summary
+- `structure`: `modularity`, `diversity_stats` and their readings
+- `rhythm`: `fractal_variability` (statements, words, ngrams x step length, radial distance) and per-level readings of the DFA exponents, the short-vs-long-scale contrast, the multifractal label, and a confidence from the series length
+- `amplitude`: measured on the same paths, in units of the graph radius — mean / median / p95 step, step-length CV (burstiness of movement), lag-1 autocorrelation, share of steps crossing a topic cluster and the regularity of those crossings, radial distance stats
+- `sentence_rhythm`: sentence count, mean length, length CV (classic burstiness), lag-1 autocorrelation, share of short and long sentences, computed on prose-like statements only (fragments such as headings and menu items are skipped and counted)
+- `ai_likeness`: `verdict` (leans generated / leans human / inconclusive), `score` (−1 human-like to +1 generated-like), `confidence`, the weighted `evidence` behind it, and `caveats`. It is a stylistic tendency: on a 50-page check against a commercial detector it caught uniformly paced template text but read AI-drafted pages that had been edited as human.
 
 ### generate_content_gaps
 

@@ -17,6 +17,7 @@ import { runWithConfig } from "../../dist/api/config-store.js";
 import { brandApiBase } from "../../dist/config/brand.js";
 import { generateKnowledgeGraphTool } from "../../dist/tools/generateKnowledgeGraph.js";
 import { analyzeTextTool } from "../../dist/tools/analyzeText.js";
+import { analyzeTextSignatureTool } from "../../dist/tools/analyzeTextSignature.js";
 import { analyzeExistingGraphTool } from "../../dist/tools/analyzeExistingGraph.js";
 import { createKnowledgeGraphTool } from "../../dist/tools/createKnowledgeGraph.js";
 import { addMemoryTool } from "../../dist/tools/addMemory.js";
@@ -183,6 +184,22 @@ describe(`live stats surface against ${apiBase}`, () => {
 			await run(() => addMemoryTool.handler({ graphName, text: PARAGRAPHS.slice(8, 12).join("\n"), includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
 		);
 		assertStructuredStatistics(remembered.statistics, { spectrum: "null" });
+	});
+
+	live("analyze_text_signature returns the signature with readings, amplitude, sentence rhythm and ai_likeness", async () => {
+		const output = parseToolResult(await run(() => analyzeTextSignatureTool.handler({ text: LONG_TEXT, multifractal: true })));
+		assertDiversityStats(output.structure.diversity_stats, "structure.diversity_stats");
+		assertFractalVariability(output.rhythm.fractal_variability, { spectrum: "present" });
+		assert.equal(typeof output.signature.label, "string");
+		assert.equal(typeof output.rhythm.readings.words.stepLength, "string");
+		assert.equal(typeof output.rhythm.readings.words.multifractal, "string", "the spectrum is read");
+		assert.ok(output.amplitude.words.n >= 512, "word path rebuilt to the backend's length");
+		assert.equal(typeof output.amplitude.words.cvStep, "number");
+		assert.equal(typeof output.amplitude.words.crossClusterShare, "number");
+		assert.ok(output.sentence_rhythm.sentences >= 60);
+		assert.equal(typeof output.sentence_rhythm.cvLength, "number");
+		assert.ok(["leans generated", "leans human", "inconclusive"].includes(output.ai_likeness.verdict));
+		assert.ok(output.ai_likeness.evidence.length >= 3);
 	});
 
 	liveAi("optimize_text_structure returns top-level diversity_stats and fractal_variability", async () => {

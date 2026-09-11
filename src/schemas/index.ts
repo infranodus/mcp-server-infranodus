@@ -289,6 +289,56 @@ export const AnalyzeTextSchema = AnalyzeTextSchemaBase.refine(
 	{ message: "Provide text, url, or statements for analysis." },
 );
 
+export const AnalyzeTextSignatureSchemaBase = z.object({
+	text: z
+		.string()
+		.optional()
+		.describe(
+			"Text whose signature to measure. Use new lines to separate paragraphs (not sentences). Provide one of: this, url, or statements. Under ~30 sentences the rhythm measures are noisy.",
+		),
+	url: z
+		.string()
+		.url()
+		.optional()
+		.describe(
+			"URL to fetch content from (webpage or YouTube video transcript). Provide either this or text.",
+		),
+	statements: statementsField,
+	categories: categoriesField,
+	timestamps: timestampsField,
+	multifractal: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Compute the multifractal spectrum of the topic path (adds ~0.5-1 s). On by default here because it feeds the pacing reading and the AI-likeness estimate; set false for speed.",
+		),
+	maxNodes: z
+		.number()
+		.int()
+		.positive()
+		.max(1000)
+		.optional()
+		.describe(
+			"Maximum number of concepts kept in the graph (default 150). Words cut by the cap are dropped from the word path; raise it (e.g. 500) for long texts so the path is complete.",
+		),
+	modifyAnalyzedText: z
+		.enum(["none", "detectEntities", "extractEntitiesOnly"])
+		.default("none")
+		.describe(
+			"Entity detection: none (normal, recommended for signatures), detectEntities (mix entities and words), extractEntitiesOnly (entities only).",
+		),
+	wikilinksMode: WikilinksModeEnum.default("default").describe(
+		wikilinksModeDescription,
+	),
+});
+export const AnalyzeTextSignatureSchema = AnalyzeTextSignatureSchemaBase.refine(
+	(data) =>
+		(data.text !== undefined && data.text.trim().length > 0) ||
+		(data.url !== undefined && data.url.length > 0) ||
+		(data.statements !== undefined && data.statements.length > 0),
+	{ message: "Provide text, url, or statements for analysis." },
+);
+
 export const AnalyzeExistingGraphSchemaBase = z.object({
 	graphName: z
 		.string()
