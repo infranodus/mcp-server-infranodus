@@ -220,6 +220,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 				assert.deepEqual(output.knowledgeGraph.attributes.diversity_stats, DIVERSITY);
 				assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability, FRACTAL);
 				assertNgramsComputed(output.knowledgeGraph.attributes.fractal_variability, "knowledgeGraph.attributes.fractal_variability");
+				assert.equal(typeof output.statistics.fractal_variability.sentenceLength.byWords.alphaBounded, "number", "sentenceLength.byWords is forwarded");
 			});
 		}
 	}
@@ -237,6 +238,41 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 			assert.deepEqual(output.statistics.fractal_variability, shortFractal, "fractal_variability is forwarded unchanged");
 			assert.deepEqual(output.statistics.fractal_variability.ngrams, { byStepLength: null, byRadialDistance: null });
 			assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability.ngrams, { byStepLength: null, byRadialDistance: null });
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("sentenceLength.byWords is null on a short text and nothing throws", async () => {
+		const shortFractal = fractalFixture({ withSpectrum: false, sentenceLength: "null" });
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => fakeResponse(graphResponse(shortFractal));
+		try {
+			const result = await runWithConfig(CONFIG, () =>
+				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+			);
+			const output = parseToolResult(result);
+			assertStructuredStatistics(output.statistics, { spectrum: "null", sentenceLength: "required" });
+			assert.deepEqual(output.statistics.fractal_variability.sentenceLength, { byWords: null });
+			assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability.sentenceLength, { byWords: null });
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("an older backend without the sentenceLength level is forwarded unchanged", async () => {
+		const oldFractal = fractalFixture({ sentenceLength: "absent" });
+		assert.ok(!("sentenceLength" in oldFractal));
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => fakeResponse(graphResponse(oldFractal));
+		try {
+			const result = await runWithConfig(CONFIG, () =>
+				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+			);
+			const output = parseToolResult(result);
+			assertStructuredStatistics(output.statistics, { spectrum: "any" });
+			assert.deepEqual(output.statistics.fractal_variability, oldFractal);
+			assert.ok(!("sentenceLength" in output.statistics.fractal_variability), "no sentenceLength level is fabricated");
 		} finally {
 			globalThis.fetch = originalFetch;
 		}

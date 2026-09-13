@@ -70,14 +70,19 @@ export interface StatementStringsOutput {
 /**
  * Fractal variability of the discourse, computed by the backend together with
  * diversity_stats (same addstats gate) and attached to the graph attributes.
- * Three levels x two measures (byStepLength, byRadialDistance), each a DFA
- * scaling exponent (alpha) with a label and optional multifractal spectrum:
+ * Three path levels x two measures (byStepLength, byRadialDistance), each a
+ * DFA scaling exponent (alpha) with a label and optional multifractal spectrum:
  *   statements — one point per statement, at its graph coordinates
  *   words      — one point per word occurrence, at its node position
  *   ngrams     — one point per window of 4 consecutive words (step 1), at their
  *                mean position: the word path smoothed by a moving average
- * Each measure is null when its path has fewer than 64 steps. Older backends
- * omit the ngrams level entirely.
+ * Each measure is null when its path has fewer than 64 steps. A fourth level
+ * is not a path and has a single measure, byWords, with no byStepLength /
+ * byRadialDistance:
+ *   sentenceLength — the word count of every sentence, in order (the classic
+ *                    sentence-length series of fractal linguistics); byWords
+ *                    is null under 64 sentences
+ * Older backends omit the ngrams and sentenceLength levels entirely.
  */
 export interface FractalScaling {
 	n: number;
@@ -112,6 +117,7 @@ export interface FractalVariability {
 	statements: FractalSeries;
 	words: FractalSeries;
 	ngrams?: FractalSeries;
+	sentenceLength?: { byWords: FractalScaling | null };
 }
 
 export interface GraphResponse {

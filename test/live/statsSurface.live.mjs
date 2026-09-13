@@ -133,6 +133,12 @@ describe(`live stats surface against ${apiBase}`, () => {
 		assert.equal(ngrams.byStepLength.n, words.byStepLength.n - 3, "the n-gram path is the word path minus three");
 	});
 
+	live("analyze_text_signature on a short note returns a null sentence-length series", async () => {
+		const output = parseToolResult(await run(() => analyzeTextSignatureTool.handler({ text: SHORT_TEXT, multifractal: false })));
+		assert.equal(output.sentence_rhythm.scaling, null);
+		assert.deepEqual(output.rhythm.fractal_variability.sentenceLength, { byWords: null });
+	});
+
 	live("generate_knowledge_graph on a text under 70 words returns null ngrams series", async () => {
 		const output = parseToolResult(
 			await run(() => generateKnowledgeGraphTool.handler({ text: TINY_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
@@ -198,6 +204,8 @@ describe(`live stats surface against ${apiBase}`, () => {
 		assert.equal(typeof output.amplitude.words.crossClusterShare, "number");
 		assert.ok(output.sentence_rhythm.sentences >= 60);
 		assert.equal(typeof output.sentence_rhythm.cvLength, "number");
+		assert.equal(typeof output.sentence_rhythm.scaling?.alphaBounded, "number", "sentenceLength.byWords carries numbers on 100+ sentences");
+		assert.equal(typeof output.rhythm.fractal_variability.sentenceLength?.byWords?.alphaBounded, "number");
 		assert.ok(["leans generated", "leans human", "inconclusive"].includes(output.ai_likeness.verdict));
 		assert.ok(output.ai_likeness.evidence.length >= 3);
 	});

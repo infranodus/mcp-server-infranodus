@@ -23,6 +23,10 @@ export const FRACTAL_SERIES = ["statements", "words", "ngrams"];
 // Older backends omit the ngrams level; the tests keep a fixture without it.
 export const OPTIONAL_FRACTAL_SERIES = ["ngrams"];
 export const FRACTAL_MEASURES = ["byStepLength", "byRadialDistance"];
+// The fourth level is not a path: one measure, byWords (words per sentence,
+// in order), null under 64 sentences. Older backends omit it.
+export const SENTENCE_LEVEL = "sentenceLength";
+export const SENTENCE_MEASURE = "byWords";
 
 export function assertDiversityStats(stats, where = "diversity_stats") {
 	assert.ok(stats && typeof stats === "object", `${where} is missing`);
@@ -88,11 +92,24 @@ function assertScaling(scaling, where, spectrum) {
  */
 export function assertFractalVariability(
 	fractal,
-	{ spectrum = "any", ngrams = "required", where = "fractal_variability" } = {},
+	{ spectrum = "any", ngrams = "required", sentenceLength = "optional", where = "fractal_variability" } = {},
 ) {
 	assert.ok(fractal && typeof fractal === "object", `${where} is missing`);
 	let computedSpectra = 0;
 	let computedSeries = 0;
+	// sentenceLength does not fit the series x measures iteration below.
+	if (sentenceLength === "required" || SENTENCE_LEVEL in fractal) {
+		const level = fractal[SENTENCE_LEVEL];
+		const path = `${where}.${SENTENCE_LEVEL}.${SENTENCE_MEASURE}`;
+		assert.ok(level && typeof level === "object", `${where}.${SENTENCE_LEVEL}`);
+		assert.ok(SENTENCE_MEASURE in level, `${path} key is missing`);
+		assert.ok(!("byStepLength" in level) && !("byRadialDistance" in level), `${where}.${SENTENCE_LEVEL} is not a path level`);
+		if (level[SENTENCE_MEASURE] !== null) {
+			computedSeries += 1;
+			assertScaling(level[SENTENCE_MEASURE], path, spectrum);
+			if (level[SENTENCE_MEASURE].multifractal) computedSpectra += 1;
+		}
+	}
 	for (const series of FRACTAL_SERIES) {
 		if (ngrams === "optional" && OPTIONAL_FRACTAL_SERIES.includes(series) && !(series in fractal)) continue;
 		assert.ok(fractal[series] && typeof fractal[series] === "object", `${where}.${series}`);
@@ -140,7 +157,7 @@ export function parseToolResult(result) {
  *   ngrams: "present" (default), "null" (short text: both measures null), or
  *           "absent" (response from an older backend without the level)
  */
-export function fractalFixture({ withSpectrum = true, ngrams = "present" } = {}) {
+export function fractalFixture({ withSpectrum = true, ngrams = "present", sentenceLength = "present" } = {}) {
 	const q = [-3, -2, -1, 0, 1, 2, 3];
 	const spectrum = withSpectrum
 		? {
@@ -186,6 +203,25 @@ export function fractalFixture({ withSpectrum = true, ngrams = "present" } = {})
 				}
 			: ngrams === "null"
 				? { ngrams: { byStepLength: null, byRadialDistance: null } }
+				: {}),
+		// Sample numbers from the backend's docs/fractal-variability-response.md.
+		...(sentenceLength === "present"
+			? {
+					sentenceLength: {
+						byWords: {
+							n: 450,
+							alphaBounded: 0.561,
+							alphaLabel: "regular",
+							alpha1: 0.682,
+							alpha1Label: "regular",
+							alpha2: 0.53,
+							alpha2Label: "random",
+							multifractal: spectrum,
+						},
+					},
+				}
+			: sentenceLength === "null"
+				? { sentenceLength: { byWords: null } }
 				: {}),
 	};
 }

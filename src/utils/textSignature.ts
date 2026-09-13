@@ -411,6 +411,66 @@ export function readLevel(level: FractalSeries | null | undefined): LevelReading
 	};
 }
 
+// The sentence-length level is not a path: it says nothing about topics,
+// only about rhythm, so it gets its own wording.
+const SENTENCE_ALPHA_READINGS: Record<RhythmBand, string> = {
+	alternating: "Long and short sentences alternate in a regular beat.",
+	random: "Each sentence's length has nothing to do with the one before: no rhythm across sentences.",
+	fractal: "Runs of long and short sentences nest at every scale, the 1/f rhythm of literary prose.",
+	persistent: "Long stretches of similar sentence length, with some return to the earlier pace.",
+	blocks: "The pace drifts: whole sections run long or short and do not come back.",
+};
+
+export function readSentenceAlpha(alpha: number | null | undefined): string | null {
+	const band = rhythmBand(alpha);
+	return band ? SENTENCE_ALPHA_READINGS[band] : null;
+}
+
+export interface SentenceScalingSummary {
+	n: number;
+	alphaBounded: number;
+	alphaLabel: string;
+	alpha1: number | null;
+	alpha2: number | null;
+	multifractalLabel: string | null;
+	readings: {
+		alpha: string | null;
+		scales: string | null;
+		multifractal: string | null;
+		confidence: Confidence;
+	};
+}
+
+/** Summary of the backend's DFA on the sentence-length series (fractal_variability.sentenceLength.byWords). */
+export function summariseSentenceScaling(
+	fractal: FractalVariability | null | undefined,
+): SentenceScalingSummary | null {
+	const series = fractal?.sentenceLength?.byWords;
+	if (!series) return null;
+	const short = rhythmBand(series.alpha1);
+	const long = rhythmBand(series.alpha2);
+	let scales: string | null = null;
+	if (short && long && short !== long) {
+		const coherent = (b: RhythmBand) => b === "fractal" || b === "persistent" || b === "blocks";
+		if (coherent(short) && !coherent(long)) scales = "Neighbouring sentences follow a rhythm, but it does not carry across paragraphs.";
+		else if (!coherent(short) && coherent(long)) scales = "Sentence to sentence the pace is unpatterned, but sections as a whole run long or short.";
+	}
+	return {
+		n: series.n,
+		alphaBounded: series.alphaBounded,
+		alphaLabel: series.alphaLabel,
+		alpha1: series.alpha1 ?? null,
+		alpha2: series.alpha2 ?? null,
+		multifractalLabel: series.multifractal?.label ?? null,
+		readings: {
+			alpha: readSentenceAlpha(series.alphaBounded),
+			scales,
+			multifractal: readMultifractal(series),
+			confidence: confidenceFor(series.n),
+		},
+	};
+}
+
 export function readAmplitude(stats: AmplitudeStats | null): Record<string, string | null> | null {
 	if (!stats) return null;
 	const out: Record<string, string | null> = {};
@@ -679,6 +739,26 @@ export function estimateAiLikeness(input: {
 			});
 	}
 
+	// The classic sentence-length series (Drozdz et al.): 1/f rhythm across
+	// sentences is the literary signature; no memory across sentences is the
+	// flat one. Measured by the backend on every sentence, fragments included.
+	const sentenceSeries = fractal?.sentenceLength?.byWords;
+	if (sentenceSeries && confidenceFor(sentenceSeries.n) !== "none" && confidenceFor(sentenceSeries.n) !== "indicative") {
+		const band = rhythmBand(sentenceSeries.alphaBounded);
+		const direction = band === "random" ? 1 : band === "fractal" || band === "persistent" ? -1 : band ? -0.5 : 0;
+		if (direction !== 0)
+			evidence.push({
+				signal: "sentence-length rhythm across scales (DFA alpha)",
+				value: sentenceSeries.alphaBounded,
+				direction,
+				weight: 1,
+				reading:
+					direction > 0
+						? "Sentence lengths carry no rhythm from one to the next."
+						: "Sentence lengths follow a rhythm across scales, as in human prose.",
+			});
+	}
+
 	// Memory of the topic path: memoryless hopping vs. fractal return. Weighted
 	// below the sentence rhythm: generated prose with one topic per paragraph
 	// reads fractal here too, so the signal separates lists from prose more
@@ -794,7 +874,11 @@ export interface TextSignatureOutput {
 	amplitude: Amplitude & {
 		readings: { statements: Record<string, string | null> | null; words: Record<string, string | null> | null };
 	};
-	sentence_rhythm: SentenceRhythm & { readings: Record<string, string | null> };
+	sentence_rhythm: SentenceRhythm & {
+		readings: Record<string, string | null>;
+		/** the backend's DFA on the sentence-length series; null under 64 sentences or on older backends */
+		scaling: SentenceScalingSummary | null;
+	};
 	ai_likeness: AiLikeness;
 	notes: string[];
 }
@@ -803,6 +887,7 @@ const NOTES = [
 	"Fractal levels are not comparable with each other: the word level reads lowest and the n-gram level higher by construction. Compare a level only with the same level of another text.",
 	"The n-gram level's alpha1 is inflated by its moving average; read its alphaBounded and alpha2 only.",
 	"Amplitude is in units of the graph radius (RMS distance of the nodes from their centroid), so it is comparable across texts of different size.",
+	"sentence_rhythm counts prose statements only (fragments skipped); sentence_rhythm.scaling is the backend's DFA over every sentence of the text and says nothing about topics, only about pace. It degenerates on scripts written without spaces.",
 ];
 
 export function buildTextSignature(input: {
@@ -835,7 +920,11 @@ export function buildTextSignature(input: {
 			...amplitude,
 			readings: { statements: readAmplitude(amplitude.statements), words: readAmplitude(amplitude.words) },
 		},
-		sentence_rhythm: { ...sentenceRhythm, readings: readSentenceRhythm(sentenceRhythm) },
+		sentence_rhythm: {
+			...sentenceRhythm,
+			readings: readSentenceRhythm(sentenceRhythm),
+			scaling: summariseSentenceScaling(fractal),
+		},
 		ai_likeness: estimateAiLikeness({ sentenceRhythm, amplitude, fractal }),
 		notes: NOTES,
 	};

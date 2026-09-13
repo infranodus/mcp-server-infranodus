@@ -18,6 +18,8 @@ import {
 	readMultifractal,
 	confidenceFor,
 	splitSentences,
+	readSentenceAlpha,
+	summariseSentenceScaling,
 	PROSE_MIN_WORDS,
 } from "../dist/utils/textSignature.js";
 import { fractalFixture, diversityFixture, parseToolResult } from "./helpers/statsSurface.mjs";
@@ -148,6 +150,41 @@ describe("readings", () => {
 	});
 });
 
+describe("sentence-length level (fractal_variability.sentenceLength.byWords)", () => {
+	test("readSentenceAlpha speaks about pace, not topics", () => {
+		assert.match(readSentenceAlpha(0.5), /no rhythm across sentences/);
+		assert.match(readSentenceAlpha(0.75), /1\/f rhythm/);
+		assert.match(readSentenceAlpha(1.2), /pace drifts/);
+		assert.equal(readSentenceAlpha(null), null);
+	});
+
+	test("summarises the series from the fixture", () => {
+		const summary = summariseSentenceScaling(fractalFixture({ withSpectrum: false }));
+		assert.equal(summary.n, 450);
+		assert.equal(summary.alphaBounded, 0.561);
+		assert.equal(summary.alphaLabel, "regular");
+		assert.equal(summary.alpha1, 0.682);
+		assert.equal(summary.alpha2, 0.53);
+		assert.equal(summary.multifractalLabel, null);
+		assert.match(summary.readings.alpha, /no rhythm across sentences/);
+		assert.match(summary.readings.scales, /does not carry across paragraphs/, "alpha1 fractal, alpha2 random");
+		assert.equal(summary.readings.multifractal, null);
+		assert.equal(summary.readings.confidence, "reliable");
+	});
+
+	test("reads the spectrum when present", () => {
+		const summary = summariseSentenceScaling(fractalFixture({ withSpectrum: true }));
+		assert.equal(summary.multifractalLabel, "multifractal");
+		assert.match(summary.readings.multifractal, /rare big leaps/);
+	});
+
+	test("is null under 64 sentences and on older backends", () => {
+		assert.equal(summariseSentenceScaling(fractalFixture({ sentenceLength: "null" })), null);
+		assert.equal(summariseSentenceScaling(fractalFixture({ sentenceLength: "absent" })), null);
+		assert.equal(summariseSentenceScaling(null), null);
+	});
+});
+
 describe("composeSignature", () => {
 	const series = (alpha, n = 300) => ({ byStepLength: { n, alphaBounded: alpha, alpha1: alpha, alpha2: alpha, multifractal: null }, byRadialDistance: null });
 
@@ -207,6 +244,18 @@ describe("estimateAiLikeness", () => {
 		assert.equal(ai.verdict, "leans generated");
 	});
 
+	test("the sentence-length DFA counts as evidence once it has 128 sentences", () => {
+		const withSentences = (alpha, n) => ({ ...fractal(0.75), sentenceLength: { byWords: { n, alphaBounded: alpha, alpha1: alpha, alpha2: alpha, multifractal: null } } });
+		const flat = estimateAiLikeness({ sentenceRhythm: rhythm(0.5, 60, 0.1), amplitude: { graphRadius: 1, statements: null, words: null }, fractal: withSentences(0.5, 300) });
+		const flatSignal = flat.evidence.find((e) => e.signal.startsWith("sentence-length rhythm"));
+		assert.ok(flatSignal, "sentence-length evidence present");
+		assert.equal(flatSignal.direction, 1);
+		const literary = estimateAiLikeness({ sentenceRhythm: rhythm(0.5, 60, 0.1), amplitude: { graphRadius: 1, statements: null, words: null }, fractal: withSentences(0.8, 300) });
+		assert.equal(literary.evidence.find((e) => e.signal.startsWith("sentence-length rhythm")).direction, -1);
+		const short = estimateAiLikeness({ sentenceRhythm: rhythm(0.5, 60, 0.1), amplitude: { graphRadius: 1, statements: null, words: null }, fractal: withSentences(0.5, 100) });
+		assert.ok(!short.evidence.some((e) => e.signal.startsWith("sentence-length rhythm")), "under 128 sentences it is not evidence");
+	});
+
 	test("always carries the caveats", () => {
 		const ai = estimateAiLikeness({ sentenceRhythm: rhythm(null, 0), amplitude: { graphRadius: null, statements: null, words: null }, fractal: null });
 		assert.equal(ai.score, null);
@@ -237,6 +286,11 @@ describe("buildTextSignature", () => {
 		assert.equal(typeof out.amplitude.readings.words.cvStep, "string");
 		assert.equal(out.sentence_rhythm.sentences, 7);
 		assert.equal(typeof out.sentence_rhythm.readings.cvLength, "string");
+		assert.equal(out.sentence_rhythm.scaling.n, 450, "the backend's sentence-length DFA is summarised");
+		assert.equal(typeof out.sentence_rhythm.scaling.readings.alpha, "string");
+		assert.ok(out.rhythm.fractal_variability.sentenceLength, "and passed through unchanged");
+		const older = buildTextSignature({ modularity: 0.5, diversity: diversityFixture(), fractal: fractalFixture({ sentenceLength: "absent" }), nodes: NODES, statements: BLOCK_STATEMENTS });
+		assert.equal(older.sentence_rhythm.scaling, null);
 		assert.ok(out.signature.label);
 		assert.ok(["leans generated", "leans human", "inconclusive"].includes(out.ai_likeness.verdict));
 		assert.ok(out.notes.length >= 2);

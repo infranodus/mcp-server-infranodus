@@ -256,7 +256,7 @@ _More capabilites coming soon!_
 - **AI Enhancement**: Optional AI-powered topic naming and analysis
 - **Structural Analysis**: Identify influential nodes and community structures
 - **Network Structure Statistics**: Modularity, centrality, betweenness, and other graph metrics
-- **Fractal Variability**: DFA scaling exponents (alpha) of the discourse at three levels (statements, words, and n-grams of 4 consecutive words), by step length and radial distance, with multifractal spectra — returned as `fractal_variability` next to `diversity_stats` whenever the graph statistics are included
+- **Fractal Variability**: DFA scaling exponents (alpha) of the discourse at three path levels (statements, words, and n-grams of 4 consecutive words), by step length and radial distance, plus the sentence length level (words per sentence, in order), with multifractal spectra — returned as `fractal_variability` next to `diversity_stats` whenever the graph statistics are included
 - **Knowledge Graph Memory**: Save and retrieve knowledge graph memories and analyze them to retrieve key nodes, clusters, and connectors
 
 ## Knowledge Graph Memory Use Advice
@@ -640,9 +640,9 @@ Returns the structural and rhythmic signature of one text: how the discourse mov
 
 - `signature`: a named profile from structure x rhythm (biased / focused / diversified / dispersed x alternating / random / fractal / blocks), e.g. `essay`, `report`, `narrative`, `digest`, `anthology`, `notes`, with a one-line summary
 - `structure`: `modularity`, `diversity_stats` and their readings
-- `rhythm`: `fractal_variability` (statements, words, ngrams x step length, radial distance) and per-level readings of the DFA exponents, the short-vs-long-scale contrast, the multifractal label, and a confidence from the series length
+- `rhythm`: `fractal_variability` (statements, words, ngrams x step length, radial distance; sentence length (words per sentence, in order) x byWords) and per-level readings of the DFA exponents, the short-vs-long-scale contrast, the multifractal label, and a confidence from the series length
 - `amplitude`: measured on the same paths, in units of the graph radius — mean / median / p95 step, step-length CV (burstiness of movement), lag-1 autocorrelation, share of steps crossing a topic cluster and the regularity of those crossings, radial distance stats
-- `sentence_rhythm`: sentence count, mean length, length CV (classic burstiness), lag-1 autocorrelation, share of short and long sentences, computed on prose-like statements only (fragments such as headings and menu items are skipped and counted)
+- `sentence_rhythm`: sentence count, mean length, length CV (classic burstiness), lag-1 autocorrelation, share of short and long sentences, computed on prose-like statements only (fragments such as headings and menu items are skipped and counted); plus `scaling`, a summary of the backend's DFA on the sentence-length series (`fractal_variability.sentenceLength.byWords`, null under 64 sentences) with its own reading
 - `ai_likeness`: `verdict` (leans generated / leans human / inconclusive), `score` (−1 human-like to +1 generated-like), `confidence`, the weighted `evidence` behind it, and `caveats`. It is a stylistic tendency: on a 50-page check against a commercial detector it caught uniformly paced template text but read AI-drafted pages that had been edited as human.
 
 ### generate_content_gaps
