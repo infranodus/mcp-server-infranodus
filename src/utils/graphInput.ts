@@ -14,6 +14,8 @@ export interface GraphInputParams {
 	categories?: string[][];
 	timestamps?: string[];
 	wikilinksMode?: WikilinksMode;
+	/** Turn category labels into [[label]] nodes (default: metadata only). */
+	categoriesAsNodes?: boolean;
 }
 
 export type GraphInputResult =
@@ -70,6 +72,7 @@ export async function resolveGraphInput(
 	params: GraphInputParams,
 ): Promise<GraphInputResult> {
 	const { statements, categories, timestamps, wikilinksMode } = params;
+	const categoriesAsNodes = params.categoriesAsNodes === true;
 	const hasText = Boolean(params.text?.trim());
 	const hasUrl = Boolean(params.url);
 
@@ -90,6 +93,7 @@ export async function resolveGraphInput(
 				categories,
 				wikilinksMode,
 				timestamps,
+				categoriesAsNodes,
 			) as WikilinksPayload & { text: string },
 		};
 	}
@@ -157,6 +161,7 @@ export async function resolveContexts(
 	fetchGraphTextByName: (
 		graphName: string,
 	) => Promise<{ ok: true; text: string } | { ok: false; error: string }>,
+	options: { categoriesAsNodes?: boolean } = {},
 ): Promise<ResolvedContexts> {
 	const resolved: ResolvedItem[] = [];
 
@@ -228,7 +233,11 @@ export async function resolveContexts(
 			"categories" in item &&
 			(item.categories ?? []).some((entry) => entry.length > 0),
 	);
-	const contextSettings = statementsContextSettings(undefined, hasCategories);
+	const contextSettings = statementsContextSettings(
+		undefined,
+		hasCategories,
+		options.categoriesAsNodes === true,
+	);
 	return {
 		ok: true,
 		contexts: resolved as Array<Record<string, unknown>>,

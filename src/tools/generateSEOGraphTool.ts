@@ -97,7 +97,9 @@ export const generateSEOGraphTool = {
 				statementsPayload = prepareStatementsPayload(
 					params.statements,
 					params.categories,
-					undefined
+					undefined,
+					undefined,
+					params.categoriesAsNodes === true
 				);
 				// The comparison steps below need a plain text blob for the size check
 				// and for the search-query extraction.
