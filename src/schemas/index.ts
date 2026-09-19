@@ -2,6 +2,7 @@ import { z } from "zod";
 import { brand } from "../config/brand.js";
 import {
 	WikilinksModeEnum,
+	categoriesAsNodesDescription,
 	wikilinksModeDescription,
 } from "../utils/wikilinksMode.js";
 
@@ -22,14 +23,22 @@ const categoriesField = z
 	.array(z.array(z.string()))
 	.optional()
 	.describe(
-		"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label becomes a [[label]] node linked to that statement's concepts only, so author / source / tag / section can be filtered and grouped in the graph. Requires `statements`; omit when there is no metadata.",
+		"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label is stored on its statement as metadata, so author / source / tag / section can be filtered and grouped in the app and targeted by delete_statements / update_statements; labels become [[label]] nodes only when `categoriesAsNodes` is true. Requires `statements`; omit when there is no metadata.",
 	);
+
+/** Companion of `categories`: off by default so the labels stay metadata;
+ * on only when the connections between pages/files (the labels) are the
+ * point, as in large knowledge bases and Obsidian vaults. */
+const categoriesAsNodesField = z
+	.boolean()
+	.default(false)
+	.describe(categoriesAsNodesDescription);
 
 /** Saved graphs freeze their processing settings at creation (lib/context.js
  * applies contextSettings only when the context does not already exist), so
  * categories on a later upload to the same graph produce no label nodes. */
 const SAVED_GRAPH_CATEGORIES_NOTE =
-	"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label becomes a [[label]] node linked to that statement's concepts only, so author / source / tag / section can be filtered and grouped in the graph. Takes effect only when the graph is FIRST created — uploads to an existing graphName keep its original settings and the labels are ignored. Requires `statements`; omit when there is no metadata.";
+	"Per-statement metadata labels, one entry per statement (empty array for none, length must match `statements`). Each label is stored on its statement as metadata, so author / source / tag / section can be filtered and grouped in the app and targeted by delete_statements / update_statements; labels become [[label]] nodes only when `categoriesAsNodes` is true. Takes effect only when the graph is FIRST created — uploads to an existing graphName keep its original settings and the labels are ignored. Requires `statements`; omit when there is no metadata.";
 
 const timestampsField = z
 	.array(z.string())
@@ -54,6 +63,7 @@ export const GenerateGraphSchema = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
@@ -121,6 +131,7 @@ export const CreateGraphSchema = z.object({
 	categories: categoriesField.describe(
 		`${SAVED_GRAPH_CATEGORIES_NOTE}`,
 	),
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
@@ -183,6 +194,7 @@ export const AddMemorySchema = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField.describe(SAVED_GRAPH_CATEGORIES_NOTE),
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
@@ -226,6 +238,7 @@ export const AnalyzeTextSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	includeStatements: z
 		.boolean()
@@ -382,6 +395,7 @@ export const GenerateContentGapsSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -415,6 +429,7 @@ export const generateContextualHintSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -624,6 +639,7 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -672,6 +688,7 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -749,6 +766,7 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -837,6 +855,7 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -892,6 +911,7 @@ export const OptimizeReasoningSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	modelToUse: z
 		.enum([
@@ -933,6 +953,7 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -1051,6 +1072,7 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	prompt: z
 		.string()
@@ -1195,6 +1217,7 @@ const GenerateOverlapGraphFromTextsSchemaBase = z.object({
 		.describe(
 			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
+	categoriesAsNodes: categoriesAsNodesField,
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
@@ -1232,6 +1255,7 @@ const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 		.describe(
 			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
+	categoriesAsNodes: categoriesAsNodesField,
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
@@ -1662,6 +1686,7 @@ export const GenerateSEOGraphSchema = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	contentToExtract: z
 		.enum(["all", "header tags", "link tags"])
 		.default("all")
@@ -1764,6 +1789,7 @@ export const DevelopTextToolSchemaBase = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	graphName: z
 		.string()
@@ -2025,6 +2051,7 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		),
 	statements: statementsField,
 	categories: categoriesField,
+	categoriesAsNodes: categoriesAsNodesField,
 	text: z
 		.string()
 		.optional()

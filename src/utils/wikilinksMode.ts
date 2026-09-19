@@ -44,6 +44,15 @@ export const WikilinksModeEnum = z.enum([
 
 export type WikilinksMode = z.infer<typeof WikilinksModeEnum>;
 
+/** The parent modes exist to make the per-statement parent (a category) a
+ * node, so categories always become nodes there. */
+export function isParentMode(mode: WikilinksMode | undefined): boolean {
+	return mode === "obsidianStyle" || mode === "parentAndConcepts";
+}
+
+export const categoriesAsNodesDescription =
+	"Show category labels as [[label]] nodes in the graph. Use only for large knowledge bases and Obsidian vaults where the connections between pages matter; otherwise keep false and the labels stay metadata (always on in the parent modes).";
+
 export const wikilinksModeDescription =
 	"How [[wikilinks]] in the text become graph nodes. " +
 	"'default': wikilinks become [[entity]] nodes; statements that contain wikilinks use only those, statements without any are processed word-by-word. " +
@@ -52,7 +61,7 @@ export const wikilinksModeDescription =
 	"'parentAndConcepts': same heading/prefix parent contract, but concepts also keep their normal co-occurrence connections — best for mixed content (notes, docs, articles) where you want both section/page provenance and a real concept graph. " +
 	"'plainText': brackets are stripped and everything is processed as ordinary words. " +
 	"In all modes parent and wikilink nodes share the [[name]] namespace, so graphs remain comparable/mergeable. " +
-	"With `statements` + `categories` supplied directly, parent extraction is skipped and those categories become the mention labels ('obsidianStyle' still gives the star topology). " +
+	"With `statements` + `categories` supplied directly, parent extraction is skipped and those categories are the parent labels ('obsidianStyle' still gives the star topology); in the other modes categories become nodes only when `categoriesAsNodes` is true. " +
 	"Takes effect when the graph is generated or first created; an existing saved graph keeps its original setting.";
 
 const PARENT_PREFIX_RE = /^\s*\[\[([^\]]+)\]\]:\s*/;
@@ -132,6 +141,7 @@ export function prepareStatementsPayload(
 	categories: string[][] | undefined,
 	mode: WikilinksMode | undefined,
 	timestamps?: string[],
+	categoriesAsNodes = false,
 ): WikilinksPayload {
 	// Only actual labels matter: a model that sends [[], [], []] for "no
 	// metadata" must not flip the processing settings for the whole upload.
@@ -139,7 +149,11 @@ export function prepareStatementsPayload(
 		Array.isArray(categories) &&
 		categories.some((entry) => Array.isArray(entry) && entry.length > 0);
 	const hasTimestamps = Array.isArray(timestamps) && timestamps.length > 0;
-	const contextSettings = statementsContextSettings(mode, hasCategories);
+	const contextSettings = statementsContextSettings(
+		mode,
+		hasCategories,
+		categoriesAsNodes,
+	);
 	return {
 		text: "",
 		statements,
@@ -155,18 +169,27 @@ export function prepareStatementsPayload(
  * Processing settings for a statements upload. The API reads these from the
  * top level of the body (`contextSettings`), so multi-context requests share
  * one set across all of their contexts.
+ *
+ * Categories are always stored on their statements (the engine keeps them as
+ * metadata whatever the settings say); they become [[label]] nodes only when
+ * the caller asks for it with `categoriesAsNodes`, or in a parent mode, where
+ * the parent page IS the category. Without that the engine's default
+ * (categoriesAsMentions: false) stands and the graph holds concepts only.
  */
 export function statementsContextSettings(
 	mode: WikilinksMode | undefined,
 	hasCategories: boolean,
+	categoriesAsNodes = false,
 ): Record<string, unknown> {
+	const labelsBecomeNodes =
+		hasCategories && (categoriesAsNodes || isParentMode(mode));
 	// Category mentions only survive under the bracket combination in
 	// categorySettings, so it overrides the mode's own bracket handling where
 	// the two disagree. 'wikilinksOnly' keeps its HASHTAGS_ONLY part-of-speech
 	// filter — that is what restricts concept nodes to [[wikilinks]]; its
 	// PROCESS_AS_HASHTAGS_IGNORE_THE_REST would drop the category mentions
 	// along with everything else.
-	return hasCategories
+	return labelsBecomeNodes
 		? { ...bracketSettings(mode), ...categorySettings(mode) }
 		: bracketSettings(mode);
 }

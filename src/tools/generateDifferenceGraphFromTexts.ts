@@ -82,7 +82,8 @@ export const generateDifferenceGraphFromTextsTool = {
 			const modifyAnalyzedText = params.modifyAnalyzedText ?? "none";
 			const resolved = await resolveContexts(
 				params.contexts,
-				fetchGraphTextByName
+				fetchGraphTextByName,
+				{ categoriesAsNodes: params.categoriesAsNodes === true }
 			);
 			if (!resolved.ok) return errorContent(resolved.error);
 			const contexts = resolved.contexts.map((context) => ({
