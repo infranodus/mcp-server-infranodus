@@ -100,7 +100,8 @@ export const createKnowledgeGraphTool = {
 				response,
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
-				buildingEntitiesGraph
+				buildingEntitiesGraph,
+				fullGraph
 			);
 
 			return {

@@ -35,7 +35,9 @@ import {
 	assertDiversityStats,
 	assertFractalVariability,
 	parseToolResult,
+	assertDegreeDistribution,
 	FRACTAL_MEASURES,
+	INFLUENCE_MEASURES,
 } from "../helpers/statsSurface.mjs";
 
 const apiKey = process.env.INFRANODUS_API_KEY || process.env.KEYWORDGRAPH_API_KEY;
@@ -133,10 +135,35 @@ describe(`live stats surface against ${apiBase}`, () => {
 		assert.equal(ngrams.byStepLength.n, words.byStepLength.n - 3, "the n-gram path is the word path minus three");
 	});
 
+	live("generate_knowledge_graph on 300+ statements returns degree_distribution and an influence level with three series", async () => {
+		const output = parseToolResult(
+			await run(() => generateKnowledgeGraphTool.handler({ text: VERY_LONG_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
+		);
+		assertStructuredStatistics(output.statistics, { spectrum: "null", degreeDistribution: "required", influence: "required" });
+		const degrees = output.statistics.degree_distribution;
+		assert.ok(degrees.nodes > output.statistics.nodeCount, "the distribution counts the whole network, the graph shows the capped one");
+		assert.ok(degrees.tail && typeof degrees.tail.alpha === "number", "tail fitted on 50+ nodes");
+		for (const measure of INFLUENCE_MEASURES) {
+			assert.equal(typeof output.statistics.fractal_variability.influence[measure]?.alphaBounded, "number", `influence.${measure}`);
+		}
+	});
+
+	live("generate_knowledge_graph on a short note returns a null tail and null influence series", async () => {
+		const output = parseToolResult(
+			await run(() => generateKnowledgeGraphTool.handler({ text: TINY_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
+		);
+		assertStructuredStatistics(output.statistics, { spectrum: "null", ngrams: "optional", degreeDistribution: "required" });
+		assert.equal(output.statistics.degree_distribution.tail, null);
+		if (output.statistics.fractal_variability.influence) {
+			assert.deepEqual(output.statistics.fractal_variability.influence, { byBetweenness: null, byDegree: null, byBetweennessRank: null });
+		}
+	});
+
 	live("analyze_text_signature on a short note returns a null sentence-length series", async () => {
 		const output = parseToolResult(await run(() => analyzeTextSignatureTool.handler({ text: SHORT_TEXT, multifractal: false })));
 		assert.equal(output.sentence_rhythm.scaling, null);
 		assert.deepEqual(output.rhythm.fractal_variability.sentenceLength, { byWords: null });
+		assert.equal(output.structure.degree_distribution?.tail, null, "tail is null under 50 nodes");
 	});
 
 	live("generate_knowledge_graph on a text under 70 words returns null ngrams series", async () => {
@@ -206,6 +233,12 @@ describe(`live stats surface against ${apiBase}`, () => {
 		assert.equal(typeof output.sentence_rhythm.cvLength, "number");
 		assert.equal(typeof output.sentence_rhythm.scaling?.alphaBounded, "number", "sentenceLength.byWords carries numbers on 100+ sentences");
 		assert.equal(typeof output.rhythm.fractal_variability.sentenceLength?.byWords?.alphaBounded, "number");
+		for (const measure of INFLUENCE_MEASURES) {
+			assert.equal(typeof output.rhythm.fractal_variability.influence?.[measure]?.alphaBounded, "number", `influence.${measure}`);
+		}
+		assert.equal(typeof output.rhythm.readings.influence?.byBetweennessRank, "string");
+		assertDegreeDistribution(output.structure.degree_distribution, "structure.degree_distribution");
+		assert.ok(output.structure.degree_distribution.nodes > output.amplitude.words.n / 10, "counts the whole network");
 		assert.ok(["leans generated", "leans human", "inconclusive"].includes(output.ai_likeness.verdict));
 		assert.ok(output.ai_likeness.evidence.length >= 3);
 	});

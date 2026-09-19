@@ -31,7 +31,10 @@ import {
 	parseToolResult,
 	fractalFixture,
 	diversityFixture,
+	degreeDistributionFixture,
+	assertDegreeDistribution,
 	FRACTAL_MEASURES,
+	INFLUENCE_MEASURES,
 } from "./helpers/statsSurface.mjs";
 
 const CONFIG = { apiBase: "https://api.test/api/v1", apiKey: "test-key" };
@@ -40,6 +43,7 @@ const CONTEXTS = [{ text: TEXT }, { text: "Ecosystems show resilience.\nCities g
 
 const DIVERSITY = diversityFixture();
 const FRACTAL = fractalFixture();
+const DEGREES = degreeDistributionFixture();
 
 /** The ngrams level of a fixture carries numbers on both measures. */
 function assertNgramsComputed(fractal, where) {
@@ -51,7 +55,7 @@ function assertNgramsComputed(fractal, where) {
 }
 
 /** A compact /graphAndStatements-style response with both stats objects. */
-function graphResponse(fractal = FRACTAL) {
+function graphResponse(fractal = FRACTAL, degrees = DEGREES) {
 	return {
 		graph: {
 			graphologyGraph: {
@@ -59,6 +63,7 @@ function graphResponse(fractal = FRACTAL) {
 					modularity: 0.71,
 					diversity_stats: DIVERSITY,
 					fractal_variability: fractal,
+					degree_distribution: degrees,
 					top_clusters: [{ community: "0", nodes: [{ nodeName: "system", bc: 0.3 }], bcRatio: 0.5 }],
 					gaps: [],
 					top_influential_nodes: [{ node: "system", bc: 0.3, degree: 5 }],
@@ -221,6 +226,10 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 				assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability, FRACTAL);
 				assertNgramsComputed(output.knowledgeGraph.attributes.fractal_variability, "knowledgeGraph.attributes.fractal_variability");
 				assert.equal(typeof output.statistics.fractal_variability.sentenceLength.byWords.alphaBounded, "number", "sentenceLength.byWords is forwarded");
+				for (const measure of INFLUENCE_MEASURES) {
+					assert.equal(typeof output.statistics.fractal_variability.influence[measure].alphaBounded, "number", `influence.${measure} is forwarded`);
+				}
+				assert.deepEqual(output.statistics.degree_distribution, DEGREES, "degree_distribution is forwarded next to diversity_stats");
 			});
 		}
 	}
@@ -238,6 +247,83 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 			assert.deepEqual(output.statistics.fractal_variability, shortFractal, "fractal_variability is forwarded unchanged");
 			assert.deepEqual(output.statistics.fractal_variability.ngrams, { byStepLength: null, byRadialDistance: null });
 			assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability.ngrams, { byStepLength: null, byRadialDistance: null });
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("degree_distribution: histogram trimmed to 40 rows with a flag, full under fullGraph", async () => {
+		const wide = degreeDistributionFixture({ rows: 70 });
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => fakeResponse(graphResponse(FRACTAL, wide));
+		try {
+			const trimmed = parseToolResult(await runWithConfig(CONFIG, () =>
+				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+			));
+			assertDegreeDistribution(trimmed.statistics.degree_distribution);
+			assert.equal(trimmed.statistics.degree_distribution.histogram.length, 40);
+			assert.equal(trimmed.statistics.degree_distribution.histogramTruncated, true);
+			assert.deepEqual(trimmed.statistics.degree_distribution.histogram, wide.histogram.slice(0, 40));
+			assert.equal(trimmed.statistics.degree_distribution.nodes, wide.nodes, "counts are untouched by the trim");
+			assert.deepEqual(trimmed.statistics.degree_distribution.tail, wide.tail);
+
+			const full = parseToolResult(await runWithConfig(CONFIG, () =>
+				analyzeTextTool.handler({ text: TEXT, fullGraph: true, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+			));
+			assert.deepEqual(full.statistics.degree_distribution, wide, "fullGraph keeps the whole histogram");
+			assert.ok(!("histogramTruncated" in full.statistics.degree_distribution));
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("degree_distribution with a null tail (under 50 nodes) is forwarded as is", async () => {
+		const small = degreeDistributionFixture({ rows: 5, tail: "null" });
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => fakeResponse(graphResponse(FRACTAL, small));
+		try {
+			const output = parseToolResult(await runWithConfig(CONFIG, () =>
+				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+			));
+			assertStructuredStatistics(output.statistics, { degreeDistribution: "required" });
+			assert.deepEqual(output.statistics.degree_distribution, small);
+			assert.equal(output.statistics.degree_distribution.tail, null);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("influence series are null on a short text and nothing throws", async () => {
+		const shortFractal = fractalFixture({ withSpectrum: false, influence: "null" });
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => fakeResponse(graphResponse(shortFractal));
+		try {
+			const output = parseToolResult(await runWithConfig(CONFIG, () =>
+				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+			));
+			assertStructuredStatistics(output.statistics, { spectrum: "null", influence: "required" });
+			assert.deepEqual(output.statistics.fractal_variability.influence, { byBetweenness: null, byDegree: null, byBetweennessRank: null });
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("an older backend without influence or degree_distribution is forwarded unchanged", async () => {
+		const oldFractal = fractalFixture({ influence: "absent", sentenceLength: "absent", ngrams: "absent" });
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => {
+			const response = graphResponse(oldFractal);
+			delete response.graph.graphologyGraph.attributes.degree_distribution;
+			return fakeResponse(response);
+		};
+		try {
+			const output = parseToolResult(await runWithConfig(CONFIG, () =>
+				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+			));
+			assertStructuredStatistics(output.statistics, { spectrum: "any", ngrams: "optional" });
+			assert.deepEqual(output.statistics.fractal_variability, oldFractal);
+			assert.ok(!("influence" in output.statistics.fractal_variability), "no influence level is fabricated");
+			assert.ok(!("degree_distribution" in output.statistics), "no degree_distribution is fabricated");
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
@@ -355,6 +441,8 @@ describe("optimize tools: top-level statistics surface", () => {
 
 			assertDiversityStats(output.diversity_stats);
 			assertFractalVariability(output.fractal_variability);
+			assertDegreeDistribution(output.degree_distribution);
+			assert.deepEqual(output.degree_distribution, DEGREES, "degree_distribution is a top-level field of the optimize output");
 			assertNgramsComputed(output.fractal_variability, "fractal_variability");
 			assert.deepEqual(output.diversity_stats, DIVERSITY);
 			assert.deepEqual(output.fractal_variability, FRACTAL);
@@ -373,9 +461,11 @@ describe("optimize tools: top-level statistics surface", () => {
 		assert.equal(queryOf(develop.url).get("addStats"), "true");
 
 		assert.ok(report.statistics, "report.statistics missing");
-		const { fractal_variability, ...diversity } = report.statistics;
+		const { fractal_variability, degree_distribution, ...diversity } = report.statistics;
 		assertDiversityStats(diversity, "report.statistics");
 		assert.deepEqual(diversity, DIVERSITY);
+		assertDegreeDistribution(degree_distribution, "report.statistics.degree_distribution");
+		assert.deepEqual(degree_distribution, DEGREES);
 		assertFractalVariability(fractal_variability, { where: "report.statistics.fractal_variability" });
 		assertNgramsComputed(fractal_variability, "report.statistics.fractal_variability");
 		assert.deepEqual(fractal_variability, FRACTAL);

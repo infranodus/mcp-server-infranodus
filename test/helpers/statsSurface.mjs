@@ -27,6 +27,13 @@ export const FRACTAL_MEASURES = ["byStepLength", "byRadialDistance"];
 // in order), null under 64 sentences. Older backends omit it.
 export const SENTENCE_LEVEL = "sentenceLength";
 export const SENTENCE_MEASURE = "byWords";
+// The influence level is not a path either: three series over the word path
+// (node betweenness, node degree, betweenness rank in [0, 1]); the rank series
+// is the one to read and the only one that can carry a spectrum. Older
+// backends omit the level.
+export const INFLUENCE_LEVEL = "influence";
+export const INFLUENCE_MEASURES = ["byBetweenness", "byDegree", "byBetweennessRank"];
+export const INFLUENCE_SPECTRUM_MEASURE = "byBetweennessRank";
 
 export function assertDiversityStats(stats, where = "diversity_stats") {
 	assert.ok(stats && typeof stats === "object", `${where} is missing`);
@@ -92,11 +99,27 @@ function assertScaling(scaling, where, spectrum) {
  */
 export function assertFractalVariability(
 	fractal,
-	{ spectrum = "any", ngrams = "required", sentenceLength = "optional", where = "fractal_variability" } = {},
+	{ spectrum = "any", ngrams = "required", sentenceLength = "optional", influence = "optional", where = "fractal_variability" } = {},
 ) {
 	assert.ok(fractal && typeof fractal === "object", `${where} is missing`);
 	let computedSpectra = 0;
 	let computedSeries = 0;
+	if (influence === "required" || INFLUENCE_LEVEL in fractal) {
+		const level = fractal[INFLUENCE_LEVEL];
+		assert.ok(level && typeof level === "object", `${where}.${INFLUENCE_LEVEL}`);
+		for (const measure of INFLUENCE_MEASURES) {
+			const path = `${where}.${INFLUENCE_LEVEL}.${measure}`;
+			assert.ok(measure in level, `${path} key is missing`);
+			if (level[measure] === null) continue;
+			computedSeries += 1;
+			assertScaling(level[measure], path, spectrum);
+			if (measure !== INFLUENCE_SPECTRUM_MEASURE) {
+				assert.equal(level[measure].multifractal, null, `${path}.multifractal: only the rank series carries a spectrum`);
+			} else if (level[measure].multifractal) {
+				computedSpectra += 1;
+			}
+		}
+	}
 	// sentenceLength does not fit the series x measures iteration below.
 	if (sentenceLength === "required" || SENTENCE_LEVEL in fractal) {
 		const level = fractal[SENTENCE_LEVEL];
@@ -137,10 +160,59 @@ export function assertStructuredStatistics(statistics, options = {}) {
 	assert.equal(typeof statistics.nodeCount, "number", "statistics.nodeCount");
 	assert.equal(typeof statistics.edgeCount, "number", "statistics.edgeCount");
 	assertDiversityStats(statistics.diversity_stats, "statistics.diversity_stats");
+	if (options.degreeDistribution === "required" || "degree_distribution" in statistics) {
+		assertDegreeDistribution(statistics.degree_distribution, "statistics.degree_distribution");
+	}
 	return assertFractalVariability(statistics.fractal_variability, {
 		...options,
 		where: "statistics.fractal_variability",
 	});
+}
+
+/**
+ * Check a degree_distribution object: the whole co-occurrence network before
+ * the node cap. tail is null under 50 nodes. histogramTruncated is set by
+ * this server when it trimmed the histogram.
+ */
+export function assertDegreeDistribution(distribution, where = "degree_distribution") {
+	assert.ok(distribution && typeof distribution === "object", `${where} is missing`);
+	assert.equal(typeof distribution.nodes, "number", `${where}.nodes`);
+	assert.equal(typeof distribution.edges, "number", `${where}.edges`);
+	assert.ok(Array.isArray(distribution.histogram), `${where}.histogram`);
+	for (const row of distribution.histogram) {
+		assert.ok(Array.isArray(row) && row.length === 2, `${where}.histogram row [degree, count]`);
+		assert.equal(typeof row[0], "number");
+		assert.equal(typeof row[1], "number");
+	}
+	assert.equal(typeof distribution.gini, "number", `${where}.gini`);
+	assert.ok(distribution.gini >= 0 && distribution.gini <= 1, `${where}.gini in [0, 1]`);
+	assert.ok("tail" in distribution, `${where}.tail key is missing`);
+	if (distribution.tail !== null) {
+		for (const key of ["alpha", "xmin", "n", "total"]) {
+			assert.equal(typeof distribution.tail[key], "number", `${where}.tail.${key}`);
+		}
+	}
+	if ("histogramTruncated" in distribution) {
+		assert.equal(distribution.histogramTruncated, true, `${where}.histogramTruncated is only ever true`);
+	}
+}
+
+/**
+ * A degree_distribution fixture. rows: histogram length (a text of a few
+ * hundred nodes has ~12 distinct degrees; a large one runs past 40).
+ * tail: "present" (default) or "null" (under 50 nodes).
+ */
+export function degreeDistributionFixture({ rows = 12, tail = "present" } = {}) {
+	// A Zipf-like histogram: many low-degree nodes, few hubs.
+	const histogram = Array.from({ length: rows }, (_, i) => [i + 1, Math.max(1, Math.round(400 / (i + 1) ** 1.6))]);
+	const nodes = histogram.reduce((sum, [, count]) => sum + count, 0);
+	return {
+		nodes,
+		edges: Math.round(nodes * 1.9),
+		histogram,
+		gini: 0.47,
+		tail: tail === "present" ? { alpha: 2.31, xmin: 4, n: 62, total: nodes } : null,
+	};
 }
 
 /** Parse the JSON text a tool handler returns. */
@@ -157,7 +229,7 @@ export function parseToolResult(result) {
  *   ngrams: "present" (default), "null" (short text: both measures null), or
  *           "absent" (response from an older backend without the level)
  */
-export function fractalFixture({ withSpectrum = true, ngrams = "present", sentenceLength = "present" } = {}) {
+export function fractalFixture({ withSpectrum = true, ngrams = "present", sentenceLength = "present", influence = "present" } = {}) {
 	const q = [-3, -2, -1, 0, 1, 2, 3];
 	const spectrum = withSpectrum
 		? {
@@ -222,6 +294,19 @@ export function fractalFixture({ withSpectrum = true, ngrams = "present", senten
 				}
 			: sentenceLength === "null"
 				? { sentenceLength: { byWords: null } }
+				: {}),
+		// Sample numbers from docs/fractal-variability-response.md; the spectrum
+		// only on the rank series.
+		...(influence === "present"
+			? {
+					influence: {
+						byBetweenness: scaling(900, 0.538, "random", null),
+						byDegree: scaling(900, 0.51, "random", null),
+						byBetweennessRank: scaling(900, 0.557, "regular", spectrum),
+					},
+				}
+			: influence === "null"
+				? { influence: { byBetweenness: null, byDegree: null, byBetweennessRank: null } }
 				: {}),
 	};
 }

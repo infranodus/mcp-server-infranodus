@@ -94,7 +94,8 @@ export const generateKnowledgeGraphTool = {
 				response,
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
-				buildingEntitiesGraph
+				buildingEntitiesGraph,
+				fullGraph
 			);
 
 			return {

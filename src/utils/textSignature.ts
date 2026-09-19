@@ -13,7 +13,8 @@
  * backend's own reading table (infranodus-backend/docs/fractal-variability.md),
  * not from a labelled corpus. Everything is pure so it can be unit-tested.
  */
-import type { FractalScaling, FractalSeries, FractalVariability } from "../types/index.js";
+import type { DegreeDistribution, FractalScaling, FractalSeries, FractalVariability } from "../types/index.js";
+import { trimDegreeDistribution } from "./transformers.js";
 
 // ---------------------------------------------------------------------------
 // Input shapes: the raw (non-compacted) graph response
@@ -471,6 +472,60 @@ export function summariseSentenceScaling(
 	};
 }
 
+// The influence level: how the text moves between its hub concepts and its
+// periphery. Read on the betweenness-rank series only.
+const INFLUENCE_READINGS: Record<RhythmBand, string> = {
+	alternating: "The text swings between its central concepts and peripheral ones in a regular beat.",
+	random: "Central and peripheral concepts follow each other without pattern.",
+	fractal: "The text returns to its central concepts in nested cycles, at every scale.",
+	persistent: "Long stretches near the central concepts, or away from them, with some return.",
+	blocks: "The text stays with its central concepts for whole sections, then leaves them, or the reverse, without return.",
+};
+
+export function readInfluenceAlpha(alpha: number | null | undefined): string | null {
+	const band = rhythmBand(alpha);
+	return band ? INFLUENCE_READINGS[band] : null;
+}
+
+export interface InfluenceReadings {
+	byBetweennessRank: string | null;
+	scales: string | null;
+	multifractal: string | null;
+	confidence: Confidence;
+}
+
+export function readInfluence(fractal: FractalVariability | null | undefined): InfluenceReadings | null {
+	const series = fractal?.influence?.byBetweennessRank;
+	if (!series) return null;
+	return {
+		byBetweennessRank: readInfluenceAlpha(series.alphaBounded),
+		scales: readScales(series),
+		multifractal: readMultifractal(series),
+		confidence: confidenceFor(series.n),
+	};
+}
+
+/** Concentration of connectivity in the whole network; a descriptor, never a scale-free verdict. */
+export function readDegreeDistribution(distribution: DegreeDistribution | null | undefined): Record<string, string | null> | null {
+	if (!distribution) return null;
+	const out: Record<string, string | null> = {};
+	if (typeof distribution.gini === "number") {
+		out.gini =
+			distribution.gini < 0.3
+				? "Connections are spread evenly across the concepts."
+				: distribution.gini <= 0.5
+					? "Connections are moderately concentrated: some concepts are far better connected than most."
+					: "A few hub concepts hold most of the connections.";
+	}
+	out.tail = distribution.tail
+		? `The top ${distribution.tail.n} concepts (degree ${distribution.tail.xmin} and above) thin out with a tail exponent of ${distribution.tail.alpha.toFixed(2)}: lower is heavier. This describes concentration only; it is not evidence of a scale-free network.`
+		: "Too few concepts (under 50) to describe the tail.";
+	if (typeof distribution.nodes === "number") {
+		out.nodes = `The whole co-occurrence network has ${distribution.nodes} concepts before the node cap.`;
+	}
+	return out;
+}
+
 export function readAmplitude(stats: AmplitudeStats | null): Record<string, string | null> | null {
 	if (!stats) return null;
 	const out: Record<string, string | null> = {};
@@ -861,7 +916,10 @@ export interface TextSignatureOutput {
 	structure: {
 		modularity: number | null;
 		diversity_stats: DiversityStats | null;
+		/** whole-network degree distribution, histogram trimmed to 40 rows; null on older backends */
+		degree_distribution: DegreeDistribution | null;
 		readings: Record<string, string | null> | null;
+		degreeReadings: Record<string, string | null> | null;
 	};
 	rhythm: {
 		fractal_variability: FractalVariability | null;
@@ -869,6 +927,8 @@ export interface TextSignatureOutput {
 			statements: LevelReadings | null;
 			words: LevelReadings | null;
 			ngrams: LevelReadings | null;
+			/** the influence level, read on the betweenness-rank series; null under 64 words or on older backends */
+			influence: InfluenceReadings | null;
 		};
 	};
 	amplitude: Amplitude & {
@@ -888,17 +948,21 @@ const NOTES = [
 	"The n-gram level's alpha1 is inflated by its moving average; read its alphaBounded and alpha2 only.",
 	"Amplitude is in units of the graph radius (RMS distance of the nodes from their centroid), so it is comparable across texts of different size.",
 	"sentence_rhythm counts prose statements only (fragments skipped); sentence_rhythm.scaling is the backend's DFA over every sentence of the text and says nothing about topics, only about pace. It degenerates on scripts written without spaces.",
+	"structure.degree_distribution describes how concentrated connectivity is in the whole network before the node cap. Its gini and tail exponent are descriptors, never a scale-free or power-law finding: word networks are heavy-tailed for any text.",
+	"rhythm.readings.influence is read on the betweenness-rank series; the raw byBetweenness alpha is biased upward by hub spikes.",
 ];
 
 export function buildTextSignature(input: {
 	modularity: number | null | undefined;
 	diversity: DiversityStats | null | undefined;
 	fractal: FractalVariability | null | undefined;
+	degreeDistribution?: DegreeDistribution | null;
 	nodes: RawNode[];
 	statements: RawStatement[];
 }): TextSignatureOutput {
 	const fractal = input.fractal ?? null;
 	const diversity = input.diversity ?? null;
+	const degreeDistribution = input.degreeDistribution ? trimDegreeDistribution(input.degreeDistribution) : null;
 	const amplitude = computeAmplitude(input.nodes, input.statements);
 	const sentenceRhythm = computeSentenceRhythm(input.statements);
 	return {
@@ -906,7 +970,9 @@ export function buildTextSignature(input: {
 		structure: {
 			modularity: input.modularity ?? null,
 			diversity_stats: diversity,
+			degree_distribution: degreeDistribution,
 			readings: readStructure(diversity),
+			degreeReadings: readDegreeDistribution(degreeDistribution),
 		},
 		rhythm: {
 			fractal_variability: fractal,
@@ -914,6 +980,7 @@ export function buildTextSignature(input: {
 				statements: readLevel(fractal?.statements),
 				words: readLevel(fractal?.words),
 				ngrams: readLevel(fractal?.ngrams),
+				influence: readInfluence(fractal),
 			},
 		},
 		amplitude: {

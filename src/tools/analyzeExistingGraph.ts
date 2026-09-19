@@ -86,6 +86,7 @@ export const analyzeExistingGraphTool = {
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph,
+				fullGraph,
 			);
 
 			return {

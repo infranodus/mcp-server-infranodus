@@ -304,6 +304,7 @@ export const generateOntologyGraphTool = {
 						includeGraph,
 						includeGraph,
 						true,
+						fullGraph,
 					);
 
 					if (includeAnalytics) {

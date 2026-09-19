@@ -76,6 +76,7 @@ export const analyzeTextSignatureTool = {
 				modularity: attributes.modularity,
 				diversity: attributes.diversity_stats,
 				fractal: attributes.fractal_variability,
+				degreeDistribution: attributes.degree_distribution ?? null,
 				nodes: graph?.nodes ?? [],
 				statements: (response as any).statements ?? [],
 			});

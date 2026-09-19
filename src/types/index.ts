@@ -118,6 +118,37 @@ export interface FractalVariability {
 	words: FractalSeries;
 	ngrams?: FractalSeries;
 	sentenceLength?: { byWords: FractalScaling | null };
+	/**
+	 * Influence of the current word, one value per word occurrence of the word
+	 * path: node betweenness, node degree, and betweenness rank-normalised to
+	 * [0, 1]. Read byBetweennessRank: raw betweenness is spikes at the hubs and
+	 * its alpha is biased upward. The multifractal spectrum, when requested, is
+	 * on the rank series only. Null under 64 word occurrences; omitted by older
+	 * backends.
+	 */
+	influence?: {
+		byBetweenness: FractalScaling | null;
+		byDegree: FractalScaling | null;
+		byBetweennessRank: FractalScaling | null;
+	};
+}
+
+/**
+ * Degree distribution of the WHOLE co-occurrence network before the node cap
+ * (graph.attributes.degree_distribution, on every graph, stats or not): how
+ * concentrated connectivity is. gini: 0 every node has the same degree, 1 one
+ * hub holds all connections. tail: maximum-likelihood power-law exponent over
+ * the top nodes, null under 50 nodes. A descriptor of how heavy the tail is,
+ * never a scale-free test: word networks are heavy-tailed for any text.
+ */
+export interface DegreeDistribution {
+	nodes: number;
+	edges: number;
+	histogram: Array<[number, number]>;
+	gini: number;
+	tail: { alpha: number; xmin: number; n: number; total: number } | null;
+	/** set by this server when the histogram was trimmed for the response */
+	histogramTruncated?: boolean;
 }
 
 export interface GraphResponse {
@@ -132,6 +163,7 @@ export interface GraphResponse {
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
 				fractal_variability?: FractalVariability;
+				degree_distribution?: DegreeDistribution;
 				top_influential_nodes?: Array<{
 					node: string;
 					degree: number;
@@ -215,6 +247,7 @@ export interface SearchResponse {
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
 				fractal_variability?: FractalVariability;
+				degree_distribution?: DegreeDistribution;
 				top_influential_nodes?: Array<{
 					node: string;
 					degree: number;
@@ -237,6 +270,7 @@ export interface KnowledgeGraphOutput {
 		modularity: number;
 		diversity_stats?: any;
 		fractal_variability?: FractalVariability;
+		degree_distribution?: DegreeDistribution;
 		nodeCount?: number;
 		edgeCount?: number;
 		clusterCount?: number;
@@ -293,6 +327,7 @@ export interface OntologyGraphOutput {
 		modularity: number;
 		diversity_stats?: any;
 		fractal_variability?: FractalVariability;
+		degree_distribution?: DegreeDistribution;
 		nodeCount?: number;
 		edgeCount?: number;
 		clusterCount?: number;
@@ -418,6 +453,7 @@ export interface OptimizeTextOutput {
 	topKeywordCombinations?: string[];
 	diversity_stats?: any;
 	fractal_variability?: FractalVariability;
+	degree_distribution?: DegreeDistribution;
 	diversityStatistics?: {
 		modularity: string;
 		diversity_score: string;

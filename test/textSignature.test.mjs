@@ -20,9 +20,11 @@ import {
 	splitSentences,
 	readSentenceAlpha,
 	summariseSentenceScaling,
+	readInfluence,
+	readDegreeDistribution,
 	PROSE_MIN_WORDS,
 } from "../dist/utils/textSignature.js";
-import { fractalFixture, diversityFixture, parseToolResult } from "./helpers/statsSurface.mjs";
+import { fractalFixture, diversityFixture, degreeDistributionFixture, parseToolResult } from "./helpers/statsSurface.mjs";
 
 const CONFIG = { apiBase: "https://api.test/api/v1", apiKey: "test-key" };
 
@@ -185,6 +187,29 @@ describe("sentence-length level (fractal_variability.sentenceLength.byWords)", (
 	});
 });
 
+describe("influence level and degree distribution", () => {
+	test("readInfluence reads the rank series only", () => {
+		const readings = readInfluence(fractalFixture({ withSpectrum: true }));
+		assert.match(readInfluence({ influence: { byBetweennessRank: { n: 300, alphaBounded: 0.75, alpha1: 0.75, alpha2: 0.75, multifractal: null } } }).byBetweennessRank, /nested cycles/);
+		assert.match(readings.byBetweennessRank, /without pattern/, "0.557 is memoryless");
+		assert.match(readings.multifractal, /rare big leaps/);
+		assert.equal(readings.confidence, "reliable");
+		assert.equal(readInfluence(fractalFixture({ influence: "null" })), null);
+		assert.equal(readInfluence(fractalFixture({ influence: "absent" })), null);
+	});
+
+	test("readDegreeDistribution describes concentration and never says scale-free", () => {
+		const readings = readDegreeDistribution(degreeDistributionFixture());
+		assert.match(readings.gini, /moderately concentrated/);
+		assert.match(readings.tail, /tail exponent of 2\.31/);
+		assert.match(readings.tail, /not evidence of a scale-free/);
+		assert.match(readings.nodes, /before the node cap/);
+		assert.match(readDegreeDistribution(degreeDistributionFixture({ tail: "null" })).tail, /Too few concepts/);
+		assert.match(readDegreeDistribution({ gini: 0.7, tail: null, nodes: 10, edges: 5, histogram: [] }).gini, /few hub concepts/);
+		assert.equal(readDegreeDistribution(null), null);
+	});
+});
+
 describe("composeSignature", () => {
 	const series = (alpha, n = 300) => ({ byStepLength: { n, alphaBounded: alpha, alpha1: alpha, alpha2: alpha, multifractal: null }, byRadialDistance: null });
 
@@ -286,6 +311,13 @@ describe("buildTextSignature", () => {
 		assert.equal(typeof out.amplitude.readings.words.cvStep, "string");
 		assert.equal(out.sentence_rhythm.sentences, 7);
 		assert.equal(typeof out.sentence_rhythm.readings.cvLength, "string");
+		assert.equal(out.structure.degree_distribution, null, "no degree distribution given");
+		assert.equal(out.structure.degreeReadings, null);
+		assert.match(out.rhythm.readings.influence.byBetweennessRank, /without pattern/);
+		const wide = buildTextSignature({ modularity: 0.5, diversity: diversityFixture(), fractal: fractalFixture(), degreeDistribution: degreeDistributionFixture({ rows: 70 }), nodes: NODES, statements: BLOCK_STATEMENTS });
+		assert.equal(wide.structure.degree_distribution.histogram.length, 40, "histogram trimmed like the other tools");
+		assert.equal(wide.structure.degree_distribution.histogramTruncated, true);
+		assert.match(wide.structure.degreeReadings.gini, /concentrated/);
 		assert.equal(out.sentence_rhythm.scaling.n, 450, "the backend's sentence-length DFA is summarised");
 		assert.equal(typeof out.sentence_rhythm.scaling.readings.alpha, "string");
 		assert.ok(out.rhythm.fractal_variability.sentenceLength, "and passed through unchanged");
@@ -314,6 +346,7 @@ function graphResponse() {
 					modularity: 0.71,
 					diversity_stats: diversityFixture(),
 					fractal_variability: fractalFixture(),
+					degree_distribution: degreeDistributionFixture(),
 					top_clusters: [],
 					gaps: [],
 				},
@@ -361,6 +394,9 @@ describe("analyze_text_signature handler", () => {
 		assert.deepEqual(output.rhythm.fractal_variability, fractalFixture());
 		assert.equal(output.amplitude.words.n, 13);
 		assert.equal(output.sentence_rhythm.sentences, 7);
+		assert.deepEqual(output.structure.degree_distribution, degreeDistributionFixture());
+		assert.equal(typeof output.structure.degreeReadings.gini, "string");
+		assert.equal(typeof output.rhythm.readings.influence.byBetweennessRank, "string");
 		assert.ok(output.ai_likeness.caveats.length > 0);
 	});
 

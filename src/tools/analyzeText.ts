@@ -83,7 +83,8 @@ export const analyzeTextTool = {
 				response,
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
-				buildingEntitiesGraph
+				buildingEntitiesGraph,
+				fullGraph
 			);
 
 			return {
