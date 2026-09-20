@@ -1,4 +1,5 @@
 import {
+	DegreeDistribution,
 	GraphResponse,
 	SearchResponse,
 	KnowledgeGraphOutput,
@@ -22,11 +23,30 @@ import {
 	LatentTopicsOutput,
 } from "../types/index.js";
 
+// The degree histogram of a large text runs to hundreds of rows; the first
+// rows (low degrees) carry the bulk and the shape, so the response keeps 40
+// unless the caller asked for the full graph.
+const DEGREE_HISTOGRAM_ROWS = 40;
+
+export function trimDegreeDistribution(
+	distribution: DegreeDistribution,
+	fullGraph: boolean = false,
+): DegreeDistribution {
+	const histogram = Array.isArray(distribution.histogram) ? distribution.histogram : [];
+	if (fullGraph || histogram.length <= DEGREE_HISTOGRAM_ROWS) return distribution;
+	return {
+		...distribution,
+		histogram: histogram.slice(0, DEGREE_HISTOGRAM_ROWS),
+		histogramTruncated: true,
+	};
+}
+
 export function transformToStructuredOutput(
 	data: GraphResponse,
 	includeGraph: boolean = false,
 	includeNodesAndEdges: boolean = false,
 	buildingEntitiesGraph: boolean = false,
+	fullGraph: boolean = false,
 ): KnowledgeGraphOutput {
 	const output: KnowledgeGraphOutput = {
 		statistics: {
@@ -70,6 +90,18 @@ export function transformToStructuredOutput(
 
 		if (graph.attributes?.diversity_stats) {
 			output.statistics.diversity_stats = graph.attributes.diversity_stats;
+		}
+
+		if (graph.attributes?.fractal_variability) {
+			output.statistics.fractal_variability =
+				graph.attributes.fractal_variability;
+		}
+
+		if (graph.attributes?.degree_distribution) {
+			output.statistics.degree_distribution = trimDegreeDistribution(
+				graph.attributes.degree_distribution,
+				fullGraph,
+			);
 		}
 
 		if (graph.attributes?.top_influential_nodes) {
@@ -431,6 +463,17 @@ export function generateOptimizationResult(
 	if (data.graph?.graphologyGraph?.attributes?.diversity_stats) {
 		output.diversity_stats =
 			data.graph.graphologyGraph.attributes.diversity_stats;
+	}
+
+	if (data.graph?.graphologyGraph?.attributes?.fractal_variability) {
+		output.fractal_variability =
+			data.graph.graphologyGraph.attributes.fractal_variability;
+	}
+
+	if (data.graph?.graphologyGraph?.attributes?.degree_distribution) {
+		output.degree_distribution = trimDegreeDistribution(
+			data.graph.graphologyGraph.attributes.degree_distribution,
+		);
 	}
 
 	if (data.extendedGraphSummary) {
