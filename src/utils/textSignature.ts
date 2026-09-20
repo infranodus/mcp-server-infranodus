@@ -945,7 +945,6 @@ export interface TextSignatureOutput {
 
 const NOTES = [
 	"Fractal levels are not comparable with each other: the word level reads lowest and the n-gram level higher by construction. Compare a level only with the same level of another text.",
-	"The n-gram level's alpha1 is inflated by its moving average; read its alphaBounded and alpha2 only.",
 	"Amplitude is in units of the graph radius (RMS distance of the nodes from their centroid), so it is comparable across texts of different size.",
 	"sentence_rhythm counts prose statements only (fragments skipped); sentence_rhythm.scaling is the backend's DFA over every sentence of the text and says nothing about topics, only about pace. It degenerates on scripts written without spaces.",
 	"structure.degree_distribution describes how concentrated connectivity is in the whole network before the node cap. Its gini and tail exponent are descriptors, never a scale-free or power-law finding: word networks are heavy-tailed for any text.",
