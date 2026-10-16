@@ -168,19 +168,18 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Get comprehensive analysis of what's in search results but not in your text
     - Discover what people search for but don't find in current results
 
-27. **memory_add_relations**
-    - Add relations to the InfraNodus memory from text
-    - Automatically detect entities or use [[wikilinks]] syntax to mark them
-    - Save memory to a specified graph name for future retrieval
-    - Support automatic entity extraction or manual entity marking
-    - Provide links to created memory graphs for easy access
+27. **memory_add_relations** (Save to InfraNodus Memory)
+    - Save statements to a named persistent memory graph and get back its name and URL
+    - For "remember this", "save this to memory", or ideas, plans, and decisions worth keeping
+    - Writes immediately: no opt-in, no dry run (unlike project learnings)
+    - Mark entities with [[wikilinks]]; pass categories and timestamps for later filtering
+    - Reuse the same graph name to append to an existing memory
 
-28. **memory_get_relations**
-    - Retrieve relations from InfraNodus memory for specific entities
-    - Search for entity relations using [[wikilinks]] syntax
-    - Query specific memory contexts or search across all memory graphs
-    - Extract statements and relationships from stored knowledge graphs
-    - Support both entity-specific searches and full context retrieval
+28. **memory_get_relations** (Recall from InfraNodus Memory)
+    - Recall what was previously saved to memory about a concept or entity
+    - For "what do I have on X", "did we decide X", "check memory"
+    - Query one memory graph by name or search across all memory graphs
+    - Returns the statements and relationships that mention the entity
 
 29. **retrieve_from_knowledge_base**
     - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG

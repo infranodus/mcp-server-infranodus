@@ -10,9 +10,9 @@ import {
 export const getMemoryTool = {
 	name: "memory_get_relations",
 	definition: {
-		title: `Get Relations from the ${brand.name} Memory`,
+		title: `Recall from ${brand.name} Memory`,
 		description:
-			`Provide a list of relations from the ${brand.name} memory for a given concept or entity`,
+			`Recall what the user previously saved to ${brand.name} memory about a concept or entity. Call it when the user asks "what do I have on X", "did we decide X", "check memory", or before starting a task on a topic they saved before. With no memoryContextName it searches every memory graph in the account.`,
 		inputSchema: getMemorySchema.shape,
 		annotations: {
 			readOnlyHint: true,

@@ -17,9 +17,9 @@ function errorContent(message: string) {
 export const addMemoryTool = {
 	name: "memory_add_relations",
 	definition: {
-		title: `Add Relations to the ${brand.name} Memory`,
+		title: `Save to ${brand.name} Memory`,
 		description:
-			`Add relations to the ${brand.name} memory from text, save it, and provide its name and a link to it for future use. `,
+			`Save statements to a named persistent memory graph in the user's ${brand.name} account and return its name and URL. Use whenever the user says "remember this", "save this to memory", "add to ${brand.name} memory", or wants ideas, plans, or decisions from the conversation kept. Writes immediately: no opt-in, no dry run. Mark entities with [[wikilinks]], pass categories and timestamps for later filtering, reuse graphName to append. Distinct from add_project_learnings, which is gated operational knowledge about a codebase.`,
 		inputSchema: AddMemorySchema.shape,
 		annotations: {
 			readOnlyHint: false,
