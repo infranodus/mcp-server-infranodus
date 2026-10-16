@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Also run the live API surface tests (needs the INFRANODUS_API_KEY secret)"
+        type: boolean
+        default: true
+
+jobs:
+  unit:
+    name: Offline tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  live:
+    name: Live API surface tests
+    # After a merge into master, or on demand. Pull requests never get the secret.
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.live)
+    needs: unit
+    runs-on: ubuntu-latest
+    env:
+      INFRANODUS_API_KEY: ${{ secrets.INFRANODUS_API_KEY }}
+      INFRANODUS_API_BASE: ${{ vars.INFRANODUS_API_BASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:live

@@ -44,6 +44,7 @@ export const createKnowledgeGraphTool = {
 			const queryParams = new URLSearchParams({
 				doNotSave: "false",
 				addStats: "true",
+				...(params.multifractal ? { multifractal: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
@@ -99,7 +100,8 @@ export const createKnowledgeGraphTool = {
 				response,
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
-				buildingEntitiesGraph
+				buildingEntitiesGraph,
+				fullGraph
 			);
 
 			return {

@@ -41,203 +41,217 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Extract and analyze a graph from text or URL; provide either text or url
    - Get topics, clusters, statements, graph structure, and AI summary as requested
 
-4. **generate_content_gaps**
+4. **analyze_text_signature**
+   - Structural and rhythmic signature of a text, URL, or YouTube transcript
+   - Every measure with a plain-language reading, a named profile (essay, digest, anthology...), and a hedged AI-likeness estimate
+   - Use to compare writing styles, characterise an author or genre, or flag flat, uniformly paced text
+
+5. **generate_content_gaps**
    - Detect missing connections in discourse
    - Identify underexplored topics
    - Generate research questions
    - Suggest content development opportunities
 
-5. **generate_topical_clusters**
+6. **generate_topical_clusters**
    - Generate topics and clusters of keywords from text using knowledge graph analysis
    - Make sure to beyond genetic insights and detect smaller topics
    - Use the topical clusters to establish topical authority for SEO
    - Returns AI-generated overviews of the topical clusters (`topicalClusterSummaries`), summarizing the discourse each cluster represents — useful for SEO-optimized content creation. Enabled by default; set `generateTopicalSummaries: false` to increase processing speed or if the summary request fails
 
-6. **generate_contextual_hint**
+7. **generate_contextual_hint**
    - Generate a topical overview of a text and provide insights for LLMs to generate better responses
    - Use it to get a high-level understanding of a text
    - Use it to augment prompts in your LLM workflows and AI assistants
 
-7. **generate_research_questions**
+8. **generate_research_questions**
    - Generate research questions that bridge content gaps from text, URL, or an existing InfraNodus graph
    - Use them as prompts in your LLM models and AI workflows
    - Use any AI model (included in InfraNodus API)
    - Content gaps are identified based on topical clustering
 
-8. **generate_research_ideas**
+9. **generate_research_ideas**
    - Generate innovative research ideas based on content gaps identified in the text
    - Get actionable ideas to improve the text and develop the discourse
    - Use any AI model (included in InfraNodus API)
    - Ideas are generated from gaps between topical clusters
 
-9. **optimize_text_structure**
-   - Analyze the level of bias and coherence in text using knowledge graph analysis
-   - If the text is too biased, develop the represented topics to balance the discourse
-   - If the text is focused or diversified, develop the content gaps to deepen the analysis
-   - If the text is dispersed, focus the most common gap topics to improve coherence
-   - Choose response type: response, idea, question, or transcend
+10. **optimize_text_structure**
+    - Analyze the level of bias and coherence in text using knowledge graph analysis
+    - If the text is too biased, develop the represented topics to balance the discourse
+    - If the text is focused or diversified, develop the content gaps to deepen the analysis
+    - If the text is dispersed, focus the most common gap topics to improve coherence
+    - Choose response type: response, idea, question, or transcend
 
-10. **optimize_reasoning**
+11. **optimize_reasoning**
     - Applies the same bias/coherence analysis to the model's own reasoning trace or chat with the user (pass it as `text`)
     - Detects whether the reasoning is biased, focused, diversified, or dispersed
     - Steers the reasoning toward optimal diversity and coherence at the same time
     - If too biased, develop the under-represented topics; if focused or diversified, bridge the content gaps; if dispersed, focus the most common gap topics
     - Returns a structural diagnosis (diversity stats, topical clusters, gaps) plus suggestions for how to continue thinking
 
-11. **generate_responses_from_graph**
+12. **generate_responses_from_graph**
     - Generate responses based on an existing InfraNodus graph
     - Integrate them into your LLM workflows and AI assistants
     - Use any AI model (included in InfraNodus API)
     - Use any prompt
 
-12. **develop_conceptual_bridges**
+13. **develop_conceptual_bridges**
     - Analyze text and develop latent ideas based on concepts that connect this text to a broader discourse
     - Discover hidden themes and patterns that link your text to wider contexts
     - Use any AI model (included in InfraNodus API)
     - Generate insights that help develop the discourse
 
-13. **develop_latent_topics**
+14. **develop_latent_topics**
     - Analyze text and extract underdeveloped topics with ideas on how to develop them
     - Identify topics that need more attention and elaboration
     - Use any AI model (included in InfraNodus API)
     - Get actionable suggestions for content expansion
 
-14. **develop_text_tool**
+15. **develop_text_tool**
     - Comprehensive text analysis combining content gap ideas, latent topics, and conceptual bridges
     - Executes multiple analyses in sequence with progress tracking
     - Generates research ideas based on content gaps
     - Identifies latent topics and conceptual bridges to develop
     - Finds content gaps for deeper exploration
 
-15. **create_knowledge_graph**
+16. **create_knowledge_graph**
     - Create a knowledge graph in InfraNodus from text and provide a link to it
     - Use it to create a knowledge graph in InfraNodus from text
     - Also accepts `statements` (discrete items) with parallel `categories` and `timestamps`. Categories are stored as metadata on each statement (filter, group, delete, or relabel by them) and stay out of the graph unless `categoriesAsNodes: true`, which turns each label into a `[[label]]` node — meant for large knowledge bases and Obsidian vaults where the connections between pages are the point. The parent modes of `wikilinksMode` (`obsidianStyle`, `parentAndConcepts`) always make the parent page a node
 
-16. **generate_ontology_graph**
+17. **generate_ontology_graph**
     - Use AI to generate a reasoning ontology graph (entities and the relations between them) from one of three sources: a `prompt` (a topic — e.g. "build an ontology on AI attention mechanisms"), a `text` (a long document or a structural digest of a project, chunked server-side), or a `sourceGraphName` (an existing graph — e.g. a fully ingested repo or corpus — whose statements are read back, chunked, and condensed into an ontology)
     - `ontologyMode: 'codebase'` frames the extraction around modules, functions, data stores, services, and the concepts they implement; `ontologyMode: 'procedural'` writes a **digest** instead — prose statements on how the project works with `[[wikilinks]]`, each typed as `[principles]`, `[rules]`, `[procedures]`, `[handoffs]`, `[main_ideas]` or `[gaps]` (saved as the statement's category), from an already-uploaded docs/structure graph; save it as `repo-<project>-digest` for `optimize_knowledge_base`; `chunkSize` (default 12000 chars) controls granularity; every chunk appends to the same graph and the response reports `chunksProcessed` / `chunksTotal`
     - Saved as a persistent InfraNodus graph by default and a link is returned; set `saveGraph: false` if the user asks not to save, or when you only need a one-off AI ontology overview of a topic for the current context that won't be reused later (the generated statements are returned directly without persisting)
     - `modelToUse` defaults to `claude-opus-5` for richer ontologies (also `claude-fable-5`, `gpt-5.6-terra`); pick `-mini`/`-lite` variants (or `gpt-4o-mini`) for faster, cheaper generation
     - Returns the compact graph structure (`knowledgeGraph`) and analytics (main topical clusters, content gaps, top influential nodes, top relations, statistics) by default. Set `includeGraph: false` to save context space when only the ontology statements or insights are needed. Set `includeAnalytics: false` if you just need the raw ontology without graph-derived insights — keep it on whenever you want to understand the structure, gaps, or key concepts
 
-17. **analyze_llm_results**
+18. **analyze_llm_results**
     - Ask an LLM to describe a topic and turn its response into a knowledge graph that reveals how the model frames it — main concepts, clusters, content gaps, and the relations between them
     - Use it to probe model bias, surface the implicit structure of an LLM's view on a subject, or compare how different models describe the same topic
     - `modelToUse` defaults to `claude-opus-5`; pick the model you actually want to study
     - `modifyAnalyzedText` controls how the LLM output is parsed: `'detectEntities'` (default — mixed entities + words), `'extractEntitiesOnly'` (entity-only graph), or `'none'` (plain co-occurrence)
     - Saves the graph by default; set `saveGraph: false` for a one-off probe. Returns analytics by default and omits the raw graph (`includeGraph: false`) to keep responses compact — enable `includeGraph` when you also need nodes/edges
 
-18. **overlap_between_texts**
+19. **overlap_between_texts**
     - Create knowledge graphs from two or more texts and find the overlap (similarities) between them
     - Use it to find similar topics and keywords across different texts
 
-19. **merged_graph_from_texts**
+20. **merged_graph_from_texts**
     - Build a graph of all the texts and URLs provided, providing topical clusters and gaps present in the merged graph generated from all the texts
     - Use it to combine multiple sources into one graph and see clusters and content gaps across the merged content
 
-20. **difference_between_texts**
+21. **difference_between_texts**
     - Compare knowledge graphs from two or more texts and find what's not present in the first graph that's present in the others
     - Use it to find how one text can be enriched with the others
 
-21. **analyze_google_search_results**
+22. **analyze_google_search_results**
     - Generate a graph with keywords and topics for Google search results for a certain query
     - Use it to understand the current informational supply (what people find)
 
-22. **analyze_youtube_results**
+23. **analyze_youtube_results**
     - Generate a graph with keywords and topics from YouTube results for a query, channel, or playlist
     - Choose what to pull via `searchMode`: `search` (video metadata for a search term), `comments` (comments on a video), `channel` (a channel's videos — pass a username, URL, or @handle), `playlist` (a playlist's videos — pass a playlist ID or a URL with `list=`), `subtitles` / `subtitlesChannel` / `subtitlesPlaylist` (transcribed subtitles of a video / channel / playlist), or `searchVideos` (analyzes the content of the videos found — limit hard-capped to 20)
     - Control results with `limit` (default 100, max 2000), `sortBy` (`Popular` / `Oldest` / `Latest`), `excludeDescriptions`, `importLanguage`, and `importRegion`
     - Use it to understand the topics, clusters, and content gaps in the discourse around a video, channel, playlist, or search term on YouTube
 
-23. **analyze_related_search_queries**
+24. **analyze_related_search_queries**
     - Generate a graph from the search queries suggested by Google for a certain query
     - Use it to understand the current informational demand (what people are looking for)
 
-24. **search_queries_vs_search_results**
+25. **search_queries_vs_search_results**
     - Generate a graph of keyword combinations and topics people tend to search for that do not readily appear in the search results for the same queries
     - Use it to understand what people search for but don't yet find
 
-25. **generate_seo_report**
+26. **generate_seo_report**
     - Analyze content for SEO optimization by comparing it with Google search results and search queries
     - Identify content gaps and opportunities for better search visibility
     - Get comprehensive analysis of what's in search results but not in your text
     - Discover what people search for but don't find in current results
 
-26. **memory_add_relations**
+27. **memory_add_relations**
     - Add relations to the InfraNodus memory from text
     - Automatically detect entities or use [[wikilinks]] syntax to mark them
     - Save memory to a specified graph name for future retrieval
     - Support automatic entity extraction or manual entity marking
     - Provide links to created memory graphs for easy access
 
-27. **memory_get_relations**
+28. **memory_get_relations**
     - Retrieve relations from InfraNodus memory for specific entities
     - Search for entity relations using [[wikilinks]] syntax
     - Query specific memory contexts or search across all memory graphs
     - Extract statements and relationships from stored knowledge graphs
     - Support both entity-specific searches and full context retrieval
 
-28. **retrieve_from_knowledge_base**
+29. **retrieve_from_knowledge_base**
     - Retrieve context from an existing InfraNodus knowledge graph using GraphRAG
     - Query your knowledge base with a natural language prompt to get relevant statements
     - Include graph summaries for quick overviews of the knowledge structure
     - Optionally retrieve the full graph, statements, or extended analysis
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
-29. **search**
+30. **search**
     - Search through existing InfraNodus graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-30. **fetch**
+31. **fetch**
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 
-31. **enable_project_learnings**
+32. **list_graphs**
+    - List the graphs (contexts) in your InfraNodus account, with optional filters by name, type, date, language, or favorite status
+    - Use it to discover which graphs exist before analyzing them with `analyze_existing_graph_by_name`, searching them, or writing to them
+
+33. **enable_project_learnings**
     - Create the opt-in, per-project, append-only learnings graph (`learn-<project>`) in your account — the place where the assistant saves what it learned about operating in a project
     - Called only when you explicitly ask to start saving learnings for a project; idempotent, so calling it again just returns the existing graph
     - The assistant tells you first what will be stored (project knowledge only, never anything about you), where (a private graph you can delete at any time), and that batches are shown before saving
 
-32. **add_project_learnings**
+34. **add_project_learnings**
     - Save learnings about a project — where things live, traps, conventions, decisions, workflows, and a self-assessment of what worked well and what should be done differently next time — as statements with a `type` category each, for later sessions on any client
     - Refuses (without error) when the project has not been enabled and never creates the graph itself
     - Dry run by default: returns what would be written, marking near-duplicates as `reinforced`; writes only with `confirm: true` — or in the same call when your client supports MCP elicitation and you approve the form
     - Rejects statements with secret-like content server-side (indices only, never the content)
 
-33. **get_project_learnings**
+35. **get_project_learnings**
     - Retrieve learnings for a project: by `prompt` (GraphRAG — most relevant statements plus an overview of what is known), by `entity` (a file path, module, or concept), or a structural overview with neither
     - Call with no `project` to list the projects that have learnings in your account
     - Returns `enabled: false` with an empty list when a project has no learnings graph — not an error
 
     _Also available as the `save-learnings` prompt in clients that expose MCP prompts. Set `INFRANODUS_LEARNINGS=0` to remove these three tools from the server entirely (see [Project learnings](#project-learnings))._
 
-34. **optimize_knowledge_base**
+36. **optimize_knowledge_base**
     - Structural feedback on a whole code base, document vault, or body of procedural knowledge (rules, frameworks, principles) from its digest graph (`repo-<project>-digest` / `vault-<project>-digest`) — or from a digest you write and pass as text, saved with `saveAs`
     - Diagnoses the structure (biased / focused / diversified / dispersed) and reads it for the chosen `focus` (`codebase`, `vault`, `procedural`, `general`): what dominates, which areas are under-developed (with latent-topic ideas), which clusters never connect — missing integrations, missing bridge notes, missing hand-offs between frameworks — plus AI suggestions for what to develop next
     - `compareWith` up to two other layers of the same project (e.g. digest vs structure map, docs vs code) and get what each has that the other lacks: rules without code, code without documentation, features described but not built
     - Two ways to get the digest: the assistant reads the project and writes it (the infranodus skill's **digest** build mode, or `text` + `saveAs` here), or `generate_ontology_graph` with `ontologyMode: 'procedural'` writes it server-side from an uploaded docs/structure graph
     - Pairs with the infranodus skill's build modes: full ingestion, digest, structure map, ontology
 
-35. **submit_workflow_feedback**
+37. **submit_workflow_feedback**
     - Internal telemetry: after a workflow of InfraNodus calls, the assistant reports what it actually did with the output — how much it used, whether it contained anything new, whether it was the right tool, how many calls it took, concrete defects — as observations rather than a score; a rating is derived from them server-side
     - Autonomous: it never asks you anything and never surfaces in the conversation
     - The report contains short paraphrases of what you were working on (capped at 200 characters), the same policy as the prompts InfraNodus already logs; `MCPCAT_ANONYMOUS=1` skips the per-user log entirely
     - Set `INFRANODUS_FEEDBACK=0` to remove the tool (and the one-line nudge appended to workflow-ending results) from the server
 
-36. **delete_statements**
+38. **get_more_tools**
+    - Added by the [mcpcat](https://mcpcat.io) analytics library: the assistant calls it when a task would benefit from a capability none of the tools above provides, describing what it needed
+    - The server has no hidden tools, so the call only records the request as feedback for future tool development; the assistant does not need to ask you before calling it
+    - Its logs follow the same privacy rules as the usage analytics below (`MCPCAT_ANONYMOUS=1` keeps them unlinked from your account)
+
+39. **delete_statements**
     - Delete statements from a graph in your own account by a filter the server resolves — exactly one of `categories` (everything uploaded under a source label: a file path, a page name, a `[[label]]` parent), `statements` (exact text), `query` (substring or `/regex/`), `before`/`after` (ISO 8601 window), `deleteAll` (empties the graph but keeps its name, URL, and settings), or `statementIds`
     - Dry run by default: returns the matched count, a sample of the statements, and a per-category breakdown; nothing is removed until the same filter is sent again with `confirm: true` — or, on clients with MCP elicitation, until you accept the form in the same call. A filter that matches nothing returns `deleted: 0` without asking
     - The per-source replace path: `delete_statements` with the source's category, then `create_knowledge_graph` to the same graph name. `deleteAll` then `create_knowledge_graph` rebuilds a graph in place
     - Irreversible, own-account only (no `userName`), never creates a graph, and the assistant is instructed never to call it on its own initiative. Set `INFRANODUS_DELETE=0` to remove the tool from the server
 
-37. **update_statements**
+40. **update_statements**
     - Edit statements of a graph in your own account **in place** — content, categories, or timestamp — keeping each statement's id, date, and position (unlike deleting and re-creating it)
     - Two modes: `edits` rewrites specific statements, each named by its exact current text (`match`, e.g. from `analyze_existing_graph_by_name` with `includeStatements`) or `statementId`; or one selector (the same as `delete_statements`, with `all` instead of `deleteAll`) plus `set` (`addCategories`, `removeCategories`, `categories`, `timestamp`) and/or `replace` (`{ pattern, with }`, substring or `/regex/flags`) for bulk relabelling or a find-and-replace across the graph — renaming a `[[concept]]` or a source path everywhere
     - Dry run by default: returns the matched count and the before → after of every change; nothing is written until the same arguments are sent again with `confirm: true` — or, on clients with MCP elicitation, until you accept the form in the same call. A request that matches nothing returns `updated: 0` without asking
     - New content is capped at 1000 characters; for longer text use `delete_statements` then `create_knowledge_graph`. Irreversible (the old text survives only in the dry-run output), own-account only, never creates a graph, and the assistant is instructed never to call it on its own initiative. `INFRANODUS_DELETE=0` removes it together with `delete_statements`
 
-38. **delete_graph**
+41. **delete_graph**
     - Delete one graph from your own account entirely — its statements, revisions, settings, and URL; the name becomes free again. `delete_statements` with `deleteAll` is the alternative that keeps the graph for a rebuild in place
     - Dry run by default: confirms the graph exists and reports its URL and whether it is a live graph; nothing is removed until the same `graphName` is sent again with `confirm: true`. Clients that support elicitation ask you directly and delete in the same call
     - Irreversible, own-account only (no `userName`; the graph is resolved from your API key's own graph list and the backend scopes the delete to the same user), and the assistant is instructed never to call it on its own initiative. `INFRANODUS_DELETE=0` removes it together with the other two mutation tools
@@ -252,6 +266,8 @@ _More capabilites coming soon!_
 - **AI Enhancement**: Optional AI-powered topic naming and analysis
 - **Structural Analysis**: Identify influential nodes and community structures
 - **Network Structure Statistics**: Modularity, centrality, betweenness, and other graph metrics
+- **Fractal Variability**: DFA scaling exponents (alpha) of the discourse at three path levels (statements, words, and n-grams of 4 consecutive words), by step length and radial distance, plus the sentence length level (words per sentence, in order) and the influence level (betweenness, degree, and betweenness rank of the current word; read the rank series), with multifractal spectra — returned as `fractal_variability` next to `diversity_stats` whenever the graph statistics are included
+- **Degree Distribution**: `degree_distribution` on every graph — nodes, edges, a `[degree, count]` histogram (first 40 rows unless `fullGraph`), gini of degree, and a power-law tail exponent over the top nodes (null under 50 nodes) — descriptors of how concentrated connectivity is in the whole co-occurrence network before the node cap; never a scale-free verdict
 - **Knowledge Graph Memory**: Save and retrieve knowledge graph memories and analyze them to retrieve key nodes, clusters, and connectors
 
 ## Knowledge Graph Memory Use Advice
@@ -569,6 +585,20 @@ npm run build
 npm run watch
 ```
 
+### Running the Tests
+
+```bash
+npm test
+```
+
+Offline tests, no network: they compile the server and drive every tool handler through an intercepted `fetch`. `test/statsSurface.test.mjs` covers the network-statistics surface of all tools that return `diversity_stats` and `fractal_variability` (request flags and response shape). CI runs this on every pull request and on every push to `master`.
+
+```bash
+INFRANODUS_API_KEY=... npm run test:live
+```
+
+Live tests against the real API (`test/live/`): the same tools, checked for the actual data surface, including a computed multifractal spectrum on a long text. Set `INFRANODUS_API_BASE` to point at another API root, and `LIVE_SKIP_AI=1` to skip the tools that call an LLM. The saving tools create one throwaway graph and delete it afterwards. CI runs this after a merge into `master` and on demand from the Actions tab (workflow "Tests" → "Run workflow"); it needs the `INFRANODUS_API_KEY` repository secret and skips itself when the secret is absent.
+
 ## API Documentation
 
 ### generate_knowledge_graph
@@ -605,8 +635,29 @@ Analyze a text, URL, or YouTube transcript. Extract and analyze a graph from tex
 - `includeStatements` (boolean): Include processed statements in response
 - `includeGraph` (boolean): Include full graph structure in response
 - `addNodesAndEdges` (boolean): Include nodes and edges in response
+- `multifractal` (boolean): Also compute the multifractal spectrum inside `fractal_variability` (off by default, ~0.5 s per graph; only returned together with the graph statistics)
 - `includeGraphSummary` (boolean): Include AI-generated graph summary for RAG prompt augmentation
 - `modifyAnalyzedText` (string): Entity detection — "none", "detectEntities", or "extractEntitiesOnly"
+
+### analyze_text_signature
+
+Returns the structural and rhythmic signature of one text: how the discourse moves through its concept network, how its topics are distributed, and the sentence-length rhythm of the source. Every number comes with a one-sentence reading. Not a detector on its own.
+
+**Parameters:**
+
+- `text` / `url` / `statements`: the content, as in `analyze_text`
+- `multifractal` (boolean, default true): compute the multifractal spectrum of the topic path (adds ~0.5–1 s)
+- `maxNodes` (number): concepts kept in the graph (default 150); raise for long texts so the word path is complete
+- `modifyAnalyzedText` (string): entity detection, as in `analyze_text`
+
+**Response:**
+
+- `signature`: a named profile from structure x rhythm (biased / focused / diversified / dispersed x alternating / random / fractal / blocks), e.g. `essay`, `report`, `narrative`, `digest`, `anthology`, `notes`, with a one-line summary
+- `structure`: `modularity`, `diversity_stats` and their readings
+- `rhythm`: `fractal_variability` (statements, words, ngrams x step length, radial distance; sentence length (words per sentence, in order) x byWords) and per-level readings of the DFA exponents, the short-vs-long-scale contrast, the multifractal label, and a confidence from the series length
+- `amplitude`: measured on the same paths, in units of the graph radius — mean / median / p95 step, step-length CV (burstiness of movement), lag-1 autocorrelation, share of steps crossing a topic cluster and the regularity of those crossings, radial distance stats
+- `sentence_rhythm`: sentence count, mean length, length CV (classic burstiness), lag-1 autocorrelation, share of short and long sentences, computed on prose-like statements only (fragments such as headings and menu items are skipped and counted); plus `scaling`, a summary of the backend's DFA on the sentence-length series (`fractal_variability.sentenceLength.byWords`, null under 64 sentences) with its own reading
+- `ai_likeness`: `verdict` (leans generated / leans human / inconclusive), `score` (−1 human-like to +1 generated-like), `confidence`, the weighted `evidence` behind it, and `caveats`. It is a stylistic tendency: on a 50-page check against a commercial detector it caught uniformly paced template text but read AI-drafted pages that had been edited as human.
 
 ### generate_content_gaps
 
@@ -675,7 +726,7 @@ If you prefer these usage stats not to be linked to your InfraNodus account, set
 }
 ```
 
-With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account. It also disables the per-user `submit_workflow_feedback` log described under tool 34 (the report includes duration / error / retry of the call it rates).
+With `MCPCAT_ANONYMOUS=1` set, tool usage is still recorded but stays anonymous — it is not tied to your user account. It also disables the per-user `submit_workflow_feedback` log described under tool 37 (the report includes duration / error / retry of the call it rates).
 
 ### Project learnings
 

@@ -43,6 +43,7 @@ export const analyzeExistingGraphTool = {
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
+				...(params.multifractal ? { multifractal: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: "true",
@@ -85,6 +86,7 @@ export const analyzeExistingGraphTool = {
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph,
+				fullGraph,
 			);
 
 			return {
