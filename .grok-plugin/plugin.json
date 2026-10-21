@@ -1,0 +1,18 @@
+{
+	"name": "infranodus",
+	"version": "1.8.4",
+	"description": "InfraNodus knowledge graphs and text network analysis for Grok Build via the hosted InfraNodus MCP server at mcp.infranodus.com: topics, content gaps, research questions, GraphRAG retrieval, SEO/GEO analysis, and structured memory. Sign in with your InfraNodus account on first connect.",
+	"author": {
+		"name": "Nodus Labs",
+		"url": "https://infranodus.com"
+	},
+	"homepage": "https://infranodus.com/mcp",
+	"repository": "https://github.com/infranodus/mcp-server-infranodus",
+	"license": "MIT",
+	"keywords": [
+		"infranodus",
+		"infranodus mcp",
+		"infranodus graph",
+		"infranodus knowledge graph"
+	]
+}
