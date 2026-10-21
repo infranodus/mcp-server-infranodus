@@ -185,59 +185,63 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Optionally retrieve the full graph, statements, or extended analysis
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
-29. **search**
+29. **list_graphs**
+    - List all the graphs in your InfraNodus account, with optional filters by name, type, date, language, or favorite status
+    - Use it to discover which graphs exist before analyzing, searching, or retrieving from them
+
+30. **search**
     - Search through existing InfraNodus graphs
     - Also use it to search through the public graphs of a specific user
     - Compatible with ChatGPT Deep Research mode via Developer Mode > Connectors
 
-30. **fetch**
+31. **fetch**
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 
-31. **enable_project_learnings**
+32. **enable_project_learnings**
     - Create the opt-in, per-project, append-only learnings graph (`learn-<project>`) in your account — the place where the assistant saves what it learned about operating in a project
     - Called only when you explicitly ask to start saving learnings for a project; idempotent, so calling it again just returns the existing graph
     - The assistant tells you first what will be stored (project knowledge only, never anything about you), where (a private graph you can delete at any time), and that batches are shown before saving
 
-32. **add_project_learnings**
+33. **add_project_learnings**
     - Save learnings about a project — where things live, traps, conventions, decisions, workflows, and a self-assessment of what worked well and what should be done differently next time — as statements with a `type` category each, for later sessions on any client
     - Refuses (without error) when the project has not been enabled and never creates the graph itself
     - Dry run by default: returns what would be written, marking near-duplicates as `reinforced`; writes only with `confirm: true` — or in the same call when your client supports MCP elicitation and you approve the form
     - Rejects statements with secret-like content server-side (indices only, never the content)
 
-33. **get_project_learnings**
+34. **get_project_learnings**
     - Retrieve learnings for a project: by `prompt` (GraphRAG — most relevant statements plus an overview of what is known), by `entity` (a file path, module, or concept), or a structural overview with neither
     - Call with no `project` to list the projects that have learnings in your account
     - Returns `enabled: false` with an empty list when a project has no learnings graph — not an error
 
     _Also available as the `save-learnings` prompt in clients that expose MCP prompts. Set `INFRANODUS_LEARNINGS=0` to remove these three tools from the server entirely (see [Project learnings](#project-learnings))._
 
-34. **optimize_knowledge_base**
+35. **optimize_knowledge_base**
     - Structural feedback on a whole code base, document vault, or body of procedural knowledge (rules, frameworks, principles) from its digest graph (`repo-<project>-digest` / `vault-<project>-digest`) — or from a digest you write and pass as text, saved with `saveAs`
     - Diagnoses the structure (biased / focused / diversified / dispersed) and reads it for the chosen `focus` (`codebase`, `vault`, `procedural`, `general`): what dominates, which areas are under-developed (with latent-topic ideas), which clusters never connect — missing integrations, missing bridge notes, missing hand-offs between frameworks — plus AI suggestions for what to develop next
     - `compareWith` up to two other layers of the same project (e.g. digest vs structure map, docs vs code) and get what each has that the other lacks: rules without code, code without documentation, features described but not built
     - Two ways to get the digest: the assistant reads the project and writes it (the infranodus skill's **digest** build mode, or `text` + `saveAs` here), or `generate_ontology_graph` with `ontologyMode: 'procedural'` writes it server-side from an uploaded docs/structure graph
     - Pairs with the infranodus skill's build modes: full ingestion, digest, structure map, ontology
 
-35. **submit_workflow_feedback**
+36. **submit_workflow_feedback**
     - Internal telemetry: after a workflow of InfraNodus calls, the assistant reports what it actually did with the output — how much it used, whether it contained anything new, whether it was the right tool, how many calls it took, concrete defects — as observations rather than a score; a rating is derived from them server-side
     - Autonomous: it never asks you anything and never surfaces in the conversation
     - The report contains short paraphrases of what you were working on (capped at 200 characters), the same policy as the prompts InfraNodus already logs; `MCPCAT_ANONYMOUS=1` skips the per-user log entirely
     - Set `INFRANODUS_FEEDBACK=0` to remove the tool (and the one-line nudge appended to workflow-ending results) from the server
 
-36. **delete_statements**
+37. **delete_statements**
     - Delete statements from a graph in your own account by a filter the server resolves — exactly one of `categories` (everything uploaded under a source label: a file path, a page name, a `[[label]]` parent), `statements` (exact text), `query` (substring or `/regex/`), `before`/`after` (ISO 8601 window), `deleteAll` (empties the graph but keeps its name, URL, and settings), or `statementIds`
     - Dry run by default: returns the matched count, a sample of the statements, and a per-category breakdown; nothing is removed until the same filter is sent again with `confirm: true` — or, on clients with MCP elicitation, until you accept the form in the same call. A filter that matches nothing returns `deleted: 0` without asking
     - The per-source replace path: `delete_statements` with the source's category, then `create_knowledge_graph` to the same graph name. `deleteAll` then `create_knowledge_graph` rebuilds a graph in place
     - Irreversible, own-account only (no `userName`), never creates a graph, and the assistant is instructed never to call it on its own initiative. Set `INFRANODUS_DELETE=0` to remove the tool from the server
 
-37. **update_statements**
+38. **update_statements**
     - Edit statements of a graph in your own account **in place** — content, categories, or timestamp — keeping each statement's id, date, and position (unlike deleting and re-creating it)
     - Two modes: `edits` rewrites specific statements, each named by its exact current text (`match`, e.g. from `analyze_existing_graph_by_name` with `includeStatements`) or `statementId`; or one selector (the same as `delete_statements`, with `all` instead of `deleteAll`) plus `set` (`addCategories`, `removeCategories`, `categories`, `timestamp`) and/or `replace` (`{ pattern, with }`, substring or `/regex/flags`) for bulk relabelling or a find-and-replace across the graph — renaming a `[[concept]]` or a source path everywhere
     - Dry run by default: returns the matched count and the before → after of every change; nothing is written until the same arguments are sent again with `confirm: true` — or, on clients with MCP elicitation, until you accept the form in the same call. A request that matches nothing returns `updated: 0` without asking
     - New content is capped at 1000 characters; for longer text use `delete_statements` then `create_knowledge_graph`. Irreversible (the old text survives only in the dry-run output), own-account only, never creates a graph, and the assistant is instructed never to call it on its own initiative. `INFRANODUS_DELETE=0` removes it together with `delete_statements`
 
-38. **delete_graph**
+39. **delete_graph**
     - Delete one graph from your own account entirely — its statements, revisions, settings, and URL; the name becomes free again. `delete_statements` with `deleteAll` is the alternative that keeps the graph for a rebuild in place
     - Dry run by default: confirms the graph exists and reports its URL and whether it is a live graph; nothing is removed until the same `graphName` is sent again with `confirm: true`. Clients that support elicitation ask you directly and delete in the same call
     - Irreversible, own-account only (no `userName`; the graph is resolved from your API key's own graph list and the backend scopes the delete to the same user), and the assistant is instructed never to call it on its own initiative. `INFRANODUS_DELETE=0` removes it together with the other two mutation tools

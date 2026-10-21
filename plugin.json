@@ -1,0 +1,20 @@
+{
+	"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+	"name": "infranodus",
+	"version": "1.8.5",
+	"description": "InfraNodus knowledge graphs and text network analysis: topics, content gaps, research questions, GraphRAG retrieval, SEO/GEO analysis, and structured memory for AI agents.",
+	"author": {
+		"name": "Nodus Labs",
+		"url": "https://infranodus.com"
+	},
+	"homepage": "https://infranodus.com/mcp",
+	"repository": "https://github.com/infranodus/mcp-server-infranodus",
+	"license": "MIT",
+	"keywords": [
+		"infranodus",
+		"infranodus mcp",
+		"infranodus graph",
+		"knowledge graph",
+		"text network analysis"
+	]
+}

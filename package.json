@@ -1,6 +1,6 @@
 {
 	"name": "infranodus-mcp-server",
-	"version": "1.8.4",
+	"version": "1.8.5",
 	"description": "InfraNodus MCP server - A Model Context Protocol server for network thinking and graph analysis",
 	"type": "module",
 	"module": "src/index.ts",
@@ -53,6 +53,7 @@
 		"publish:in": "npm run build:inspect && node scripts/publish-brand.mjs infranodus",
 		"publish:kg": "npm run build:inspect && node scripts/publish-brand.mjs keywordgraph",
 		"prepublishOnly": "npm run build:inspect",
+		"version": "node scripts/sync-plugin-version.mjs && git add plugin.json .cursor-plugin/plugin.json .grok-plugin/plugin.json",
 		"test": "npm run build:inspect && node --test 'test/**/*.test.mjs'"
 	},
 	"dependencies": {
