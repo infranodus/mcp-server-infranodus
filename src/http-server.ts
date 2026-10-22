@@ -36,6 +36,7 @@ import {
 	ClientRegistrationRequest,
 } from "./auth/types.js";
 import { brand, brandApiBase } from "./config/brand.js";
+import { serverInfo } from "./config/index.js";
 
 // Load environment variables
 dotenv.config();
@@ -1018,7 +1019,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: `${brand.name} MCP Server`,
-		version: "1.7.3",
+		version: serverInfo.version,
 		description: `MCP server for ${brand.name} knowledge graph analysis`,
 		endpoints: {
 			oauth: {
