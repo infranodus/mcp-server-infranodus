@@ -24,6 +24,8 @@ export async function makeInfraNodusRequest(
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${config.apiKey}`,
+				// Lets the app attribute the call to the MCP surface (lib/clientApplication.js).
+				"X-Infranodus-Client": "mcp-server",
 			},
 			...(method !== "GET" && { body: JSON.stringify(requestBody) }),
 			...(options.signal && { signal: options.signal }),
