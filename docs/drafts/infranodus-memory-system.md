@@ -73,7 +73,7 @@ opt-in.
 
 Clients without hooks (Claude web, ChatGPT) get recall and saving through MCP
 when the agent chooses. Automatic capture is for clients with hooks, starting
-with Claude Code.
+with Claude Code (see "Hooks for other clients" below).
 
 ## Architecture: where each piece lives
 
@@ -143,6 +143,76 @@ tools keep working.
 
 It stays out of `infranodus-all` at first.
 
+## Hooks for other clients
+
+Several coding agents besides Claude Code run shell hooks on session and tool
+events (Codex CLI, Cursor, Windsurf, Gemini CLI, Kimi and others; OpenCode and
+OpenClaw take in-process JS plugins instead). The memory cycle should work in
+all of them without a separate implementation per client.
+
+### One entry point, one adapter per client
+
+Every client calls the same command with the client and the event:
+
+```
+infranodus-memory hook <client> <event>      # e.g. hook cursor prompt, hook codex stop
+```
+
+- **Normalize input.** Each client sends a different JSON payload on stdin
+  (different field names for session id, prompt, tool name, file edits). A
+  small adapter per client maps it to one internal event:
+  `{ client, sessionId, cwd, event, prompt?, tool?, toolInput?, toolResult?, filePath?, toolUseId? }`.
+  The events are the same four everywhere: `start`, `prompt`, `tool`, `stop`
+  (plus `compact` where the client has it).
+- **Shared core.** Recall, the local queue, the enable-state cache and the
+  ingest worker are the same code for every client. Adapters never call the
+  API themselves.
+- **Format output.** Each adapter turns the core's result into what its client
+  accepts: `hookSpecificOutput.additionalContext` where the client supports
+  context injection (Claude Code, Codex), a plain `{ continue: true }` where
+  it doesn't.
+- **Unknown clients** fall back to a `raw` adapter that reads the internal
+  event shape directly, so a new client can be wired up from its config file
+  before it gets its own adapter.
+
+### Clients that can't inject context: a rules file
+
+Some clients let a hook observe prompts and tools but not add text to the
+conversation. For those, recall writes its block to the client's
+always-applied rules file in the project instead (for example
+`.cursor/rules/infranodus-memory.mdc` with `alwaysApply: true`, or the
+`.windsurf/rules/` equivalent). The file is refreshed on `prompt` and after a
+successful ingest, carries a "generated, do not edit" header, and is added to
+the project's `.gitignore` by the installer so recalled memory isn't
+committed. The agent then sees the same block it would see in Claude Code.
+
+### Clients without hooks
+
+- **In-process plugins** (OpenCode, OpenClaw): a thin JS plugin that calls the
+  same command (or the same endpoints) on the client's own events.
+- **No hooks at all** (Claude web, ChatGPT, Copilot chat): MCP only, as today;
+  the agent recalls and saves through the tools when it chooses. A later
+  option is reading the client's local session transcripts at the next session
+  start and ingesting them then, but only where those transcripts are
+  documented and stable.
+
+### Installer and registration
+
+- `infranodus-memory install --client <name>` writes the client's hook config
+  (its `hooks.json` or equivalent, user- or project-level), the MCP server
+  entry if missing, and the rules file where needed. `uninstall` removes
+  exactly what it wrote. Claude Code keeps using the plugin instead.
+- Each client kills a hook after its own timeout. Keep a single table of the
+  timeouts the installer registers per client, size the recall request budget
+  from it (the client limit minus process start-up), and test that the
+  registered configs match the table.
+- Every hook command checks an off switch first
+  (`INFRANODUS_MEMORY_DISABLE=1`, or `..._DISABLE_CAPTURE=1` to keep recall
+  only) and exits 0 when it is set.
+- `client` is sent with every `recall` and `ingest`, so usage and extraction
+  quality can be compared per client, and `toolUseId` (where the client
+  provides it) dedups repeated tool events in the queue.
+
 ## Recall output (what the agent sees)
 
 ```
@@ -162,7 +232,8 @@ Gap: quota decisions are never connected to the rate-limiter fix.
 | 1 | Learnings and memory endpoints; MCP tools moved onto them | app, mcp | None (refactor), one implementation |
 | 2 | `/recall` and the plugin with the recall hook only | app, skills | Context at session start; nothing written |
 | 3 | Local capture, `/ingest`, inboxes, `/memory review` | app, skills, mcp | Full cycle in review mode |
-| 4 | `auto` mode, personal memory, device login, hooks for other clients | all | Polish |
+| 4 | `auto` mode, personal memory, device login | all | Polish |
+| 5 | Hooks for other clients: shared entry point and adapters, rules-file recall, installer per client (start with Codex CLI and Cursor) | skills, app | The same cycle outside Claude Code |
 
 Before building phase 3, test extraction quality offline: run the ingest
 prompt on 5–10 real session transcripts and hand-check precision (no
@@ -183,3 +254,12 @@ risk in the project.
    use the naming rules.
 5. Should a user's `CLAUDE.md`/memory files and InfraNodus personal memory
    stay separate? Proposal: yes; never sync automatically.
+6. Runtime for the multi-client hook command: standard-library Python (no
+   install, matches `repo2statements.py`, but needs Python 3 on the machine)
+   or a Node CLI shipped with the npm MCP package (`npx` already used for the
+   server, but Claude Code's native installer doesn't guarantee Node).
+   Proposal: Python stdlib; revisit if a client's plugin API is JS-only.
+7. Where the multi-client code lives: in `Skills/InfraNodus-Skills`
+   (`skill-memory/`) next to the Claude Code plugin, or in its own repo once
+   there are installers for several clients. Proposal: start in the skills
+   repo, split later.
