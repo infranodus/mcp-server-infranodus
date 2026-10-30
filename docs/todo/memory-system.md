@@ -12,6 +12,8 @@ Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-
 - [ ] Add `enable_memory` (topic or personal), mirroring `enable_project_learnings`: never called without an explicit user request
 - [ ] Pass the `language` field through on every call
 - [ ] Update `src/instructions.ts`: the three kinds of memory (learnings / topic memory / personal), which tool for which, and that personal facts never go into learnings
+- [ ] The MCP tools stay opt-in: no default-on here (that applies only to the `infranodus-memory` plugin's hooks). A project created by the plugin already has the `learnings-enabled` marker, so `get_project_learnings` and `add_project_learnings` work on it without `enable_project_learnings`; `add` still needs `confirm`
+- [ ] Respect the `memory-disabled` marker: `add_project_learnings` refuses with a message that memory was turned off for this project
 - [ ] Update the README tool list and the descriptions changed in `1113ec9`
 
 ## Phase 3: review

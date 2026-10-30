@@ -31,9 +31,9 @@ cannot reuse it.
 
 | Kind | Holds | Example | Graph | Consent |
 |---|---|---|---|---|
-| **Learnings** (procedural) | How to work in a project: locations, traps, conventions, decisions, workflows, approaches | "infranodus-app tests need `node -r @babel/register`" | `learn-<project>` (+ `learn-<project>-inbox`) | Per project, as today |
-| **Memory** (declarative) | Entities and relations in a topic, case or client | "[[Legal Play]] is operated by [[Ways Ltd]]" | `mem-<topic>` (+ `-inbox`) | Per topic |
-| **Personal** | The user's preferences and working style, across projects | "Prefers plain-language summaries before details" | `me-<user>` (+ `-inbox`) | Separate, explicit opt-in |
+| **Learnings** (procedural) | How to work in a project: locations, traps, conventions, decisions, workflows, approaches | "infranodus-app tests need `node -r @babel/register`" | `learn-<project>` (+ `learn-<project>-inbox`) | Memory plugin: on from install, opt-out per project. MCP tools and skills: per-project opt-in, as today |
+| **Memory** (declarative) | Entities and relations in a topic, case or client | "[[Legal Play]] is operated by [[Ways Ltd]]" | `mem-<topic>` (+ `-inbox`) | Per topic. The plugin writes only to topics already linked to the project and never creates new ones |
+| **Personal** | The user's preferences and working style, across projects | "Prefers plain-language summaries before details" | `me-<user>` (+ `-inbox`) | Separate, explicit opt-in everywhere, including the plugin |
 
 Project learnings keep their rule "never anything about the person". Personal
 memory is the only place facts about the user may go, and only after its own
@@ -55,19 +55,25 @@ opt-in.
    injects nothing and says nothing.
 2. **Capture** (during the session). Hooks append to a local queue in the
    plugin's data folder: prompts, tool failures, files touched, final answers.
-   No network calls on this path. If the project isn't enabled, nothing is
-   recorded.
+   No network calls on this path. Nothing is recorded when the project is
+   turned off, excluded or not a project (see "Default-on in the memory
+   plugin"), and secrets are redacted before anything is written.
 3. **Ingest** (PreCompact, SessionEnd). A detached worker posts the queue to
    `POST /api/v1/ingest`. The server makes one AI call that extracts short
    statements with `[[entities]]` marked and classifies each as
    learning / memory / personal. Statements for kinds that aren't enabled are
    dropped. The rest are deduplicated against the target graph and either
-   supersede the statements they replace or are appended.
-4. **Review or auto** (a per-scope mode, stored with the consent marker).
-   - `review` (default): writes go to the `-inbox` graph. The next recall
-     includes "N new learnings waiting", and `/memory review` (or the MCP
-     review tool) promotes or discards them.
-   - `auto`: writes go straight to the main graph.
+   supersede the statements they replace or are appended. Every statement is
+   tagged with a `session-<id>` category so a whole session can be undone.
+4. **Auto or review** (a per-scope mode, stored with the consent marker).
+   - `auto` (default for the memory plugin): writes go straight to the main
+     graph. The next recall says what was saved ("Saved 4 learnings from your
+     last session") and `/memory forget-last` deletes them by their
+     `session-<id>` category.
+   - `review` (default for writes through the MCP tools; optional for the
+     plugin): writes go to the `-inbox` graph. The next recall includes "N new
+     learnings waiting", and `/memory review` (or the MCP review tool)
+     promotes or discards them.
 5. **On demand.** The MCP tools keep working mid-task:
    `get_project_learnings`, `memory_get_relations`, `retrieve_from_knowledge_base`.
 
@@ -95,8 +101,10 @@ with Claude Code (see "Hooks for other clients" below).
 | `POST /memory/enable` `{ scope: "topic"\|"personal", topic?, mode? }` | Creates `mem-<topic>` or `me-<user>` with a marker |
 | `POST /memory/add` `{ scope, topic?, statements[], timestamps?[], confirm }` | Requires ≥ 2 `[[entities]]` per statement; dedups; supersedes by entity pair + relation |
 | `POST /memory/get` `{ scope, topic?, entity?, prompt?, limit? }` | Entity lookup, or GraphRAG over the graph when `prompt` is given |
-| `POST /recall` `{ project, prompt, language? }` | Fast path for the hook: searches enabled learnings, the topics linked to the project, and personal memory; returns `{ items: [{ kind, text }], gap?, inboxCount? }`, already formatted. Target p95 < 1.5 s |
-| `POST /ingest` `{ project, excerpt, client, sessionId }` | One AI call to extract and classify; writes per mode; returns counts per kind. Idempotent per `sessionId` (a retried flush must not double-write) |
+| `POST /recall` `{ project, prompt, client, language? }` | Fast path for the hook: searches the project's learnings, the topics linked to the project, and personal memory if enabled; returns `{ enabled, mode, firstRun, items: [{ kind, text }], saved?, gap?, inboxCount?, quotaPaused? }`, already formatted. `enabled` is true unless the project has a `memory-disabled` marker. Target p95 < 1.5 s |
+| `POST /ingest` `{ project, excerpt, client, sessionId }` | One AI call to extract and classify; creates `learn-<slug>` (with the `learnings-enabled` marker, source `memory-plugin`) on the first ingest that yields statements; writes per mode; tags statements `session-<id>`; returns counts per kind. Idempotent per `sessionId` (a retried flush must not double-write). Refuses projects with `memory-disabled` |
+| `POST /memory/disable` `{ project, deleteGraph? }` | Adds the `memory-disabled` marker (creating a minimal graph if none exists); optionally deletes the learnings graph. `/memory/enable-project` removes the marker |
+| `POST /memory/forget` `{ project, sessionId? }` | Deletes the statements of one session (the last one by default) by their `session-<id>` category |
 
 Usage: `recall` counts as an API call, `ingest` as an AI call (see the API quota
 notes in the backend's `docs/custom-api-quota.md`). All endpoints take the
@@ -111,25 +119,70 @@ candidate old statements. The old statement is kept with its timestamp and a
 `superseded` category, so time-filtered queries still find it, and is excluded
 from recall.
 
+### Default-on in the memory plugin
+
+Installing the `infranodus-memory` plugin is the consent for project
+learnings: the install screen shows what it does, and it asks for the API key
+there. After that it works in every project without an enable step. This
+applies **only to the plugin** (its hooks and the `/recall` and `/ingest`
+endpoints). The MCP tools, the `project-learnings` skill and the other skills
+keep the per-project opt-in and the `confirm` step.
+
+- **Opt-out, not opt-in.** A project is on unless it has a `memory-disabled`
+  marker. `/memory off` sets it (and can delete the graph); `/memory on`
+  clears it.
+- **No empty graphs.** `learn-<slug>` is created at the first ingest that
+  yields statements, with the `learnings-enabled` marker (source
+  `memory-plugin`), so the MCP tools treat it as enabled from then on.
+  Projects the plugin has never written to keep the normal opt-in flow.
+- **Kinds.** Learnings: on. Topic memory: only topics already linked to the
+  project; the plugin never creates topic graphs. Personal memory: opt-in,
+  as everywhere else.
+- **`auto` by default, with undo.** Each session's statements carry a
+  `session-<id>` category; the recall line reports what was saved, and
+  `/memory forget-last` removes it.
+- **Told once per project.** On the first session in a project, the hook shows
+  the user (not only the agent) one line: "InfraNodus memory is on for
+  `<project>` → graph link. `/memory off` to stop for this project."
+- **Guards on the capture path:**
+  - `userConfig.exclude_paths` (globs such as `~/clients/*`)
+  - no capture in the home directory, temp folders, or folders that are not a
+    git repo and have no project marker
+  - redaction of API keys, tokens, private keys and `.env` contents before the
+    queue is written
+  - text inside `<private>…</private>` is never captured
+  - `INFRANODUS_MEMORY_DISABLE=1` turns everything off,
+    `INFRANODUS_MEMORY_DISABLE_CAPTURE=1` keeps recall only
+- **Quota.** Ingest costs one AI call per session. When the account's limit
+  is reached, ingest pauses, recall keeps working, and the recall line says
+  so.
+- **Not in `infranodus-all`.** A bundle install would turn on background
+  capture for users who only wanted the graph tools. The plugin stays a
+  separate install until the bundle can ask on first run.
+
 ### Consent and data boundaries (non-negotiable)
 
-1. Nothing is captured or sent for a project, topic or person scope that isn't
-   enabled. The hook checks locally first (cached enable state), the server
-   checks again.
-2. `review` is the default mode. `auto` is set only by the user's own request.
+1. Nothing is captured or sent for a project the user turned off or excluded,
+   or for a topic or person scope that isn't enabled. The hook uses the
+   `enabled` flag returned by the session's first recall; the server checks
+   again on `/ingest`.
+2. Outside the memory plugin, the per-project opt-in and `confirm` stay as
+   they are, and `review` is the default mode for MCP writes.
 3. Personal memory has its own opt-in and its own graph. Ingest never writes
    facts about the user into learnings or topic memory.
-4. The local queue never leaves the machine except through `/ingest` for an
-   enabled scope. It is deleted after a successful ingest.
-5. The skills README's "What gets uploaded and where" table gets a row for the
-   memory plugin.
+4. The local queue never leaves the machine except through `/ingest`. It is
+   redacted before writing and deleted after a successful ingest.
+5. The skills README's "What gets uploaded and where" table and the InfraNodus
+   privacy policy describe the plugin's default-on behaviour.
 
 ### Authentication for hooks
 
-Hooks cannot reuse the MCP server's OAuth session. Phase 1: a sensitive
-`userConfig.api_key` in the plugin. Later: an
-`infranodus login` device-code flow that stores a token in
-`${CLAUDE_PLUGIN_DATA}`. Without a credential, the hooks are a no-op and the MCP
+Hooks cannot reuse the MCP server's OAuth session. Phase 2: a required,
+sensitive `userConfig.api_key`, asked for by Claude Code at install, so the
+plugin is active as soon as it is installed. Later: an `infranodus login`
+device-code flow at the first session start that stores a token in
+`${CLAUDE_PLUGIN_DATA}`, after which the key becomes optional. If the key is
+invalid, the hooks are a no-op, the first-run line says so once, and the MCP
 tools keep working.
 
 ### Why a separate plugin for the hooks
@@ -137,8 +190,9 @@ tools keep working.
 - Claude Code merges duplicate MCP servers across plugins, but it does **not**
   merge hooks. Hooks in `infranodus`, `infranodus-all` and `project-learnings`
   would capture a session two or three times.
-- Installing the plugin is part of the consent: hooks run on every prompt, and
-  users who want only graph analysis shouldn't get background capture.
+- Installing the plugin is the consent: it is on from install (see
+  "Default-on in the memory plugin"), and users who want only graph analysis
+  shouldn't get background capture.
 - It needs an API key the core plugin shouldn't ask for.
 
 It stays out of `infranodus-all` at first.
@@ -222,7 +276,15 @@ From InfraNodus memory (learn-infranodus-app, mem-legal-play, me):
 - [memory] Legal Play → custom API quota PARTNER_LEGALPLAY (manual SQL, no isCustom yet)
 - [personal] prefers drafts written to the draft/ folder
 Gap: quota decisions are never connected to the rate-limiter fix.
-3 new learnings waiting for review (/memory review).
+Saved 4 learnings from your last session (/memory forget-last to undo).
+```
+
+On the first session in a project, the user also sees (as a message to them,
+not hidden context):
+
+```
+InfraNodus memory is on for infranodus-app → https://infranodus.com/<user>/learn-infranodus-app
+/memory off to stop for this project.
 ```
 
 ## Phases
@@ -230,15 +292,17 @@ Gap: quota decisions are never connected to the rate-limiter fix.
 | # | Work | Repos | Visible result |
 |---|---|---|---|
 | 1 | Learnings and memory endpoints; MCP tools moved onto them | app, mcp | None (refactor), one implementation |
-| 2 | `/recall` and the plugin with the recall hook only | app, skills | Context at session start; nothing written |
-| 3 | Local capture, `/ingest`, inboxes, `/memory review` | app, skills, mcp | Full cycle in review mode |
-| 4 | `auto` mode, personal memory, device login | all | Polish |
+| 2 | `/recall`, `/memory/disable`; the plugin with the required key, the recall hook, the first-run line and `/memory off`/`on` | app, skills | Context at session start; nothing written |
+| 3 | Local capture with guards and redaction, `/ingest` (auto mode, lazy graph creation, `session-<id>` tags), `/memory/forget`, quota pause; inboxes and `/memory review` for review mode | app, skills, mcp | Full cycle, on from install |
+| 4 | Personal memory, device login | all | Polish |
 | 5 | Hooks for other clients: shared entry point and adapters, rules-file recall, installer per client (start with Codex CLI and Cursor) | skills, app | The same cycle outside Claude Code |
 
 Before building phase 3, test extraction quality offline: run the ingest
 prompt on 5–10 real session transcripts and hand-check precision (no
-user facts in learnings, no trivia, decisions with reasons). This is the main
-risk in the project.
+user facts in learnings, no trivia, decisions with reasons, no session-diary
+statements). This is the main risk in the project, and default-on `auto`
+mode makes it more so: nobody reviews what is written, so precision has to be
+good before phase 3 ships.
 
 ## Open questions
 
@@ -263,3 +327,5 @@ risk in the project.
    (`skill-memory/`) next to the Claude Code plugin, or in its own repo once
    there are installers for several clients. Proposal: start in the skills
    repo, split later.
+8. Should `/memory off` delete the project's graph by default, or only stop
+   capture? Proposal: only stop; deleting is a separate, explicit choice.
