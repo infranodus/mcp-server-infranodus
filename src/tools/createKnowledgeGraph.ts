@@ -25,6 +25,7 @@ export const createKnowledgeGraphTool = {
 			readOnlyHint: false,
 			idempotentHint: false,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (params: z.infer<typeof CreateGraphSchema>) => {

@@ -989,6 +989,20 @@ app.get("/llms-full.txt", (_req: Request, res: Response) => {
 	serveLlmsFile("llms-full.txt", res);
 });
 
+/**
+ * GET /.well-known/openai-apps-challenge - OpenAI plugin directory domain
+ * verification. Serves the token from OPENAI_APPS_CHALLENGE as plain text
+ * (exactly the token, nothing else); 404 when the variable is unset.
+ */
+app.get("/.well-known/openai-apps-challenge", (_req: Request, res: Response) => {
+	const token = process.env.OPENAI_APPS_CHALLENGE?.trim();
+	if (!token) {
+		res.status(404).type("text/plain").send("Not found");
+		return;
+	}
+	res.type("text/plain; charset=utf-8").send(token);
+});
+
 // ============================================================================
 // Health & Status Endpoints
 // ============================================================================

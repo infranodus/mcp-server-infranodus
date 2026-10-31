@@ -73,6 +73,7 @@ export const generateDifferenceGraphFromTextsTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (

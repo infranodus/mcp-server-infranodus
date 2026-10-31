@@ -14,7 +14,8 @@ export const searchExistingGraphsFetchTool = {
 		annotations: {
 		   "readOnlyHint": true,
 		   "idempotentHint": true,
-		   "destructiveHint": false
+		   "destructiveHint": false,
+		   "openWorldHint": false
 		},
 	},
 	handler: async (params: z.infer<typeof SearchExistingGraphsFetchSchema>) => {

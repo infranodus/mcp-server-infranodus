@@ -33,6 +33,7 @@ export const developTextTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (

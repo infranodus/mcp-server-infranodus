@@ -15,6 +15,7 @@ export const retrieveContextForPromptFromGraphTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: false,
 		},
 	},
 	handler: async (

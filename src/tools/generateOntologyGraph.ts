@@ -106,6 +106,7 @@ export const generateOntologyGraphTool = {
 			readOnlyHint: false,
 			idempotentHint: false,
 			destructiveHint: false,
+			openWorldHint: false,
 		},
 	},
 	handler: async (

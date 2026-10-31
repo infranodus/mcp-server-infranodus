@@ -35,6 +35,7 @@ export const generateSEOGraphTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (
