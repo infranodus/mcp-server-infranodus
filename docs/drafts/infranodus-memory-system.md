@@ -55,15 +55,18 @@ opt-in.
    line. The hook injects it as `additionalContext`. On timeout or error it
    injects nothing and says nothing.
 2. **Capture** (during the session). Hooks append to a local queue in the
-   plugin's data folder: prompts, tool failures, files touched, final answers.
+   plugin's data folder: prompts, tool failures, files touched, final answers,
+   and successful shell commands (read-only ones such as `ls` or `grep` left
+   out).
    No network calls on this path. Nothing is recorded when the project is
    turned off, excluded or not a project (see "Default-on in the memory
    plugin"), and secrets are redacted before anything is written.
 3. **Ingest** (PreCompact, SessionEnd). A detached worker posts the queue to
    `POST /api/v1/ingest`. The server makes one AI call that extracts short
    statements with `[[entities]]` marked and classifies each as
-   learning / memory / personal. Statements for kinds that aren't enabled are
-   dropped. The rest are deduplicated against the target graph and either
+   learning / memory / personal, with the project each statement is about.
+   Statements for kinds that aren't enabled are dropped, and so are
+   statements about another project unless memory is on there. The rest are deduplicated against the target graph and either
    supersede the statements they replace or are appended. Every statement is
    tagged with a `session-<id>` category so a whole session can be undone.
 4. **Auto or review** (a per-scope mode, stored with the consent marker).
@@ -104,7 +107,7 @@ with Claude Code (see "Hooks for other clients" below).
 | `POST /memory/add` `{ scope, topic?, statements[], timestamps?[], confirm }` | Requires ≥ 2 `[[entities]]` per statement; dedups; supersedes by entity pair + relation |
 | `POST /memory/get` `{ scope, topic?, entity?, prompt?, limit? }` | Entity lookup, or GraphRAG over the graph when `prompt` is given |
 | `POST /recall` `{ project, prompt, client, language? }` | Fast path for the hook: searches the project's learnings and personal memory if enabled (topic graphs are not searched in v1, see open question 1); returns `{ enabled, mode, firstRun, items: [{ kind, text }], saved?, gap?, inboxCount?, quotaPaused? }`, already formatted. `enabled` is true unless the project has a `memory-disabled` marker. Target p95 < 1.5 s |
-| `POST /ingest` `{ project, excerpt, client, sessionId }` | One AI call to extract and classify; creates `learn-<slug>` (with the `learnings-enabled` marker, source `memory-plugin`) on the first ingest that yields statements; writes per mode; tags statements `session-<id>`. Returns 202 at once and extracts in the background (the counts reach the user through the next recall's `saved`). Idempotent per `sessionId` (a retried flush must not double-write). Refuses projects with `memory-disabled` |
+| `POST /ingest` `{ project, excerpt, client, sessionId }` | One AI call to extract and classify, with structured output (a JSON schema, never parsed from free text). Each statement carries `project`, `kind` and `type`: a statement about a neighbouring repo is written to that repo's graph if memory is on there and dropped otherwise; `personal` statements (preferences, and facts about the user's machine or agent setup) go to personal memory once phase 4 adds it and are dropped until then. The prompt drops snapshot facts (versions, branch or commit state, "currently"). Prompt and test results: `infranodus-memory-plugin/experiments/extraction/`. creates `learn-<slug>` (with the `learnings-enabled` marker, source `memory-plugin`) on the first ingest that yields statements; writes per mode; tags statements `session-<id>`. Returns 202 at once and extracts in the background (the counts reach the user through the next recall's `saved`). Idempotent per `sessionId` (a retried flush must not double-write). Refuses projects with `memory-disabled` |
 | `POST /memory/disable` `{ project, deleteGraph? }` | Adds the `memory-disabled` marker (creating a minimal graph if none exists); optionally deletes the learnings graph. `/memory/enable-project` removes the marker |
 | `POST /memory/forget` `{ project, sessionId? }` | Deletes the statements of one session (the last one by default) by their `session-<id>` category |
 
@@ -361,9 +364,14 @@ good before phase 3 ships.
    Topic graphs aren't linked to projects, searched by recall or written by
    the plugin; they stay available through the MCP memory tools. A
    `linkedTopics` marker in `learn-<slug>` can be added later.
-2. Does `ingest` need the full excerpt, or should the hook pre-trim locally
-   (last N turns, failures, final answers) to bound cost and data sent?
-   Proposal: pre-trim to ≤ 6k tokens.
+2. ~~Full excerpt or pre-trimmed?~~ Decided 2026-10-31 after the step-2
+   extraction test: the hook pre-trims locally to about 6k tokens (prompts,
+   final answers, failures, files edited, most recent turns kept) plus a list
+   of successful shell commands of up to about 1.5k tokens. Trimmed found
+   most of what the full session gave at a tenth of the cost; the commands
+   list brings back the how-to-run knowledge trimming lost. A small, cheap
+   model was enough with the revised prompt; the default model is picked from
+   InfraNodus's own list once `/ingest` exists.
 3. Personal memory scope: per InfraNodus account, or per client? Proposal:
    per account (`personal-<username>`), readable from every client.
 4. Old `memory_add_relations` graphs with free names: leave as they are, or
