@@ -1,6 +1,6 @@
 {
 	"name": "infranodus",
-	"version": "1.8.5",
+	"version": "1.8.6",
 	"description": "InfraNodus knowledge graphs and text network analysis: topics, content gaps, research questions, GraphRAG retrieval, SEO/GEO analysis, and structured memory for AI agents.",
 	"author": {
 		"name": "Nodus Labs"
