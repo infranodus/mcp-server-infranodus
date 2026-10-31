@@ -33,8 +33,8 @@ cannot reuse it.
 | Kind | Holds | Example | Graph | Consent |
 |---|---|---|---|---|
 | **Learnings** (procedural) | How to work in a project: locations, traps, conventions, decisions, workflows, approaches | "infranodus-app tests need `node -r @babel/register`" | `learn-<project>` (+ `learn-<project>-inbox`) | Memory plugin: on from install, opt-out per project. MCP tools and skills: per-project opt-in, as today |
-| **Memory** (declarative) | Entities and relations in a topic, case or client | "[[Legal Play]] is operated by [[Ways Ltd]]" | `mem-<topic>` (+ `-inbox`) | Per topic, through the MCP tools. The plugin doesn't read or write topic graphs in v1 |
-| **Personal** | The user's preferences and working style, across projects | "Prefers plain-language summaries before details" | `me-<user>` (+ `-inbox`) | Separate, explicit opt-in everywhere, including the plugin |
+| **Memory** (declarative) | Entities and relations in a topic, case or client | "[[Legal Play]] is operated by [[Ways Ltd]]" | `memory-<topic>` (+ `-inbox`) | Per topic, through the MCP tools. The plugin doesn't read or write topic graphs in v1 |
+| **Personal** | The user's preferences and working style, across projects | "Prefers plain-language summaries before details" | `personal-<user>` (+ `-inbox`) | Separate, explicit opt-in everywhere, including the plugin |
 
 Project learnings keep their rule "never anything about the person". Personal
 memory is the only place facts about the user may go, and only after its own
@@ -100,7 +100,7 @@ with Claude Code (see "Hooks for other clients" below).
 | `POST /learnings/enable` `{ project, mode? }` | Creates `learn-<slug>` with the `learnings-enabled` marker (and a mode marker). Idempotent. Same semantics as today's tool |
 | `POST /learnings/get` `{ project, prompt?, entity?, type?, limit? }` | Same as `get_project_learnings`; returns `enabled: false` without error when the graph is missing |
 | `POST /learnings/add` `{ project, statements[], types[], confirm }` | Same as `add_project_learnings`: dry run unless `confirm`, refuses when not enabled, dedups |
-| `POST /memory/enable` `{ scope: "topic"\|"personal", topic?, mode? }` | Creates `mem-<topic>` or `me-<user>` with a marker |
+| `POST /memory/enable` `{ scope: "topic"\|"personal", topic?, mode? }` | Creates `memory-<topic>` or `personal-<user>` with a marker |
 | `POST /memory/add` `{ scope, topic?, statements[], timestamps?[], confirm }` | Requires ≥ 2 `[[entities]]` per statement; dedups; supersedes by entity pair + relation |
 | `POST /memory/get` `{ scope, topic?, entity?, prompt?, limit? }` | Entity lookup, or GraphRAG over the graph when `prompt` is given |
 | `POST /recall` `{ project, prompt, client, language? }` | Fast path for the hook: searches the project's learnings and personal memory if enabled (topic graphs are not searched in v1, see open question 1); returns `{ enabled, mode, firstRun, items: [{ kind, text }], saved?, gap?, inboxCount?, quotaPaused? }`, already formatted. `enabled` is true unless the project has a `memory-disabled` marker. Target p95 < 1.5 s |
@@ -320,7 +320,7 @@ committed. The agent then sees the same block it would see in Claude Code.
 ## Recall output (what the agent sees)
 
 ```
-From InfraNodus memory (learn-infranodus-app, me):
+From InfraNodus memory (learn-infranodus-app, personal-dmt):
 - [learning] tests need `node -r @babel/register` (JSX reached via lib/live.js)
 - [learning] language override lives in getContextForEntry (lib/context.js)
 - [learning] Legal Play's custom API quota is set by manual SQL (no isCustom yet)
@@ -365,9 +365,9 @@ good before phase 3 ships.
    (last N turns, failures, final answers) to bound cost and data sent?
    Proposal: pre-trim to ≤ 6k tokens.
 3. Personal memory scope: per InfraNodus account, or per client? Proposal:
-   per account (`me-<username>`), readable from every client.
+   per account (`personal-<username>`), readable from every client.
 4. Old `memory_add_relations` graphs with free names: leave as they are, or
-   offer a one-off migration into `mem-*`? Proposal: leave them; new writes
+   offer a one-off migration into `memory-*`? Proposal: leave them; new writes
    use the naming rules.
 5. Should a user's `CLAUDE.md`/memory files and InfraNodus personal memory
    stay separate? Proposal: yes; never sync automatically.
