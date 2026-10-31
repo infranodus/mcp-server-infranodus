@@ -25,6 +25,7 @@ export const analyzeTextTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (params: z.infer<typeof AnalyzeTextSchema>) => {

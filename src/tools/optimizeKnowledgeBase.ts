@@ -91,8 +91,8 @@ export const optimizeKnowledgeBaseTool = {
 			`Use it after the infranodus skill has ingested a repo or vault, or on any saved graph, when the user asks to optimize, review, or find what is missing or under-developed in a project, vault, or set of rules.`,
 		inputSchema: OptimizeKnowledgeBaseSchema.shape,
 		annotations: {
-			readOnlyHint: true,
-			idempotentHint: true,
+			readOnlyHint: false,
+			idempotentHint: false,
 			destructiveHint: false,
 			openWorldHint: false,
 		},

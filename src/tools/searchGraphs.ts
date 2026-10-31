@@ -14,6 +14,7 @@ export const searchExistingGraphsTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof SearchExistingGraphsSchema>) => {

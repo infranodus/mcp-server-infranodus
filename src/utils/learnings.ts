@@ -350,8 +350,10 @@ export interface AppendResult {
 
 /**
  * Append statements (with parallel categories/timestamps) to an existing
- * graph. Sent as a plain statements payload — NOT via prepareStatementsPayload,
- * which would switch `categoriesAsMentions` on and turn the labels into nodes.
+ * graph. Sent as a plain statements payload, without contextSettings: the
+ * `type` labels stay metadata and never become nodes (the same as
+ * prepareStatementsPayload with categoriesAsNodes off), and an append must
+ * not carry settings anyway — the graph already has its own.
  */
 export async function appendLearnings(params: {
 	graphName: string;

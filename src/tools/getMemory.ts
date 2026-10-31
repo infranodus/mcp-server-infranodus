@@ -18,6 +18,7 @@ export const getMemoryTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof getMemorySchema>) => {

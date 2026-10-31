@@ -48,6 +48,7 @@ export const analyzeLlmResultsTool = {
 			readOnlyHint: false,
 			idempotentHint: false,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (params: z.infer<typeof AnalyzeLlmResultsSchema>) => {

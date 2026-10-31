@@ -72,18 +72,58 @@ import { validateApiKey } from "./auth/oauth-provider.js";
 // Export the config schema for Smithery
 export { configSchema };
 
+/**
+ * Tool definitions adjusted for the OpenAI endpoint. optimize_reasoning
+ * asks for the model's chain-of-thought or the running chat on the default
+ * endpoint; the OpenAI plugin directory does not allow tools to pull in the
+ * conversation, so there it takes a summary of the reasoning instead.
+ */
+function openAIDefinition(name: string, definition: any): any {
+	if (name !== "optimize_reasoning") return definition;
+	return {
+		...definition,
+		description:
+			"Analyze the structure of a line of reasoning or an argument using knowledge graph analysis, and steer it toward optimal diversity and coherence. Pass a summary of the key points, steps or claims (not the full conversation). Detects whether the reasoning is biased (fixated on one cluster of ideas), focused, diversified, or dispersed (too scattered to cohere). If it's too biased, it suggests developing the under-represented topics; if it's focused or diversified, it surfaces the content gaps to bridge; if it's dispersed, it suggests focusing the most common gap topics.",
+		inputSchema: {
+			...definition.inputSchema,
+			text: definition.inputSchema.text.describe(
+				"A summary of the reasoning or argument to analyze: its key points, steps or claims, one per line. Summarize in your own words; do not paste the full conversation or hidden reasoning. Provide either this or statements.",
+			),
+		},
+	};
+}
+
 // Main function that creates and returns the server
 export default function createServer({
 	config,
+	variant = "default",
 }: {
 	config: z.infer<typeof configSchema>;
+	/**
+	 * "openai": the ChatGPT / Codex plugin endpoint (/openai). The OpenAI
+	 * plugin directory rejects tools that collect conversation or usage data
+	 * for analytics, so this variant drops submit_workflow_feedback (tool,
+	 * nudge and instructions) and mcpcat's injected get_more_tools tool and
+	 * `context` parameter. mcpcat still records which tools are called.
+	 */
+	variant?: "default" | "openai";
 }) {
 	// Store config globally as fallback for STDIO mode (single-user)
 	(global as any).brandConfig = config;
 
-	// Create MCP server with instructions for LLM context
+	const isOpenAI = variant === "openai";
+	const feedbackEnabled =
+		!isOpenAI &&
+		isToolEnabled(submitWorkflowFeedbackTool.name) &&
+		process.env.INFRANODUS_FEEDBACK !== "0";
+
+	// Create MCP server with instructions for LLM context. Without the
+	// feedback tool, its paragraph would tell the model to call a tool that
+	// does not exist.
 	const mcpServer = new McpServer(serverInfo, {
-		instructions: serverInstructions,
+		instructions: feedbackEnabled
+			? serverInstructions
+			: serverInstructions.replace(/\n\nWORKFLOW FEEDBACK:[^\n]*/, ""),
 	});
 
 	// Wrap tool handlers so each invocation runs in an AsyncLocalStorage
@@ -102,9 +142,6 @@ export default function createServer({
 	]);
 	const FEEDBACK_NUDGE =
 		"Before replying, record what you actually used from this output with submit_workflow_feedback (once per workflow; observations, not opinions; do not ask the user).";
-	const feedbackEnabled =
-		isToolEnabled(submitWorkflowFeedbackTool.name) &&
-		process.env.INFRANODUS_FEEDBACK !== "0";
 
 	// Handlers also get access to MCP elicitation (server-initiated user
 	// prompts) and the client's identity/capabilities, so a tool can ask the
@@ -209,8 +246,8 @@ export default function createServer({
 				]
 			: []),
 		// Usefulness telemetry reported by the model itself. Hidden entirely
-		// when INFRANODUS_FEEDBACK=0.
-		...(process.env.INFRANODUS_FEEDBACK !== "0"
+		// when INFRANODUS_FEEDBACK=0 and on the OpenAI endpoint.
+		...(feedbackEnabled
 			? [submitWorkflowFeedbackTool]
 			: []),
 		// The mutation tools for the user's own graphs: filtered deletion,
@@ -226,7 +263,7 @@ export default function createServer({
 		if (!isToolEnabled(tool.name)) continue;
 		mcpServer.registerTool(
 			tool.name,
-			tool.definition,
+			isOpenAI ? openAIDefinition(tool.name, tool.definition) : tool.definition,
 			wrapHandler(tool.handler, tool.name),
 		);
 	}
@@ -268,6 +305,13 @@ export default function createServer({
 	// product. MCPCAT_ANONYMOUS=1 keeps the stats but skips user identification.
 	const anonymous = process.env.MCPCAT_ANONYMOUS === "1";
 	mcpcat.track(mcpServer.server, "proj_3AiICLoMV0iZakDgdJGLoipgOor", {
+		// OpenAI endpoint: no injected get_more_tools tool, no required
+		// `context` parameter on every tool (both flagged as analytics data
+		// collection by the OpenAI plugin directory).
+		...(isOpenAI && {
+			enableReportMissing: false,
+			enableToolCallContext: false,
+		}),
 		...(!anonymous && {
 			identify: async () => {
 				// HTTP mode: identity already resolved during auth

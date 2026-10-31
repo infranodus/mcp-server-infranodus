@@ -14,6 +14,7 @@ export const generateGoogleSearchResultsGraphTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (

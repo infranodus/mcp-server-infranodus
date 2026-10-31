@@ -28,6 +28,7 @@ export const generateResponsesFromGraphTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: true,
 		},
 	},
 	handler: async (params: z.infer<typeof GenerateResponsesFromGraphSchema>) => {

@@ -36,6 +36,7 @@ import {
 	ClientRegistrationRequest,
 } from "./auth/types.js";
 import { brand, brandApiBase } from "./config/brand.js";
+import { serverInfo } from "./config/index.js";
 
 // Load environment variables
 dotenv.config();
@@ -44,6 +45,8 @@ dotenv.config();
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 const BRAND_API_BASE = brandApiBase();
+// MCP endpoint for the ChatGPT / Codex plugin directory (createServer variant "openai").
+const OPENAI_PATH = "/openai";
 
 function escapeHtml(str: string): string {
 	return str
@@ -121,6 +124,16 @@ const sseTransports = new Map<
  * Auth middleware - validates Bearer token and attaches auth info to request.
  * Supports both JWT access tokens (from OAuth flow) and raw API keys.
  */
+/**
+ * Protected-resource metadata URL for the requested endpoint (RFC 9728):
+ * the OpenAI endpoint (/openai) has its own path-specific document.
+ */
+function resourceMetadataUrl(req: Request): string {
+	const baseUrl = `${req.protocol}://${req.get("host")}`;
+	const suffix = req.path.startsWith(OPENAI_PATH) ? OPENAI_PATH : "";
+	return `${baseUrl}/.well-known/oauth-protected-resource${suffix}`;
+}
+
 async function authMiddleware(
 	req: Request,
 	res: Response,
@@ -131,10 +144,9 @@ async function authMiddleware(
 
 	if (!authHeader || !authHeader.startsWith("Bearer ")) {
 		console.log(`[AUTH] Missing or invalid Authorization header`);
-		const baseUrl = `${req.protocol}://${req.get("host")}`;
 		res.setHeader(
 			"WWW-Authenticate",
-			`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
+			`Bearer resource_metadata="${resourceMetadataUrl(req)}"`,
 		);
 		const error: ErrorResponse = {
 			error: "unauthorized",
@@ -180,10 +192,9 @@ async function authMiddleware(
 	}
 
 	console.log(`[AUTH] All authentication methods failed`);
-	const baseUrl = `${req.protocol}://${req.get("host")}`;
 	res.setHeader(
 		"WWW-Authenticate",
-		`Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
+		`Bearer resource_metadata="${resourceMetadataUrl(req)}"`,
 	);
 	const error: ErrorResponse = {
 		error: "invalid_token",
@@ -594,6 +605,24 @@ app.get(
 	},
 );
 
+/**
+ * GET /.well-known/oauth-protected-resource/openai - path-specific metadata
+ * for the ChatGPT / Codex endpoint (RFC 9728 §3.1). Same authorization
+ * server; only the resource identifier differs.
+ */
+app.get(
+	`/.well-known/oauth-protected-resource${OPENAI_PATH}`,
+	(req: Request, res: Response) => {
+		const baseUrl = `${req.protocol}://${req.get("host")}`;
+		res.json({
+			resource: `${baseUrl}${OPENAI_PATH}`,
+			authorization_servers: [baseUrl],
+			scopes_supported: ["mcp", "read", "write"],
+			bearer_methods_supported: ["header"],
+		});
+	},
+);
+
 // ============================================================================
 // MCP Endpoints
 // ============================================================================
@@ -686,7 +715,11 @@ async function autoInitializeTransport(
 /**
  * Handle MCP requests with per-user sessions
  */
-async function handleMcpRequest(req: Request, res: Response) {
+async function handleMcpRequest(
+	req: Request,
+	res: Response,
+	variant: "default" | "openai" = "default",
+) {
 	const auth = getAuth(req);
 	if (!auth) {
 		console.log("[MCP] Request rejected: no auth");
@@ -707,8 +740,10 @@ async function handleMcpRequest(req: Request, res: Response) {
 	);
 	console.log(`[MCP] Body:`, JSON.stringify(req.body));
 
-	// Use session ID as the transport key
-	const sessionId = auth.sessionId;
+	// Use session ID as the transport key. The OpenAI endpoint gets its own
+	// key so one token used on both endpoints never shares a server instance.
+	const sessionId =
+		variant === "openai" ? `${auth.sessionId}-openai` : auth.sessionId;
 	let transport = transports.get(sessionId);
 
 	// Check for existing session ID in request (for session reuse)
@@ -749,10 +784,10 @@ async function handleMcpRequest(req: Request, res: Response) {
 			userId: auth.userId,
 			userName: auth.userName,
 		};
-		const server = createServer({ config });
+		const server = createServer({ config, variant });
 
 		await server.connect(transport);
-		console.log(`[MCP] Server connected to transport`);
+		console.log(`[MCP] Server connected to transport (${variant})`);
 
 		transports.set(sessionId, transport);
 
@@ -859,6 +894,24 @@ app.get("/mcp", authMiddleware, async (req: Request, res: Response) => {
 		}
 	}
 });
+
+/**
+ * /openai - Streamable HTTP endpoint for the ChatGPT / Codex plugin
+ * (see the `variant` option of createServer). POST, GET and DELETE behave
+ * like /mcp; no legacy SSE here.
+ */
+for (const method of ["post", "get", "delete"] as const) {
+	app[method](OPENAI_PATH, authMiddleware, async (req: Request, res: Response) => {
+		try {
+			await handleMcpRequest(req, res, "openai");
+		} catch (error) {
+			console.error(`MCP ${method.toUpperCase()} ${OPENAI_PATH} error:`, error);
+			if (!res.headersSent) {
+				res.status(500).json({ error: "Internal server error" });
+			}
+		}
+	});
+}
 
 /**
  * DELETE /mcp - End MCP session
@@ -988,6 +1041,20 @@ app.get("/llms-full.txt", (_req: Request, res: Response) => {
 	serveLlmsFile("llms-full.txt", res);
 });
 
+/**
+ * GET /.well-known/openai-apps-challenge - OpenAI plugin directory domain
+ * verification. Serves the token from OPENAI_APPS_CHALLENGE as plain text
+ * (exactly the token, nothing else); 404 when the variable is unset.
+ */
+app.get("/.well-known/openai-apps-challenge", (_req: Request, res: Response) => {
+	const token = process.env.OPENAI_APPS_CHALLENGE?.trim();
+	if (!token) {
+		res.status(404).type("text/plain").send("Not found");
+		return;
+	}
+	res.type("text/plain; charset=utf-8").send(token);
+});
+
 // ============================================================================
 // Health & Status Endpoints
 // ============================================================================
@@ -1018,7 +1085,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
 	}
 	res.json({
 		name: `${brand.name} MCP Server`,
-		version: "1.7.3",
+		version: serverInfo.version,
 		description: `MCP server for ${brand.name} knowledge graph analysis`,
 		endpoints: {
 			oauth: {

@@ -27,6 +27,7 @@ export const analyzeExistingGraphTool = {
 			readOnlyHint: true,
 			idempotentHint: true,
 			destructiveHint: false,
+			openWorldHint: false,
 		},
 	},
 	handler: async (params: z.infer<typeof AnalyzeExistingGraphSchema>) => {

@@ -1,0 +1,19 @@
+{
+	"name": "infranodus",
+	"version": "1.8.6",
+	"description": "InfraNodus knowledge graphs and text network analysis: topics, content gaps, research questions, GraphRAG retrieval, SEO/GEO analysis, and structured memory for AI agents.",
+	"author": {
+		"name": "Nodus Labs"
+	},
+	"homepage": "https://infranodus.com/mcp",
+	"repository": "https://github.com/infranodus/mcp-server-infranodus",
+	"license": "MIT",
+	"keywords": [
+		"infranodus",
+		"infranodus mcp",
+		"infranodus graph",
+		"knowledge graph",
+		"text network analysis"
+	],
+	"mcpServers": "mcp.json"
+}

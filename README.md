@@ -117,6 +117,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 16. **create_knowledge_graph**
     - Create a knowledge graph in InfraNodus from text and provide a link to it
     - Use it to create a knowledge graph in InfraNodus from text
+    - Also accepts `statements` (discrete items) with parallel `categories` and `timestamps`. Categories are stored as metadata on each statement (filter, group, delete, or relabel by them) and stay out of the graph unless `categoriesAsNodes: true`, which turns each label into a `[[label]]` node — meant for large knowledge bases and Obsidian vaults where the connections between pages are the point. The parent modes of `wikilinksMode` (`obsidianStyle`, `parentAndConcepts`) always make the parent page a node
 
 17. **generate_ontology_graph**
     - Use AI to generate a reasoning ontology graph (entities and the relations between them) from one of three sources: a `prompt` (a topic — e.g. "build an ontology on AI attention mechanisms"), a `text` (a long document or a structural digest of a project, chunked server-side), or a `sourceGraphName` (an existing graph — e.g. a fully ingested repo or corpus — whose statements are read back, chunked, and condensed into an ontology)
@@ -233,7 +234,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Set `INFRANODUS_FEEDBACK=0` to remove the tool (and the one-line nudge appended to workflow-ending results) from the server
 
 38. **get_more_tools**
-    - Added by the [mcpcat](https://mcpcat.io) analytics library: the assistant calls it when a task would benefit from a capability none of the tools above provides, describing what it needed
+    - Added by the [mcpcat](https://mcpcat.io) analytics library: the assistant calls it when a task would benefit from a capability none of the tools above provides, describing what it needed (not offered on the `/openai` endpoint used by the ChatGPT / Codex plugin)
     - The server has no hidden tools, so the call only records the request as feedback for future tool development; the assistant does not need to ask you before calling it
     - Its logs follow the same privacy rules as the usage analytics below (`MCPCAT_ANONYMOUS=1` keeps them unlinked from your account)
 
@@ -605,9 +606,12 @@ Analyzes text and generates a knowledge graph.
 
 **Parameters:**
 
-- `text` (string, required): The text to analyze
+- `text` (string): The text to analyze. Provide this, `url`, or `statements`
+- `statements` (string[]): Already-separated statements, with optional parallel `categories` (string[][]) and `timestamps` (ISO 8601 strings)
+- `categoriesAsNodes` (boolean, default false): Show category labels as `[[label]]` nodes. Only for large knowledge bases and Obsidian vaults where the connections between pages matter; otherwise the labels stay metadata
+- `wikilinksMode` (string): How `[[wikilinks]]` become nodes — "default", "wikilinksOnly", "obsidianStyle", "parentAndConcepts", or "plainText"
 - `includeStatements` (boolean): Include original statements in response
-- `modifyAnalyzedText` (string): Text modification options ("none", "entities", "lemmatize")
+- `modifyAnalyzedText` (string): Entity detection — "none", "detectEntities", or "extractEntitiesOnly"
 
 ### analyze_existing_graph_by_name
 
