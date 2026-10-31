@@ -16,6 +16,11 @@ Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-
 - [ ] Respect the `memory-disabled` marker: `add_project_learnings` refuses with a message that memory was turned off for this project
 - [ ] Update the README tool list and the descriptions changed in `1113ec9`
 
+## Performance
+
+- [ ] Moving the tools onto the new endpoints must not make them slower: compare tool latency before and after, and keep one HTTP call per tool call where it is one today
+- [ ] No new tool definitions for the plugin's sake; tool descriptions stay short, since every MCP client loads them into context on every session
+
 ## Phase 3: review
 
 - [ ] Add `review_memory` (or `review_learnings`): list inbox items for a scope, then promote or discard by id, with dry run by default and `confirm: true` to apply (same pattern as `delete_graph`)

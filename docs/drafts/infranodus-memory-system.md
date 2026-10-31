@@ -5,7 +5,8 @@
 > implementer's unless they affect behaviour. Builds on
 > `project-learnings-graph.md` (read its consent section first). Per-repo task
 > lists: `docs/todo/memory-system.md` here, and the `docs/todo/memory-system.md`
-> files in `infranodus-app` and `Skills/InfraNodus-Skills`.
+> files in `infranodus-app`, `Skills/InfraNodus-Skills` and (once created)
+> `infranodus-memory`.
 
 ## Objective
 
@@ -87,7 +88,8 @@ with Claude Code (see "Hooks for other clients" below).
 |---|---|---|
 | `infranodus-app` | **The single implementation**: naming, types, extraction, dedup, supersession, consent and mode, recall ranking | New `/api/v1/learnings/*`, `/memory/*`, `/recall`, `/ingest` |
 | `mcp-server-infranodus` | Thin wrapper so every MCP client gets the same behaviour | Tools call the new endpoints; small schema additions; instructions |
-| `Skills/InfraNodus-Skills` | Automation in Claude Code | New `infranodus-memory` plugin (hooks + skill); small edits to `project-learnings` and `infranodus` |
+| `infranodus-memory` (new repo) | The memory plugin and its hook runtime | Claude Code plugin (hooks + `/memory` skill); stdlib-Python hook runtime (recall, local queue, redaction, ingest worker); adapters and installers for other clients; timing tests |
+| `Skills/InfraNodus-Skills` | Skills and the marketplace | Lists `infranodus-memory` in `marketplace.json` from its own GitHub repo; small edits to `project-learnings` and `infranodus`; README |
 | `infranodus-backend` | Storage | Probably none: markers and inboxes are graphs and statements; `contextType: "memory"` exists |
 | `legal-help` (Legal Play) | Consumer | Calls `/memory/*` and `/learnings/*` with its service key |
 
@@ -102,7 +104,7 @@ with Claude Code (see "Hooks for other clients" below).
 | `POST /memory/add` `{ scope, topic?, statements[], timestamps?[], confirm }` | Requires ≥ 2 `[[entities]]` per statement; dedups; supersedes by entity pair + relation |
 | `POST /memory/get` `{ scope, topic?, entity?, prompt?, limit? }` | Entity lookup, or GraphRAG over the graph when `prompt` is given |
 | `POST /recall` `{ project, prompt, client, language? }` | Fast path for the hook: searches the project's learnings, the topics linked to the project, and personal memory if enabled; returns `{ enabled, mode, firstRun, items: [{ kind, text }], saved?, gap?, inboxCount?, quotaPaused? }`, already formatted. `enabled` is true unless the project has a `memory-disabled` marker. Target p95 < 1.5 s |
-| `POST /ingest` `{ project, excerpt, client, sessionId }` | One AI call to extract and classify; creates `learn-<slug>` (with the `learnings-enabled` marker, source `memory-plugin`) on the first ingest that yields statements; writes per mode; tags statements `session-<id>`; returns counts per kind. Idempotent per `sessionId` (a retried flush must not double-write). Refuses projects with `memory-disabled` |
+| `POST /ingest` `{ project, excerpt, client, sessionId }` | One AI call to extract and classify; creates `learn-<slug>` (with the `learnings-enabled` marker, source `memory-plugin`) on the first ingest that yields statements; writes per mode; tags statements `session-<id>`. Returns 202 at once and extracts in the background (the counts reach the user through the next recall's `saved`). Idempotent per `sessionId` (a retried flush must not double-write). Refuses projects with `memory-disabled` |
 | `POST /memory/disable` `{ project, deleteGraph? }` | Adds the `memory-disabled` marker (creating a minimal graph if none exists); optionally deletes the learnings graph. `/memory/enable-project` removes the marker |
 | `POST /memory/forget` `{ project, sessionId? }` | Deletes the statements of one session (the last one by default) by their `session-<id>` category |
 
@@ -175,6 +177,37 @@ keep the per-project opt-in and the `confirm` step.
 5. The skills README's "What gets uploaded and where" table and the InfraNodus
    privacy policy describe the plugin's default-on behaviour.
 
+### Performance: never slow the agent down (non-negotiable)
+
+Memory runs on every session in every project, so it must be invisible in
+speed. A user should not be able to tell from latency that the plugin is
+installed. If a choice trades memory quality against agent speed, speed wins.
+
+| Path | Budget | How |
+|---|---|---|
+| Recall (first prompt only) | Hard timeout 2 s, server p95 < 1.5 s, typical < 500 ms | One HTTP call, no retries in the foreground; skipped on every later prompt |
+| Capture (`PostToolUse`, `Stop`, …) | < 50 ms per hook | Append one line to a local file; no network, no parsing of large payloads (truncate tool output before writing) |
+| Ingest (`PreCompact`, `SessionEnd`) | Hook returns in < 100 ms | Spawns a detached worker and exits; the upload and the AI call happen in the background and never block compaction or exit |
+| Hook start-up | < 100 ms | Standard-library Python only, lazy imports, no dependency checks or installs at hook time, no background daemon |
+| Context size | Recall block ≤ 5 items, ≤ ~1,500 characters | Small injections keep the agent's context and token cost flat |
+
+- **Fail open.** Any error, timeout or missing key means no output and exit 0.
+  The agent never waits on InfraNodus and never sees an error from it.
+- **Back off.** If recall times out twice in a session, or the API returns 429
+  or 5xx, skip recall for the rest of the session. A failed ingest stays in the
+  queue and is retried by a later background worker, never in the foreground.
+- **Async where the client allows it.** Hooks that return no output
+  (capture, ingest) are registered as asynchronous where the client supports
+  it (`async: true` in Claude Code), so they can't delay a tool call at all.
+- **Bounded local state.** The queue per session is capped (oldest tool
+  output trimmed first) so a long session doesn't produce a large file or a
+  slow upload.
+- **No extra tools.** The plugin reuses the shared InfraNodus MCP server
+  (merged with the other plugins), so it adds no new tool definitions to the
+  agent's context.
+- **Measured.** Hooks log their own duration locally; tests fail when a hook
+  exceeds its budget, and `/recall` latency is tracked server-side per client.
+
 ### Authentication for hooks
 
 Hooks cannot reuse the MCP server's OAuth session. Phase 2: a required,
@@ -196,6 +229,22 @@ tools keep working.
 - It needs an API key the core plugin shouldn't ask for.
 
 It stays out of `infranodus-all` at first.
+
+### Why a separate repo
+
+- **It is a program, not a skill.** The skills repo is mostly Markdown
+  instructions. The plugin is a hook runtime with a queue, redaction, a
+  background worker, client adapters, installers and timing tests, so it needs
+  its own CI, versions and releases.
+- **It isn't tied to Claude Code.** `infranodus-memory hook <client> <event>`
+  runs from Codex, Cursor, Windsurf and others, and can ship as a standalone
+  CLI. In the skills repo it would always be a Claude plugin with extras.
+- **It is easier to audit.** Default-on background capture deserves its own
+  issues, changelog and security review, and the privacy policy can link to it.
+- **Same install path.** The InfraNodus skills marketplace lists the plugin
+  with a GitHub source pointing at this repo, so users install it like the
+  other plugins. Its `mcpServers.infranodus` entry matches the others, so
+  Claude Code still merges it into one server.
 
 ## Hooks for other clients
 
@@ -292,10 +341,10 @@ InfraNodus memory is on for infranodus-app → https://infranodus.com/<user>/lea
 | # | Work | Repos | Visible result |
 |---|---|---|---|
 | 1 | Learnings and memory endpoints; MCP tools moved onto them | app, mcp | None (refactor), one implementation |
-| 2 | `/recall`, `/memory/disable`; the plugin with the required key, the recall hook, the first-run line and `/memory off`/`on` | app, skills | Context at session start; nothing written |
-| 3 | Local capture with guards and redaction, `/ingest` (auto mode, lazy graph creation, `session-<id>` tags), `/memory/forget`, quota pause; inboxes and `/memory review` for review mode | app, skills, mcp | Full cycle, on from install |
+| 2 | `/recall`, `/memory/disable`; create the `infranodus-memory` repo; the plugin with the required key, the recall hook, the first-run line and `/memory off`/`on`; marketplace listing | app, memory, skills | Context at session start; nothing written |
+| 3 | Local capture with guards and redaction, `/ingest` (auto mode, lazy graph creation, `session-<id>` tags), `/memory/forget`, quota pause; inboxes and `/memory review` for review mode | app, memory, skills, mcp | Full cycle, on from install |
 | 4 | Personal memory, device login | all | Polish |
-| 5 | Hooks for other clients: shared entry point and adapters, rules-file recall, installer per client (start with Codex CLI and Cursor) | skills, app | The same cycle outside Claude Code |
+| 5 | Hooks for other clients: shared entry point and adapters, rules-file recall, installer per client (start with Codex CLI and Cursor) | memory, app | The same cycle outside Claude Code |
 
 Before building phase 3, test extraction quality offline: run the ingest
 prompt on 5–10 real session transcripts and hand-check precision (no
@@ -323,9 +372,8 @@ good before phase 3 ships.
    or a Node CLI shipped with the npm MCP package (`npx` already used for the
    server, but Claude Code's native installer doesn't guarantee Node).
    Proposal: Python stdlib; revisit if a client's plugin API is JS-only.
-7. Where the multi-client code lives: in `Skills/InfraNodus-Skills`
-   (`skill-memory/`) next to the Claude Code plugin, or in its own repo once
-   there are installers for several clients. Proposal: start in the skills
-   repo, split later.
+7. ~~Where the plugin and multi-client code live.~~ Decided 2026-10-31: its
+   own `infranodus-memory` repo from the start, listed in the InfraNodus
+   skills marketplace (see "Why a separate repo").
 8. Should `/memory off` delete the project's graph by default, or only stop
    capture? Proposal: only stop; deleting is a separate, explicit choice.
