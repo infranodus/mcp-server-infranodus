@@ -1,6 +1,6 @@
 # Memory System TODO
 
-Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-system.md). The MCP server becomes a thin wrapper over new `infranodus-app` endpoints, so hooks, MCP clients and Legal Play share one implementation. Depends on the `infranodus-app` endpoints (see its `docs/todo/memory-system.md`).
+Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-system.md). Build plan: `../infranodus-memory-plugin/docs/plan.md`. The MCP server becomes a thin wrapper over new `infranodus-app` endpoints, so hooks, MCP clients and Legal Play share one implementation. Depends on the `infranodus-app` endpoints (see its `docs/todo/memory-system.md`).
 
 ## Phase 1: move learnings and memory onto the API
 
