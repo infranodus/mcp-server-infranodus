@@ -4,22 +4,24 @@ Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-
 
 ## Phase 1: move learnings and memory onto the API
 
-- [ ] `getProjectLearnings`, `addProjectLearnings`, `enableProjectLearnings` call `/api/v1/learnings/{get,add,enable}` instead of composing `/graphAndStatements` + `/search` themselves
-- [ ] Keep the tool names, inputs (`project`, `statements`, `types`, `confirm`, `prompt`, `entity`, `type`, `limit`) and response shapes unchanged; clients must not notice
-- [ ] Remove the logic that moved server-side from `src/utils/learnings.ts` (dedup, naming, marker handling); keep only what the tools still need for formatting
-- [ ] `memory_add_relations` / `memory_get_relations` call `/api/v1/memory/{add,get}`
-- [ ] Add optional `scope` (`topic` | `personal`) and `topic` to `AddMemorySchema` / the get schema, so the LLM stops inventing graph names; when only `graphName` is given, keep today's behaviour for backward compatibility
-- [ ] Add `enable_memory` (topic or personal), mirroring `enable_project_learnings`: never called without an explicit user request
+> Built 2026-11-02, not released: needs the `infranodus-app` endpoints deployed first. The tools are thin calls to `/api/v1/learnings/*` and `/memory/*` (`src/api/client.ts` `callMemoryEndpoint`, which passes 4xx refusals through instead of throwing). Elicitation stays here (`src/utils/elicitApproval.ts`): dry run, ask, then the same request with `confirm: true`. `src/utils/learnings.ts` is gone; its rules and tests live in the app. `memory_*` with `scope` go to `/memory/*` (enable + dry run, like learnings); with only `graphName` they work as before. Checked live against the local app: every path, tens of ms per call. Not done: `language` (none of these schemas has the field; the app passes it on when sent) and `memory-disabled` (comes with `/memory/disable` in phase 2).
+
+- [x] `getProjectLearnings`, `addProjectLearnings`, `enableProjectLearnings` call `/api/v1/learnings/{get,add,enable}` instead of composing `/graphAndStatements` + `/search` themselves
+- [x] Keep the tool names, inputs (`project`, `statements`, `types`, `confirm`, `prompt`, `entity`, `type`, `limit`) and response shapes unchanged; clients must not notice
+- [x] Remove the logic that moved server-side from `src/utils/learnings.ts` (dedup, naming, marker handling); keep only what the tools still need for formatting
+- [x] `memory_add_relations` / `memory_get_relations` call `/api/v1/memory/{add,get}`
+- [x] Add optional `scope` (`topic` | `personal`) and `topic` to `AddMemorySchema` / the get schema, so the LLM stops inventing graph names; when only `graphName` is given, keep today's behaviour for backward compatibility
+- [x] Add `enable_memory` (topic or personal), mirroring `enable_project_learnings`: never called without an explicit user request
 - [ ] Pass the `language` field through on every call
-- [ ] Update `src/instructions.ts`: the three kinds of memory (learnings / topic memory / personal), which tool for which, and that personal facts never go into learnings
-- [ ] The MCP tools stay opt-in: no default-on here (that applies only to the `infranodus-memory` plugin's hooks). A project created by the plugin already has the `learnings-enabled` marker, so `get_project_learnings` and `add_project_learnings` work on it without `enable_project_learnings`; `add` still needs `confirm`
+- [x] Update `src/instructions.ts`: the three kinds of memory (learnings / topic memory / personal), which tool for which, and that personal facts never go into learnings
+- [x] The MCP tools stay opt-in: no default-on here (that applies only to the `infranodus-memory` plugin's hooks). A project created by the plugin already has the `learnings-enabled` marker, so `get_project_learnings` and `add_project_learnings` work on it without `enable_project_learnings`; `add` still needs `confirm`
 - [ ] Respect the `memory-disabled` marker: `add_project_learnings` refuses with a message that memory was turned off for this project
-- [ ] Update the README tool list and the descriptions changed in `1113ec9`
+- [x] Update the README tool list and the descriptions changed in `1113ec9`
 
 ## Performance
 
-- [ ] Moving the tools onto the new endpoints must not make them slower: compare tool latency before and after, and keep one HTTP call per tool call where it is one today
-- [ ] No new tool definitions for the plugin's sake; tool descriptions stay short, since every MCP client loads them into context on every session
+- [x] Moving the tools onto the new endpoints must not make them slower: compare tool latency before and after, and keep one HTTP call per tool call where it is one today
+- [x] No new tool definitions for the plugin's sake; tool descriptions stay short, since every MCP client loads them into context on every session
 
 ## Phase 3: review
 
@@ -28,6 +30,6 @@ Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-
 
 ## Tests
 
-- [ ] Update the learnings and memory tool specs to mock the new endpoints
-- [ ] Backward-compatibility test: `memory_add_relations` with only `graphName` writes to that graph as before
-- [ ] `add_project_learnings` still refuses when the project isn't enabled (the server enforces it, the tool surfaces the error unchanged)
+- [x] Update the learnings and memory tool specs to mock the new endpoints
+- [x] Backward-compatibility test: `memory_add_relations` with only `graphName` writes to that graph as before
+- [x] `add_project_learnings` still refuses when the project isn't enabled (the server enforces it, the tool surfaces the error unchanged)

@@ -4,6 +4,7 @@ export { generateOntologyGraphTool } from "./generateOntologyGraph.js";
 export { analyzeLlmResultsTool } from "./analyzeLlmResults.js";
 export { addMemoryTool } from "./addMemory.js";
 export { getMemoryTool } from "./getMemory.js";
+export { enableMemoryTool } from "./enableMemory.js";
 export { analyzeExistingGraphTool } from "./analyzeExistingGraph.js";
 export { analyzeTextTool } from "./analyzeText.js";
 export { analyzeTextSignatureTool } from "./analyzeTextSignature.js";

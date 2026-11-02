@@ -192,13 +192,41 @@ export const CreateGraphSchema = z.object({
 	),
 });
 
+// Memory scopes (see docs/drafts/infranodus-memory-system.md): `topic` is an
+// outside subject, client or case (graph memory-<topic>), `personal` the
+// user's own preferences and setup (personal-<user>). Both need
+// enable_memory once and write through a dry run, like project learnings.
+const memoryScopeField = z
+	.enum(["topic", "personal"])
+	.optional()
+	.describe(
+		"Which kept memory to use instead of a free graphName: 'topic' (facts about an outside subject, client or case; needs `topic`) or 'personal' (the user's own preferences and setup). The graph is named for you (memory-<topic> / personal-<user>) and must have been enabled with enable_memory.",
+	);
+
+const memoryTopicField = z
+	.string()
+	.min(1)
+	.optional()
+	.describe(
+		"Topic name when scope is 'topic' (e.g. the client, case or subject). Use the same name every time for the same topic.",
+	);
+
 export const AddMemorySchema = z.object({
+	scope: memoryScopeField,
+	topic: memoryTopicField,
+	confirm: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Only with `scope`: false (default) = dry run that returns what would be written; show it to the user and ask. true = write. Ignored with graphName, which writes immediately.",
+		),
 	graphName: z
 		.string()
-		.min(1, "Graph name is required")
+		.min(1, "Graph name must be non-empty when provided")
 		.max(28, "Graph name must be less than 28 characters")
+		.optional()
 		.describe(
-			`Name of the graph to add the memory to in ${brand.name} - lowercase, dashes for spaces, no special characters. Auto-generate from the context of the conversation (if previously available) or use the nanme of the LLM client or project, or use the name the user explicitly provided or requested.`,
+			`Without \`scope\`: name of the graph to add the memory to in ${brand.name} - lowercase, dashes for spaces, no special characters. Auto-generate from the context of the conversation (if previously available) or use the name of the LLM client or project, or use the name the user explicitly provided or requested.`,
 		),
 	text: z
 		.string()
@@ -423,6 +451,21 @@ export const SearchExistingGraphsSchema = z.object({
 });
 
 export const getMemorySchema = z.object({
+	scope: memoryScopeField,
+	topic: memoryTopicField,
+	prompt: z
+		.string()
+		.optional()
+		.describe(
+			"Only with `scope`: the task or question at hand; returns the most relevant statements (GraphRAG) plus an overview.",
+		),
+	limit: z
+		.number()
+		.int()
+		.min(1)
+		.max(50)
+		.default(15)
+		.describe("Only with `scope`: maximum number of statements to return."),
 	entityName: z
 		.string()
 		.default("")
@@ -1967,6 +2010,15 @@ const projectField = z
 
 export const EnableProjectLearningsSchema = z.object({
 	project: projectField,
+});
+
+export const EnableMemorySchema = z.object({
+	scope: z
+		.enum(["topic", "personal"])
+		.describe(
+			"'topic' for facts about an outside subject, client or case (needs `topic`); 'personal' for the user's own preferences and setup.",
+		),
+	topic: memoryTopicField,
 });
 
 // Length parity between `types` and `statements` is checked in the handler

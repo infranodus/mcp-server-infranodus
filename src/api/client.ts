@@ -49,3 +49,48 @@ export async function makeInfraNodusRequest(
 		throw error;
 	}
 }
+
+/**
+ * Call one of the app's memory endpoints (/learnings/*, /memory/*). Unlike
+ * makeInfraNodusRequest, a 4xx answer with a JSON body is returned, not
+ * thrown: those endpoints answer refusals (422 redaction, 400 validation,
+ * 403 anonymous) with a payload the tools pass on to the model.
+ */
+export async function callMemoryEndpoint(
+	endpoint: string,
+	body: Record<string, unknown>,
+): Promise<{ status: number; body: Record<string, any> }> {
+	const config = getConfig();
+	const tool = getCurrentTool();
+	const response = await fetch(`${config.apiBase}${endpoint}`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${config.apiKey}`,
+			"X-Infranodus-Client": "mcp-server",
+		},
+		body: JSON.stringify({
+			...body,
+			modal: "mcp_server",
+			source: brandSource(),
+			...(tool && { tool }),
+		}),
+	});
+	const text = await response.text();
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(text);
+	} catch {
+		parsed = undefined;
+	}
+	const json =
+		parsed && typeof parsed === "object" && !Array.isArray(parsed)
+			? (parsed as Record<string, any>)
+			: null;
+	if (json && response.status < 500) {
+		return { status: response.status, body: json };
+	}
+	const detail =
+		json && typeof json.error === "string" ? json.error : text.slice(0, 500);
+	throw new Error(`API request failed (${response.status}): ${detail}`);
+}

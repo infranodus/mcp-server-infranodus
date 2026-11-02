@@ -85,6 +85,7 @@ const BRANDS: Record<BrandId, BrandDef> = {
 			"generate_ontology_graph",
 			"memory_add_relations",
 			"memory_get_relations",
+			"enable_memory",
 			"generate_research_questions",
 			"generate_research_ideas",
 			"generate_responses_from_graph",

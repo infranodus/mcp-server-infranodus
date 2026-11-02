@@ -6,13 +6,15 @@ import {
 	extractStatementsFromSearchResponse,
 	extractStatementsFromGraphResponse,
 } from "../utils/transformers.js";
+import { callMemoryEndpoint } from "../api/client.js";
+import { memoryResult } from "../utils/memoryResult.js";
 
 export const getMemoryTool = {
 	name: "memory_get_relations",
 	definition: {
 		title: `Recall from ${brand.name} Memory`,
 		description:
-			`Recall what the user previously saved to ${brand.name} memory about a concept or entity. Call it when the user asks "what do I have on X", "did we decide X", "check memory", or before starting a task on a topic they saved before. With no memoryContextName it searches every memory graph in the account.`,
+			`Recall what the user previously saved to ${brand.name} memory about a concept or entity. Call it when the user asks "what do I have on X", "did we decide X", "check memory", or before starting a task on a topic they saved before. With no memoryContextName it searches every memory graph in the account. With scope ('topic' + topic, or 'personal') it reads the user's kept memory instead: entityName for every statement mentioning it, prompt for the most relevant ones, neither for an overview; enabled: false means that memory was never enabled — carry on.`,
 		inputSchema: getMemorySchema.shape,
 		annotations: {
 			readOnlyHint: true,
@@ -23,6 +25,19 @@ export const getMemoryTool = {
 	},
 	handler: async (params: z.infer<typeof getMemorySchema>) => {
 		try {
+			if (params.scope) {
+				// Same query string the /search path below gets.
+				const entity = params.entityName.trim();
+				const response = await callMemoryEndpoint("/memory/get", {
+					scope: params.scope,
+					...(params.topic ? { topic: params.topic } : {}),
+					...(entity ? { entity } : {}),
+					...(params.prompt ? { prompt: params.prompt } : {}),
+					limit: params.limit,
+				});
+				return memoryResult(response);
+			}
+
 			const searchQuery = params.entityName;
 			const hasContextName =
 				params.memoryContextName && params.memoryContextName.length > 0;

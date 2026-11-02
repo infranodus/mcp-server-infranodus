@@ -1,22 +1,9 @@
 import { z } from "zod";
 import { brand } from "../config/brand.js";
 import { EnableProjectLearningsSchema } from "../schemas/index.js";
-import {
-	checkEnabled,
-	createLearningsGraph,
-	learningsGraphName,
-	slugify,
-} from "../utils/learnings.js";
+import { callMemoryEndpoint } from "../api/client.js";
+import { memoryResult } from "../utils/memoryResult.js";
 import type { ToolExtra } from "../types/index.js";
-
-function textResult(payload: unknown, isError = false) {
-	return {
-		content: [
-			{ type: "text" as const, text: JSON.stringify(payload, null, 2) },
-		],
-		...(isError ? { isError: true } : {}),
-	};
-}
 
 export const enableProjectLearningsTool = {
 	name: "enable_project_learnings",
@@ -40,50 +27,13 @@ export const enableProjectLearningsTool = {
 		extra?: ToolExtra,
 	) => {
 		try {
-			const graphName = learningsGraphName(params.project);
-			const slug = slugify(params.project) || "project";
-			const state = await checkEnabled(graphName);
-
-			if (state.enabled) {
-				return textResult({
-					enabled: true,
-					alreadyEnabled: true,
-					project: params.project,
-					graphName,
-					...(state.info.url ? { url: state.info.url } : {}),
-					...(state.info.createdAt ? { since: state.info.createdAt } : {}),
-				});
-			}
-
-			if (state.reason === "not-a-learnings-graph") {
-				return textResult(
-					{
-						enabled: false,
-						graphName,
-						message: `A graph named ${graphName} already exists but was not created by enable_project_learnings, so it will not be modified. Ask the user for a different project name.`,
-					},
-					false,
-				);
-			}
-
-			const created = await createLearningsGraph({
-				graphName,
-				slug,
-				clientName: extra?.clientName,
-			});
-
-			return textResult({
-				enabled: true,
+			const response = await callMemoryEndpoint("/learnings/enable", {
 				project: params.project,
-				graphName: created.graphName ?? graphName,
-				...(created.graphUrl ? { url: created.graphUrl } : {}),
-				next: "Learnings for this project can now be proposed with add_project_learnings (dry run first, then confirm: true once the user agrees).",
+				...(extra?.clientName ? { client: extra.clientName } : {}),
 			});
+			return memoryResult(response);
 		} catch (error) {
-			return textResult(
-				{ error: error instanceof Error ? error.message : String(error) },
-				true,
-			);
+			return memoryResult(error);
 		}
 	},
 };
