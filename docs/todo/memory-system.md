@@ -4,7 +4,7 @@ Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-
 
 ## Phase 1: move learnings and memory onto the API
 
-> Built 2026-11-02, not released: needs the `infranodus-app` endpoints deployed first. The tools are thin calls to `/api/v1/learnings/*` and `/memory/*` (`src/api/client.ts` `callMemoryEndpoint`, which passes 4xx refusals through instead of throwing). Elicitation stays here (`src/utils/elicitApproval.ts`): dry run, ask, then the same request with `confirm: true`. `src/utils/learnings.ts` is gone; its rules and tests live in the app. `memory_*` with `scope` go to `/memory/*` (enable + dry run, like learnings); with only `graphName` they work as before. Checked live against the local app: every path, tens of ms per call. Not done: `language` (none of these schemas has the field; the app passes it on when sent) and `memory-disabled` (comes with `/memory/disable` in phase 2).
+> Built 2026-11-02, not released: needs the `infranodus-app` endpoints deployed first. The tools are thin calls to `/api/v1/learnings/*` and `/memory/*` (`src/api/client.ts` `callMemoryEndpoint`, which passes 4xx refusals through instead of throwing). Elicitation stays here (`src/utils/elicitApproval.ts`): dry run, ask, then the same request with `confirm: true`. `src/utils/learnings.ts` is gone; its rules and tests live in the app. `memory_*` with `scope` go to `/memory/*` (enable + dry run, like learnings); with only `graphName` they work as before. Checked live against the local app: every path, tens of ms per call. Each memory tool takes an optional `language`, passed on to the app, which checks it (400 for an unsupported one). The `llms*.txt` files of the infranodus brand describe the memory and learnings tools (the keywordgraph ones still list the memory tools that brand hides).
 
 - [x] `getProjectLearnings`, `addProjectLearnings`, `enableProjectLearnings` call `/api/v1/learnings/{get,add,enable}` instead of composing `/graphAndStatements` + `/search` themselves
 - [x] Keep the tool names, inputs (`project`, `statements`, `types`, `confirm`, `prompt`, `entity`, `type`, `limit`) and response shapes unchanged; clients must not notice
@@ -12,10 +12,10 @@ Design: [`docs/drafts/infranodus-memory-system.md`](../drafts/infranodus-memory-
 - [x] `memory_add_relations` / `memory_get_relations` call `/api/v1/memory/{add,get}`
 - [x] Add optional `scope` (`topic` | `personal`) and `topic` to `AddMemorySchema` / the get schema, so the LLM stops inventing graph names; when only `graphName` is given, keep today's behaviour for backward compatibility
 - [x] Add `enable_memory` (topic or personal), mirroring `enable_project_learnings`: never called without an explicit user request
-- [ ] Pass the `language` field through on every call
+- [x] Pass the `language` field through on every call
 - [x] Update `src/instructions.ts`: the three kinds of memory (learnings / topic memory / personal), which tool for which, and that personal facts never go into learnings
-- [x] The MCP tools stay opt-in: no default-on here (that applies only to the `infranodus-memory` plugin's hooks). A project created by the plugin already has the `learnings-enabled` marker, so `get_project_learnings` and `add_project_learnings` work on it without `enable_project_learnings`; `add` still needs `confirm`
-- [ ] Respect the `memory-disabled` marker: `add_project_learnings` refuses with a message that memory was turned off for this project
+- [x] The MCP tools stay opt-in: no default-on here (that applies only to the `infranodus-memory` plugin's hooks). A project the plugin created already has its `MEMORY` graph, so `get_project_learnings` and `add_project_learnings` work on it without `enable_project_learnings`; `add` still needs `confirm`
+- [x] Follow the 2026-11-02 consent model (design: "Where memory state lives"): memory state is the graph type, not a marker; `/memory off` is local to the plugin. The `disabled` test is gone; no other MCP change was needed
 - [x] Update the README tool list and the descriptions changed in `1113ec9`
 
 ## Performance

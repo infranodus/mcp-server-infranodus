@@ -28,6 +28,7 @@ export const enableMemoryTool = {
 		try {
 			const response = await callMemoryEndpoint("/memory/enable", {
 				scope: params.scope,
+				...(params.language ? { language: params.language } : {}),
 				...(params.topic ? { topic: params.topic } : {}),
 				...(extra?.clientName ? { client: extra.clientName } : {}),
 			});

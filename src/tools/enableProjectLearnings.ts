@@ -29,6 +29,7 @@ export const enableProjectLearningsTool = {
 		try {
 			const response = await callMemoryEndpoint("/learnings/enable", {
 				project: params.project,
+				...(params.language ? { language: params.language } : {}),
 				...(extra?.clientName ? { client: extra.clientName } : {}),
 			});
 			return memoryResult(response);

@@ -142,7 +142,7 @@ test(
 // --- enable_project_learnings ---------------------------------------------
 
 test(
-	"enable_project_learnings passes the client name for the marker statement",
+	"enable_project_learnings passes the client name (for the graph description)",
 	withRoutes(
 		{ "/learnings/enable": (body) => [{ enabled: true, project: body.project, graphName: "learn-demo" }] },
 		async (calls) => {
@@ -393,6 +393,34 @@ test(
 				{ scope: calls[0].body.scope, topic: calls[0].body.topic, client: calls[0].body.client },
 				{ scope: "topic", topic: "Acme", client: "cursor" },
 			);
+		},
+	),
+);
+
+test(
+	"language is passed on to every memory endpoint when given",
+	withRoutes(
+		{
+			"/learnings/enable": () => [{ enabled: true }],
+			"/learnings/get": () => [{ enabled: true, learnings: [] }],
+			"/learnings/add": addLearnings,
+			"/memory/enable": () => [{ enabled: true }],
+			"/memory/add": () => [{ enabled: true, written: 1 }],
+			"/memory/get": () => [{ enabled: true, statements: [] }],
+		},
+		async (calls) => {
+			await run(enableProjectLearningsTool, { project: "demo", language: "DE" });
+			await run(getProjectLearningsTool, { project: "demo", limit: 15, language: "DE" });
+			await run(addProjectLearningsTool, learningsParams({ language: "DE", confirm: true }));
+			await run(enableMemoryTool, { scope: "personal", language: "DE" });
+			await run(addMemoryTool, AddMemorySchema.parse({ scope: "personal", statements: ["[[a]] and [[b]]"], confirm: true, language: "DE" }));
+			await run(getMemoryTool, getMemorySchema.parse({ scope: "personal", language: "DE" }));
+			assert.equal(calls.length, 6);
+			for (const call of calls) assert.equal(call.body.language, "DE", call.path);
+
+			calls.length = 0;
+			await run(getProjectLearningsTool, { project: "demo", limit: 15 });
+			assert.ok(!("language" in calls[0].body), "omitted when not given");
 		},
 	),
 );

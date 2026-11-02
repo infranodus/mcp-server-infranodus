@@ -28,6 +28,7 @@ export const getProjectLearningsTool = {
 				...(params.entity ? { entity: params.entity } : {}),
 				...(params.type ? { type: params.type } : {}),
 				limit: params.limit,
+				...(params.language ? { language: params.language } : {}),
 			});
 			return memoryResult(response);
 		} catch (error) {

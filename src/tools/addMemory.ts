@@ -12,7 +12,7 @@ import type { ToolExtra } from "../types/index.js";
 
 /**
  * Scope mode: the kept topic / personal memory, through the app's
- * /memory/add (consent marker, redaction, duplicates, two-entity rule).
+ * /memory/add (memory graph only, redaction, duplicates, two-entity rule).
  */
 async function addToScope(
 	params: z.infer<typeof AddMemorySchema>,
@@ -43,6 +43,7 @@ async function addToScope(
 				...(categories ? { categories } : {}),
 				...(timestamps ? { timestamps } : {}),
 				confirm,
+				...(params.language ? { language: params.language } : {}),
 			}),
 		{
 			confirm: params.confirm,
@@ -123,6 +124,7 @@ export const addMemoryTool = {
 				aiTopics: "true",
 				contextType: "memory",
 				...input.payload,
+				...(params.language ? { language: params.language } : {}),
 			};
 
 			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {

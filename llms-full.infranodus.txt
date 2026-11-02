@@ -36,7 +36,7 @@ Get API key at: https://infranodus.com/api-access
 6. **RAG augmentation**: `generate_contextual_hint` (lightweight structural summary) or `retrieve_from_knowledge_base` with `includeGraphSummary` (GraphRAG retrieval).
 7. **Comparing texts**: `overlap_between_texts` (similarities), `difference_between_texts` (what's missing in first text), `merged_graph_from_texts` (combined overview).
 8. **SEO/content optimization**: `generate_seo_report` (comprehensive, ~90s timeout needed) or run `analyze_google_search_results` → `analyze_related_search_queries` → `search_queries_vs_search_results` individually.
-9. **Memory**: `memory_add_relations` to persist knowledge graphs, `memory_get_relations` to retrieve. Use `[[wikilinks]]` for entity marking.
+9. **Memory**: `memory_add_relations` to persist knowledge graphs, `memory_get_relations` to retrieve. Use `[[wikilinks]]` for entity marking. Three kinds: project learnings (`*_project_learnings`), topic memory (`scope: 'topic'` + `topic`) and personal memory (`scope: 'personal'`); scoped memory is enabled once with `enable_memory`. Personal facts never go into learnings.
 10. **Graph management**: `list_graphs` to discover existing graphs, `search` + `fetch` for content retrieval, `delete_statements` to remove statements from your own graph by filter and `update_statements` to edit them in place (both dry run unless `confirm: true`; irreversible).
 
 ---
@@ -361,27 +361,48 @@ Edit statements of a graph in the user's own account IN PLACE — their content,
 
 ### memory_add_relations
 
-Add relations to a knowledge graph memory. Creates the graph if it doesn't exist. By default uses `extractEntitiesOnly` for automatic entity detection, creating a high-level concept graph.
+Save statements to memory. Two ways:
+
+- **`graphName`**: writes immediately to that graph, creating it if it doesn't exist (no opt-in, no dry run). By default uses `extractEntitiesOnly` for automatic entity detection.
+- **`scope`**: writes to the user's kept memory, named for you: `topic` (+ `topic`, graph `memory-<topic>`) for an outside subject, client or case, or `personal` (graph `personal-<user>`) for the user's own preferences and setup. Must be enabled once with `enable_memory`; a dry run until `confirm: true` (clients with elicitation ask the user directly). Every statement needs at least two `[[entities]]`; near-duplicates are marked `reinforced`; secret-like statements are refused (indices only).
 
 **Parameters**:
-- `graphName` (string, required): Memory graph name (lowercase, dashes for spaces)
-- `text` (string, required): Text with entities marked as `[[wikilinks]]` or auto-detected
-- `modifyAnalyzedText`: Entity detection mode (default: 'extractEntitiesOnly')
-- `includeGraph`, `includeStatements`, `addNodesAndEdges`
+- `graphName` (string) or `scope` (`topic` | `personal`) with `topic` (string, for `topic`)
+- `text` (string) or `statements` (array), with optional parallel `categories` and `timestamps`
+- `confirm` (boolean, scope only, default false)
+- `language` (string, optional): processing language, e.g. `EN`, `DE`, `AUTO`
+- `modifyAnalyzedText`, `includeGraph`, `includeStatements`, `addNodesAndEdges` (graphName only)
 
-**Returns**: Full graph analysis + `graphName`, `graphUrl`.
+**Returns**: with `graphName`, full graph analysis + `graphName`, `graphUrl`. With `scope`, `wouldWrite` (dry run) or `written`, `new`, `reinforced`, `graphName`, `url`; `enabled: false` when that memory was never enabled.
 
 ---
 
 ### memory_get_relations
 
-Retrieve relations from InfraNodus memory for a specific entity or context.
+Retrieve from InfraNodus memory.
 
 **Parameters**:
 - `entityName` (string): Entity to search for (use `[[wikilinks]]` syntax, underscores for spaces)
 - `memoryContextName` (string): Specific memory graph name (empty = search all)
+- or `scope` (`topic` | `personal`) with `topic`, plus `entityName`, `prompt` (GraphRAG) or neither (overview), and `limit`
 
-**Returns**: `statements` array, `userName`, `graphNames`, `graphUrls`.
+**Returns**: `statements` array, `userName`, `graphNames`, `graphUrls`; with `scope`, `enabled`, `statements`, and an overview (`knownAreas`, `total`).
+
+---
+
+### enable_memory
+
+Create the user's topic memory (`memory-<topic>`) or personal memory (`personal-<user>`) graph so the memory tools can use it with `scope`. Only when the user explicitly asks. Idempotent.
+
+**Parameters**: `scope` (`topic` | `personal`, required), `topic` (for `topic`), `language` (optional)
+
+---
+
+### enable_project_learnings / add_project_learnings / get_project_learnings
+
+A per-project, append-only graph (`learn-<project>`) of what agents learned about operating in a project: where things live, traps, conventions, decisions, workflows, open questions, and a self-assessment (type `approach`). Opt-in: `enable_project_learnings` only on the user's request; `add_project_learnings` refuses (without error) for projects that are not enabled, is a dry run until `confirm: true`, marks near-duplicates as `reinforced`, and refuses secret-like statements. `get_project_learnings` takes `prompt` (most relevant learnings for a task), `entity`, or neither (overview), or no `project` to list the projects with learnings.
+
+**Parameters**: `project`; `statements` + `types` + `confirm` (add); `prompt`, `entity`, `type`, `limit` (get); `language` (optional, all three)
 
 ---
 

@@ -1,6 +1,7 @@
 # Draft: InfraNodus memory system: automatic recall and capture across sessions
 
-> Status: **proposal, 2026-10-30.** Nothing implemented yet. This doc describes
+> Status: **proposal, 2026-10-30; consent model revised 2026-11-02** (see
+> "Where memory state lives"). Phase 1 is built, not deployed. This doc describes
 > WHAT should change and HOW it must behave; implementation details are the
 > implementer's unless they affect behaviour. Builds on
 > `project-learnings-graph.md` (read its consent section first). Per-repo task
@@ -21,7 +22,7 @@ and it is the reason to build this on InfraNodus.
 
 | Piece | Where | What it does | What's missing |
 |---|---|---|---|
-| Project learnings | `src/utils/learnings.ts`, `src/tools/{enable,add,get}ProjectLearnings.ts` | Per-project `learn-<slug>` graph; 7 types as statement metadata; Jaccard dedup (0.6); consent marker `learnings-enabled`; `confirm` before writing | Depends on the agent deciding to reflect and to retrieve |
+| Project learnings | `src/tools/{enable,add,get}ProjectLearnings.ts` (rules moved to `infranodus-app` in phase 1) | Per-project `learn-<slug>` graph; 7 types as statement metadata; Jaccard dedup (0.6); `confirm` before writing | Depends on the agent deciding to reflect and to retrieve |
 | Memory tools | `src/tools/addMemory.ts`, `getMemory.ts` (`memory_add_relations`, `memory_get_relations`) | Saves `[[entity]]` statements to a graph with `contextType: "memory"`; recall by entity name via `/search` or by whole graph | No naming rules (the LLM invents the graph name), no dedup, no supersession, no scopes, no consent |
 
 Logic that should be shared across clients currently lives in the MCP server, in
@@ -32,7 +33,7 @@ cannot reuse it.
 
 | Kind | Holds | Example | Graph | Consent |
 |---|---|---|---|---|
-| **Learnings** (procedural) | How to work in a project: locations, traps, conventions, decisions, workflows, approaches | "infranodus-app tests need `node -r @babel/register`" | `learn-<project>` (+ `learn-<project>-inbox`) | Memory plugin: on from install, opt-out per project. MCP tools and skills: per-project opt-in, as today |
+| **Learnings** (procedural) | How to work in a project: locations, traps, conventions, decisions, workflows, approaches | "infranodus-app tests need `node -r @babel/register`" | `learn-<project>` (+ `learn-<project>-inbox`) | Memory plugin: on from install, `/memory off` per project (local). MCP tools and skills: per-project opt-in, as today |
 | **Memory** (declarative) | Entities and relations in a topic, case or client | "[[Legal Play]] is operated by [[Ways Ltd]]" | `memory-<topic>` (+ `-inbox`) | Per topic, through the MCP tools. The plugin doesn't read or write topic graphs in v1 |
 | **Personal** | The user's preferences and working style, across projects | "Prefers plain-language summaries before details" | `personal-<user>` (+ `-inbox`) | Separate, explicit opt-in everywhere, including the plugin |
 
@@ -59,23 +60,26 @@ opt-in.
    and successful shell commands (read-only ones such as `ls` or `grep` left
    out).
    No network calls on this path. Nothing is recorded when the project is
-   turned off, excluded or not a project (see "Default-on in the memory
-   plugin"), and secrets are redacted before anything is written.
+   turned off (`~/.infranodus/memory.json`), excluded or not a project (see
+   "Default-on in the memory plugin"), and secrets are redacted before
+   anything is written.
 3. **Ingest** (PreCompact, SessionEnd). A detached worker posts the queue to
    `POST /api/v1/ingest`. The server makes one AI call that extracts short
    statements with `[[entities]]` marked and classifies each as
    learning / memory / personal, with the project each statement is about.
    Statements for kinds that aren't enabled are dropped, and so are
-   statements about another project unless memory is on there. The rest are deduplicated against the target graph and either
+   statements about another project unless it already has a memory graph. The rest are deduplicated against the target graph and either
    supersede the statements they replace or are appended. Every statement is
    tagged with a `session-<id>` category so a whole session can be undone.
-4. **Auto or review** (a per-scope mode, stored with the consent marker).
+4. **Auto or review** (chosen by the client per request, not stored on the
+   server).
    - `auto` (default for the memory plugin): writes go straight to the main
      graph. The next recall says what was saved ("Saved 4 learnings from your
      last session") and `/memory forget-last` deletes them by their
      `session-<id>` category.
-   - `review` (default for writes through the MCP tools; optional for the
-     plugin): writes go to the `-inbox` graph. The next recall includes "N new
+   - `review` (how the MCP tools always write: dry run, then `confirm`;
+     optional for the plugin through `mode` in `~/.infranodus/memory.json`):
+     plugin writes go to the `-inbox` graph. The next recall includes "N new
      learnings waiting", and `/memory review` (or the MCP review tool)
      promotes or discards them.
 5. **On demand.** The MCP tools keep working mid-task:
@@ -89,31 +93,61 @@ with Claude Code (see "Hooks for other clients" below).
 
 | Repo | Role | Change |
 |---|---|---|
-| `infranodus-app` | **The single implementation**: naming, types, extraction, dedup, supersession, consent and mode, recall ranking | New `/api/v1/learnings/*`, `/memory/*`, `/recall`, `/ingest` |
+| `infranodus-app` | **The single implementation**: naming, types, extraction, dedup, supersession, which graphs count as memory, recall ranking | New `/api/v1/learnings/*`, `/memory/*`, `/recall`, `/ingest` |
 | `mcp-server-infranodus` | Thin wrapper so every MCP client gets the same behaviour | Tools call the new endpoints; small schema additions; instructions |
 | `infranodus-memory-plugin` (new repo) | The memory plugin and its hook runtime | Claude Code plugin (hooks + `/memory` skill); stdlib-Python hook runtime (recall, local queue, redaction, ingest worker); adapters and installers for other clients; timing tests |
 | `Skills/InfraNodus-Skills` | Skills and the marketplace | Lists `infranodus-memory` in `marketplace.json` from its own GitHub repo; small edits to `project-learnings` and `infranodus`; README |
-| `infranodus-backend` | Storage | Probably none: markers and inboxes are graphs and statements; `contextType: "memory"` exists |
+| `infranodus-backend` | Storage | None: memory graphs are graphs of type `MEMORY`, which exists; inboxes are graphs |
 | `legal-help` (Legal Play) | Consumer | Calls `/memory/*` and `/learnings/*` with its service key |
 
 ### API (`infranodus-app`)
 
 | Endpoint | Behaviour |
 |---|---|
-| `POST /learnings/enable` `{ project, mode? }` | Creates `learn-<slug>` with the `learnings-enabled` marker (and a mode marker). Idempotent. Same semantics as today's tool |
+| `POST /learnings/enable` `{ project }` | Creates `learn-<slug>` as a `MEMORY` graph. Idempotent. Refuses when a graph of that name exists that isn't a memory graph. Same semantics as today's tool |
 | `POST /learnings/get` `{ project, prompt?, entity?, type?, limit? }` | Same as `get_project_learnings`; returns `enabled: false` without error when the graph is missing |
 | `POST /learnings/add` `{ project, statements[], types[], confirm }` | Same as `add_project_learnings`: dry run unless `confirm`, refuses when not enabled, dedups |
-| `POST /memory/enable` `{ scope: "topic"\|"personal", topic?, mode? }` | Creates `memory-<topic>` or `personal-<user>` with a marker |
+| `POST /memory/enable` `{ scope: "topic"\|"personal", topic? }` | Creates `memory-<topic>` or `personal-<user>` as a `MEMORY` graph |
 | `POST /memory/add` `{ scope, topic?, statements[], timestamps?[], confirm }` | Requires ≥ 2 `[[entities]]` per statement; dedups; supersedes by entity pair + relation |
 | `POST /memory/get` `{ scope, topic?, entity?, prompt?, limit? }` | Entity lookup, or GraphRAG over the graph when `prompt` is given |
-| `POST /recall` `{ project, prompt, client, language? }` | Fast path for the hook: searches the project's learnings and personal memory if enabled (topic graphs are not searched in v1, see open question 1); returns `{ enabled, mode, firstRun, items: [{ kind, text }], saved?, gap?, inboxCount?, quotaPaused? }`, already formatted. `enabled` is true unless the project has a `memory-disabled` marker. Target p95 < 1.5 s |
-| `POST /ingest` `{ project, excerpt, client, sessionId }` | One AI call to extract and classify, with structured output (a JSON schema, never parsed from free text). Each statement carries `project`, `kind` and `type`: a statement about a neighbouring repo is written to that repo's graph if memory is on there and dropped otherwise; `personal` statements (preferences, and facts about the user's machine or agent setup) go to personal memory once phase 4 adds it and are dropped until then. The prompt drops snapshot facts (versions, branch or commit state, "currently"). Prompt and test results: `infranodus-memory-plugin/experiments/extraction/`. creates `learn-<slug>` (with the `learnings-enabled` marker, source `memory-plugin`) on the first ingest that yields statements; writes per mode; tags statements `session-<id>`. Returns 202 at once and extracts in the background (the counts reach the user through the next recall's `saved`). Idempotent per `sessionId` (a retried flush must not double-write). Refuses projects with `memory-disabled` |
-| `POST /memory/disable` `{ project, deleteGraph? }` | Adds the `memory-disabled` marker (creating a minimal graph if none exists); optionally deletes the learnings graph. `/memory/enable-project` removes the marker |
+| `POST /recall` `{ project, prompt, client, language? }` | Fast path for the hook: searches the project's learnings and personal memory if enabled (topic graphs are not searched in v1, see open question 1); returns `{ items: [{ kind, text }], graphUrl?, saved?, gap?, inboxCount?, quotaPaused? }`, already formatted; empty `items` for a project with no graph yet. The plugin only calls it when the project isn't turned off locally. Target p95 < 1.5 s |
+| `POST /ingest` `{ project, excerpt, client, sessionId, mode? }` | One AI call to extract and classify, with structured output (a JSON schema, never parsed from free text). Each statement carries `project`, `kind` and `type`: a statement about a neighbouring repo is written to that repo's graph if memory is on there and dropped otherwise; `personal` statements (preferences, and facts about the user's machine or agent setup) go to personal memory once phase 4 adds it and are dropped until then. The prompt drops snapshot facts (versions, branch or commit state, "currently"). Prompt and test results: `infranodus-memory-plugin/experiments/extraction/`. creates `learn-<slug>` as a `MEMORY` graph on the first ingest that yields statements; writes per `mode` (`auto` by default, `review` writes to the inbox); tags statements `session-<id>`. Returns 202 at once and extracts in the background (the counts reach the user through the next recall's `saved`). Idempotent per `sessionId` (a retried flush must not double-write). Refuses a `learn-<slug>` name held by a graph that isn't a memory graph |
 | `POST /memory/forget` `{ project, sessionId? }` | Deletes the statements of one session (the last one by default) by their `session-<id>` category |
 
 Usage: `recall` counts as an API call, `ingest` as an AI call (see the API quota
 notes in the backend's `docs/custom-api-quota.md`). All endpoints take the
 `language` body field added on `feat/api-processing-language`.
+
+### Where memory state lives
+
+No database change and no settings stored on the server. Three facts decide
+everything:
+
+| Fact | Where | Who sets it |
+|---|---|---|
+| A project, topic or person has memory | The graph exists (`learn-<project>`, `memory-<topic>`, `personal-<user>`) and its type is `MEMORY` | `enable_project_learnings` / `enable_memory` on the user's request; the plugin's first ingest that yields statements |
+| The plugin is turned off for a project | `~/.infranodus/memory.json` on the user's machine: `{ "off": ["<project>", …] }` | `/memory off` and `/memory on` |
+| How to write (auto or review) | The client: the MCP tools always dry-run and `confirm`; the plugin uses `mode` from `~/.infranodus/memory.json` (default `auto`) | The user |
+
+- **MCP tools: opt-in.** `add` refuses unless the `MEMORY` graph exists.
+- **Plugin: on once installed.** Installing it is the consent, on every
+  machine it is installed on. `/memory off` is local to the machine, like the
+  plugin itself; the hooks check the file first and then do nothing at all
+  for that project: no recall, no capture, nothing sent. The graph is kept,
+  so `/memory on` continues where it stopped. Deleting the graph is a separate,
+  explicit action.
+- **A graph the user made by hand** with a `learn-…` name is normally type
+  `STANDARD`, so it is never written to.
+- **Graphs from before 2026-11-02** carry a marker statement (category
+  `learnings-enabled`) instead; the first version of the tools also left them
+  as type `STANDARD`. A `learn-*` graph that isn't `MEMORY` but has that
+  category counts as a memory graph. New graphs get no marker statements: as
+  statements they became nodes and topics of the graph.
+- **`~/.infranodus/`** is the one local folder for InfraNodus on a machine:
+  `memory.json` (off list, `mode`, the projects already told about memory),
+  the capture queue, and later the login token. It lives outside the project
+  so a setting is never committed for teammates, and every client adapter
+  (phase 5) reads the same file.
 
 ### Supersession rule
 
@@ -133,13 +167,13 @@ applies **only to the plugin** (its hooks and the `/recall` and `/ingest`
 endpoints). The MCP tools, the `project-learnings` skill and the other skills
 keep the per-project opt-in and the `confirm` step.
 
-- **Opt-out, not opt-in.** A project is on unless it has a `memory-disabled`
-  marker. `/memory off` sets it (and can delete the graph); `/memory on`
-  clears it.
-- **No empty graphs.** `learn-<slug>` is created at the first ingest that
-  yields statements, with the `learnings-enabled` marker (source
-  `memory-plugin`), so the MCP tools treat it as enabled from then on.
-  Projects the plugin has never written to keep the normal opt-in flow.
+- **Opt-out, not opt-in.** A project is on unless it is listed in
+  `~/.infranodus/memory.json`. `/memory off` adds it, `/memory on` removes it
+  (see "Where memory state lives").
+- **No empty graphs.** `learn-<slug>` is created as a `MEMORY` graph at the
+  first ingest that yields statements, so the MCP tools treat it as enabled
+  from then on. Projects the plugin has never written to keep the normal
+  opt-in flow.
 - **Kinds.** Learnings: on. Topic memory: off in v1; the plugin neither
   reads nor writes topic graphs (ingest drops statements classified as topic
   memory). Personal memory: opt-in,
@@ -147,8 +181,9 @@ keep the per-project opt-in and the `confirm` step.
 - **`auto` by default, with undo.** Each session's statements carry a
   `session-<id>` category; the recall line reports what was saved, and
   `/memory forget-last` removes it.
-- **Told once per project.** On the first session in a project, the hook shows
-  the user (not only the agent) one line: "InfraNodus memory is on for
+- **Told once per project.** On the first session in a project (remembered in
+  `~/.infranodus/memory.json`), the hook shows the user (not only the agent)
+  one line: "InfraNodus memory is on for
   `<project>` → graph link. `/memory off` to stop for this project."
 - **Guards on the capture path:**
   - `userConfig.exclude_paths` (globs such as `~/clients/*`)
@@ -169,11 +204,11 @@ keep the per-project opt-in and the `confirm` step.
 ### Consent and data boundaries (non-negotiable)
 
 1. Nothing is captured or sent for a project the user turned off or excluded,
-   or for a topic or person scope that isn't enabled. The hook uses the
-   `enabled` flag returned by the session's first recall; the server checks
-   again on `/ingest`.
+   or for a topic or person scope that isn't enabled. The hook checks
+   `~/.infranodus/memory.json` before anything else; the server refuses
+   writes to a graph that isn't a memory graph.
 2. Outside the memory plugin, the per-project opt-in and `confirm` stay as
-   they are, and `review` is the default mode for MCP writes.
+   they are.
 3. Personal memory has its own opt-in and its own graph. Ingest never writes
    facts about the user into learnings or topic memory.
 4. The local queue never leaves the machine except through `/ingest`. It is
@@ -218,7 +253,7 @@ Hooks cannot reuse the MCP server's OAuth session. Phase 2: a required,
 sensitive `userConfig.api_key`, asked for by Claude Code at install, so the
 plugin is active as soon as it is installed. Later: an `infranodus login`
 device-code flow at the first session start that stores a token in
-`${CLAUDE_PLUGIN_DATA}`, after which the key becomes optional. If the key is
+`~/.infranodus/`, after which the key becomes optional. If the key is
 invalid, the hooks are a no-op, the first-run line says so once, and the MCP
 tools keep working.
 
@@ -271,8 +306,8 @@ infranodus-memory hook <client> <event>      # e.g. hook cursor prompt, hook cod
   `{ client, sessionId, cwd, event, prompt?, tool?, toolInput?, toolResult?, filePath?, toolUseId? }`.
   The events are the same four everywhere: `start`, `prompt`, `tool`, `stop`
   (plus `compact` where the client has it).
-- **Shared core.** Recall, the local queue, the enable-state cache and the
-  ingest worker are the same code for every client. Adapters never call the
+- **Shared core.** Recall, the local queue, the off list in
+  `~/.infranodus/memory.json` and the ingest worker are the same code for every client. Adapters never call the
   API themselves.
 - **Format output.** Each adapter turns the core's result into what its client
   accepts: `hookSpecificOutput.additionalContext` where the client supports
@@ -313,9 +348,10 @@ committed. The agent then sees the same block it would see in Claude Code.
   timeouts the installer registers per client, size the recall request budget
   from it (the client limit minus process start-up), and test that the
   registered configs match the table.
-- Every hook command checks an off switch first
+- Every hook command checks the off switches first
   (`INFRANODUS_MEMORY_DISABLE=1`, or `..._DISABLE_CAPTURE=1` to keep recall
-  only) and exits 0 when it is set.
+  only, and the project's entry in `~/.infranodus/memory.json`) and exits 0
+  when one is set.
 - `client` is sent with every `recall` and `ingest`, so usage and extraction
   quality can be compared per client, and `toolUseId` (where the client
   provides it) dedups repeated tool events in the queue.
@@ -344,8 +380,8 @@ InfraNodus memory is on for infranodus-app → https://infranodus.com/<user>/lea
 
 | # | Work | Repos | Visible result |
 |---|---|---|---|
-| 1 | Learnings and memory endpoints; MCP tools moved onto them | app, mcp | None (refactor), one implementation |
-| 2 | `/recall`, `/memory/disable`; create the `infranodus-memory-plugin` repo; the plugin with the required key, the recall hook, the first-run line and `/memory off`/`on`; marketplace listing | app, memory, skills | Context at session start; nothing written |
+| 1 | Learnings and memory endpoints; MCP tools moved onto them; memory state from the graph type | app, mcp | None (refactor), one implementation |
+| 2 | `/recall`; create the `infranodus-memory-plugin` repo; the plugin with the required key, the recall hook, the first-run line and `/memory off`/`on` (local, `~/.infranodus/memory.json`); marketplace listing | app, memory, skills | Context at session start; nothing written |
 | 3 | Local capture with guards and redaction, `/ingest` (auto mode, lazy graph creation, `session-<id>` tags), `/memory/forget`, quota pause; inboxes and `/memory review` for review mode | app, memory, skills, mcp | Full cycle, on from install |
 | 4 | Personal memory, device login | all | Polish |
 | 5 | Hooks for other clients: shared entry point and adapters, rules-file recall, installer per client (start with Codex CLI and Cursor) | memory, app | The same cycle outside Claude Code |
@@ -362,8 +398,8 @@ good before phase 3 ships.
 1. ~~Topic memory linked to a project.~~ Decided 2026-10-31: v1 recall
    searches only the project's learnings (and personal memory once enabled).
    Topic graphs aren't linked to projects, searched by recall or written by
-   the plugin; they stay available through the MCP memory tools. A
-   `linkedTopics` marker in `learn-<slug>` can be added later.
+   the plugin; they stay available through the MCP memory tools. Linking
+   topics to a project can be added later.
 2. ~~Full excerpt or pre-trimmed?~~ Decided 2026-10-31 after the step-2
    extraction test: the hook pre-trims locally to about 6k tokens (prompts,
    final answers, failures, files edited, most recent turns kept) plus a list
@@ -387,5 +423,6 @@ good before phase 3 ships.
 7. ~~Where the plugin and multi-client code live.~~ Decided 2026-10-31: its
    own `infranodus-memory-plugin` repo from the start (plugin name `infranodus-memory`), listed in the InfraNodus
    skills marketplace (see "Why a separate repo").
-8. Should `/memory off` delete the project's graph by default, or only stop
-   capture? Proposal: only stop; deleting is a separate, explicit choice.
+8. ~~Should `/memory off` delete the project's graph?~~ Decided 2026-11-02:
+   no. It only stops the plugin on that machine; deleting the graph is a
+   separate, explicit action.

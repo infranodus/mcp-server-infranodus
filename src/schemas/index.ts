@@ -196,6 +196,15 @@ export const CreateGraphSchema = z.object({
 // outside subject, client or case (graph memory-<topic>), `personal` the
 // user's own preferences and setup (personal-<user>). Both need
 // enable_memory once and write through a dry run, like project learnings.
+// Processing language for the memory and learnings graphs. Passed on to the
+// app, which validates it against its supported list.
+const memoryLanguageField = z
+	.string()
+	.optional()
+	.describe(
+		"Processing language (e.g. 'EN', 'DE', 'FR', 'AUTO'). Only when the content is not in the account's default language.",
+	);
+
 const memoryScopeField = z
 	.enum(["topic", "personal"])
 	.optional()
@@ -214,6 +223,7 @@ const memoryTopicField = z
 export const AddMemorySchema = z.object({
 	scope: memoryScopeField,
 	topic: memoryTopicField,
+	language: memoryLanguageField,
 	confirm: z
 		.boolean()
 		.default(false)
@@ -453,6 +463,7 @@ export const SearchExistingGraphsSchema = z.object({
 export const getMemorySchema = z.object({
 	scope: memoryScopeField,
 	topic: memoryTopicField,
+	language: memoryLanguageField,
 	prompt: z
 		.string()
 		.optional()
@@ -2010,6 +2021,7 @@ const projectField = z
 
 export const EnableProjectLearningsSchema = z.object({
 	project: projectField,
+	language: memoryLanguageField,
 });
 
 export const EnableMemorySchema = z.object({
@@ -2019,12 +2031,14 @@ export const EnableMemorySchema = z.object({
 			"'topic' for facts about an outside subject, client or case (needs `topic`); 'personal' for the user's own preferences and setup.",
 		),
 	topic: memoryTopicField,
+	language: memoryLanguageField,
 });
 
 // Length parity between `types` and `statements` is checked in the handler
 // (a .refine() would hide `.shape`, which tool registration needs).
 export const AddProjectLearningsSchema = z.object({
 		project: projectField,
+		language: memoryLanguageField,
 		statements: z
 			.array(z.string().min(1))
 			.min(1)
@@ -2058,6 +2072,7 @@ export const AddProjectLearningsSchema = z.object({
 	});
 
 export const GetProjectLearningsSchema = z.object({
+	language: memoryLanguageField,
 	project: z
 		.string()
 		.optional()

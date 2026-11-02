@@ -39,6 +39,7 @@ export const addProjectLearningsTool = {
 						statements: params.statements,
 						types: params.types,
 						confirm,
+						...(params.language ? { language: params.language } : {}),
 					}),
 				{
 					confirm: params.confirm,

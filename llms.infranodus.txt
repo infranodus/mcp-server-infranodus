@@ -47,8 +47,12 @@
 ### Memory & Storage
 
 - create_knowledge_graph: Save text as a knowledge graph in InfraNodus
-- memory_add_relations: Persist entity relations to knowledge graph memory
-- memory_get_relations: Retrieve relations from memory
+- memory_add_relations: Save statements to memory: a named graph (written immediately), or with scope the user's kept topic memory (memory-<topic>) or personal memory (personal-<user>), dry run until confirm: true
+- memory_get_relations: Recall from memory by entity, across graphs or one graph; with scope from the kept topic or personal memory (entity, prompt, or overview)
+- enable_memory: Enable topic or personal memory (only on the user's request)
+- enable_project_learnings: Enable the per-project learnings graph (learn-<project>), only on the user's request
+- add_project_learnings: Save what was learned about operating in a project; dry run until confirm: true
+- get_project_learnings: Retrieve a project's learnings for a task (prompt), an entity, or as an overview
 - retrieve_from_knowledge_base: GraphRAG retrieval from existing knowledge base
 
 ### Utility
