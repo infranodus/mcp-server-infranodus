@@ -55,15 +55,14 @@ opt-in.
    items in total across learnings, memory and personal, plus at most one gap
    line. The hook injects it as `additionalContext`. On timeout or error it
    injects nothing and says nothing.
-2. **Capture** (during the session). Hooks append to a local queue in the
-   plugin's data folder: prompts, tool failures, files touched, final answers,
-   and successful shell commands (read-only ones such as `ls` or `grep` left
-   out).
-   No network calls on this path. Nothing is recorded when the project is
-   turned off (`~/.infranodus/memory.json`), excluded or not a project (see
-   "Default-on in the memory plugin"), and secrets are redacted before
-   anything is written.
-3. **Ingest** (PreCompact, SessionEnd). A detached worker posts the queue to
+2. **Capture** (during the session). In Claude Code nothing extra runs: the
+   session is already written to its transcript. (Clients without a
+   transcript get capture hooks writing to `~/.infranodus/queue/`, phase 5.)
+3. **Ingest** (PreCompact, SessionEnd). A detached worker trims the part of
+   the transcript not uploaded yet (prompts, final answers, tool failures,
+   files edited, successful shell commands; read-only commands left out;
+   secrets and `<private>` text redacted; nothing for a project turned off,
+   excluded or not a project) and posts it to
    `POST /api/v1/ingest`. The server makes one AI call that extracts short
    statements with `[[entities]]` marked and classifies each as
    learning / memory / personal, with the project each statement is about.
