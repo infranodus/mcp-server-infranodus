@@ -198,6 +198,16 @@ export const CreateGraphSchema = z.object({
 // enable_memory once and write through a dry run, like project learnings.
 // Processing language for the memory and learnings graphs. Passed on to the
 // app, which validates it against its supported list.
+const memoryHopsField = z
+	.number()
+	.int()
+	.min(1)
+	.max(3)
+	.optional()
+	.describe(
+		"How far to follow the graph's links. With `prompt`: default 2, so statements connected to the task's concepts through one intermediate concept come too (similarity 1 = direct, 0.5 = through a hop). With an entity: 2 or 3 returns what the entity is connected to, by hop distance (`connected`: node, hop, via), with the statements on those links; omitted, every statement that mentions it.",
+	);
+
 const memoryLanguageField = z
 	.string()
 	.optional()
@@ -464,6 +474,9 @@ export const getMemorySchema = z.object({
 	scope: memoryScopeField,
 	topic: memoryTopicField,
 	language: memoryLanguageField,
+	hops: memoryHopsField.describe(
+		"Only with `scope`. How far to follow the graph's links. With `prompt`: default 2 (statements connected through one intermediate concept come too). With entityName: 2 or 3 returns what it is connected to, by hop distance (`connected`: node, hop, via), with the statements on those links; omitted, every statement that mentions it.",
+	),
 	prompt: z
 		.string()
 		.optional()
@@ -1164,6 +1177,54 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		.describe(
 			"Include graph in the response to provide underlying knowledge graph structure",
 		),
+	hops: z
+		.number()
+		.int()
+		.min(1)
+		.max(3)
+		.default(1)
+		.describe(
+			"How far from the prompt's concepts to retrieve. 1 = statements sharing a concept with the prompt; 2 = also statements connected through one intermediate concept (similarityScore 1 = direct, 1/hops = through a hop). Use 2 for a question about one concept and what it relates to.",
+		),
+	topK: z
+		.number()
+		.int()
+		.min(1)
+		.max(50)
+		.default(8)
+		.describe("How many of the strongest matching relations (edges) to read statements from"),
+});
+
+export const GetNodeNeighborhoodSchema = z.object({
+	graphName: z
+		.string()
+		.min(1, "Graph name is required")
+		.describe(`Name of the existing ${brand.name} graph in your account`),
+	node: z
+		.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(5)])
+		.describe(
+			"The concept to look up, with or without [[ ]] (case, spaces and hyphens don't matter). Several spellings of one concept can be passed together, e.g. [\"gpu\", \"gpus\"].",
+		),
+	hops: z
+		.number()
+		.int()
+		.min(1)
+		.max(3)
+		.default(2)
+		.describe(
+			"How many steps away to go: 1 = the concepts it is directly linked to; 2 = also the concepts linked to those; 3 = one step further.",
+		),
+	maxNeighbors: z
+		.number()
+		.int()
+		.min(1)
+		.max(200)
+		.default(30)
+		.describe("Maximum number of connected concepts to return, nearest and strongest first"),
+	includeStatements: z
+		.boolean()
+		.default(true)
+		.describe("Include the statements on those links (with their categories and hop distance)"),
 });
 
 export const GenerateResponsesFromGraphSchemaBase = z.object({
@@ -2073,6 +2134,7 @@ export const AddProjectLearningsSchema = z.object({
 
 export const GetProjectLearningsSchema = z.object({
 	language: memoryLanguageField,
+	hops: memoryHopsField,
 	project: z
 		.string()
 		.optional()

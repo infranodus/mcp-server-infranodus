@@ -34,6 +34,7 @@ export const getMemoryTool = {
 					...(entity ? { entity } : {}),
 					...(params.prompt ? { prompt: params.prompt } : {}),
 					limit: params.limit,
+					...(params.hops ? { hops: params.hops } : {}),
 					...(params.language ? { language: params.language } : {}),
 				});
 				return memoryResult(response);

@@ -28,20 +28,20 @@ BFS client-side. The app already supports hop expansion; the MCP server never ex
 
 ## 1. Expose `hops` and `topK` on `retrieve_from_knowledge_base` (smallest change, no app change)
 
-- [ ] Add to `RetrieveContextForPromptFromGraphSchema`:
+- [x] Add to `RetrieveContextForPromptFromGraphSchema`:
       `hops: z.number().int().min(1).max(3).default(1)` — "How many hops from the prompt's concepts
       to expand the retrieval. 1 = statements sharing a concept with the prompt; 2 = also statements
       connected through one intermediate concept."
       `topK: z.number().int().min(1).max(50).default(8)` — "Max number of edges (and statements)
       retrieved from the overlap."
-- [ ] Pass both as query params in `retrieveContextForPromptFromGraph.ts`
+- [x] Pass both as query params in `retrieveContextForPromptFromGraph.ts`
       (`hops: String(params.hops)`, `topK: String(params.topK)`).
-- [ ] Surface `similarityScore` in the non-compact output so the client can tell hop-1 from hop-2
+- [x] Surface `similarityScore` in the non-compact output so the client can tell hop-1 from hop-2
       statements (it is already mapped in `transformToGraphRagOutput`; confirm it is non-zero when
       hops > 1).
-- [ ] Update `instructions.ts` / tool description: "For a question about a specific concept, set
+- [x] Update `instructions.ts` / tool description: "For a question about a specific concept, set
       `prompt` to that concept and `hops: 2`."
-- [ ] Note for the description: the intersection matches prompt words to `[[wikilink]]` nodes by
+- [x] Note for the description: the intersection matches prompt words to `[[wikilink]]` nodes by
       stripping the brackets (`lib/graph.js`, `getGraphsIntersection`). There is no lemmatization
       across entity nodes, so `gpu` will not match `[[gpus]]`. Document it; do not try to fix it in
       the MCP layer.
@@ -63,18 +63,20 @@ Returns the ego network of one node:
 }
 ```
 
-- [ ] App side: new route (e.g. `POST /api/v1/nodeNeighborhood`) that takes a node name instead of a
+- [x] App side: new route (e.g. `POST /api/v1/nodeNeighborhood`) that takes a node name instead of a
       prompt, skips the text-to-graph step, loads the saved graph, runs the hop expansion and
       `Entry.getStatementsOfEdges`, and returns neighbors grouped by hop distance with edge weights.
       All pieces exist: `getGraphsIntersection`, `findConnectedEdges`, `getStatementsOfEdges`.
-- [ ] Accept `node` with or without `[[ ]]`; try both forms. Optionally accept an array of nodes
+- [x] Accept `node` with or without `[[ ]]`; try both forms. Optionally accept an array of nodes
       (`gpu`, `gpus`) so split entities can be queried together.
-- [ ] MCP side: schema + tool file + transformer; register in `src/tools/index.ts`.
-- [ ] Fallback if the app route is not available (older servers): call
+- [x] MCP side: schema + tool file + transformer; register in `src/tools/index.ts`.
+- [ ] (Not done: the MCP server and app ship together, so no fallback for now.) Fallback if the app route is not available (older servers): call
       `analyze_existing_graph_by_name` with `fullGraph`, run BFS in the MCP server, and return the
       same shape. Keep this behind a feature check so it does not silently ship 0.5 MB responses.
 
-### BFS note (performance)
+### BFS note (performance) — done
+
+Done 2026-11-03: `findConnectedEdges` is now a breadth-first walk over node adjacency (lib/graph.js), tested against a brute-force walk; `nodeNeighborhood` uses the same adjacency. Hop edges no longer repeat the direct ones, direct matches rank first, and similarityScore is 1 for direct statements, 1/hops for the rest.
 
 `findConnectedEdges` (`lib/graph.js:1191`) checks every edge in `allEdges` against every selected
 edge and recurses through `allEdges.some(...)` for each remaining hop. That is roughly
@@ -86,7 +88,7 @@ before shipping tool 2, since neighborhood queries on large graphs will hit it d
 
 ## 3. Skill guidance (tracked in InfraNodus-Skills, see its TODO)
 
-- [ ] Once 1 or 2 ships, update the MCP server instructions text so clients know the node-question
+- [x] Once 1 or 2 ships, update the MCP server instructions text so clients know the node-question
       workflow: `search` to confirm the node and its variants -> `retrieve_from_knowledge_base`
       with `hops: 2` (or `get_node_neighborhood`) -> `analyze_existing_graph_by_name` with
       `fullGraph` only for path/distance questions.
@@ -101,4 +103,4 @@ before shipping tool 2, since neighborhood queries on large graphs will hit it d
 
 ## Not checked
 
-- Whether `memory_get_relations` (MEMORY graphs) has its own traversal depth.
+- ~~Whether `memory_get_relations` (MEMORY graphs) has its own traversal depth.~~ It now takes `hops` (as does `get_project_learnings`): with a prompt, default 2; with an entity, 2–3 returns the neighborhood. The memory plugin's first-prompt recall adds learnings linked to the direct matches through a shared entity, and `/infranodus-memory:recall` uses get_node_neighborhood / hop retrieval.

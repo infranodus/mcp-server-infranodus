@@ -9,7 +9,7 @@ export const retrieveContextForPromptFromGraphTool = {
 	definition: {
 		title: `Retrieve Context for a Prompt from an Existing ${brand.name} Graph`,
 		description:
-			`Retrieve the statements and general overview of an existing ${brand.name} knowledge graph based on the user's prompt for GraphRAG based retrieval.`,
+			`Retrieve the statements and general overview of an existing ${brand.name} knowledge graph based on the user's prompt for GraphRAG based retrieval. Set hops: 2 to also get statements connected to the prompt's concepts through an intermediate concept. The prompt's words match graph nodes by name, without stemming (gpu doesn't match [[gpus]]). For what one concept is connected to, by hop distance, use get_node_neighborhood.`,
 		inputSchema: RetrieveContextForPromptFromGraphSchema.shape,
 		annotations: {
 			readOnlyHint: true,
@@ -30,6 +30,8 @@ export const retrieveContextForPromptFromGraphTool = {
 				includeStatements: "true",
 				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: params.extendedGraphSummary ? "true" : "false",
+				hops: String(params.hops ?? 1),
+				topK: String(params.topK ?? 8),
 			});
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
