@@ -34,7 +34,7 @@ cannot reuse it.
 | Kind | Holds | Example | Graph | Consent |
 |---|---|---|---|---|
 | **Learnings** (procedural) | How to work in a project: locations, traps, conventions, decisions, workflows, approaches | "infranodus-app tests need `node -r @babel/register`" | `learn-<project>` (+ `learn-<project>-inbox`) | Memory plugin: on from install, `/infranodus-memory:off` per project (local). MCP tools and skills: per-project opt-in, as today |
-| **Memory** (declarative) | Entities and relations in a topic, case or client | "[[Legal Play]] is operated by [[Ways Ltd]]" | `memory-<topic>` (+ `-inbox`) | Per topic, through the MCP tools. The plugin doesn't read or write topic graphs in v1 |
+| **Memory** (declarative) | Entities and relations in a topic, case or client | "[[Legal Play]] is operated by [[Ways Ltd]]" | `memory-<topic>` | Through the MCP tools after `enable_memory`; through the plugin when its "What to save" setting is `memories` or `both` (each topic graph created on first use). Recall doesn't search topic graphs in v1 |
 | **Personal** | The user's preferences and working style, across projects | "Prefers plain-language summaries before details" | `personal-<user>` (+ `-inbox`) | Separate, explicit opt-in everywhere, including the plugin |
 
 Project learnings keep their rule "never anything about the person". Personal
@@ -173,10 +173,13 @@ keep the per-project opt-in and the `confirm` step.
   first ingest that yields statements, so the MCP tools treat it as enabled
   from then on. Projects the plugin has never written to keep the normal
   opt-in flow.
-- **Kinds.** Learnings: on. Topic memory: off in v1; the plugin neither
-  reads nor writes topic graphs (ingest drops statements classified as topic
-  memory). Personal memory: opt-in,
-  as everywhere else.
+- **Kinds, chosen by the "What to save" setting** (`save`, sent with each
+  upload): `both` (the default), `learnings` or `memories`. Learnings go to
+  `learn-<project>`; topic facts go to `memory-<topic>`, one graph per
+  subject, created on first use (the model names the topic and reuses an
+  existing one when it fits). Choosing `memories` or `both` is the consent
+  for topic graphs. Personal memory: opt-in, as everywhere else. Recall reads
+  learnings and personal memory, not topic graphs (v1).
 - **`auto` by default, with undo.** Each session's statements carry a
   `session-<id>` category; the recall line reports what was saved, and
   `/infranodus-memory:forget-last` removes it.
