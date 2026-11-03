@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/infranodus-mcp-server-infranodus-badge.png)](https://mseep.ai/app/infranodus-mcp-server-infranodus)
+
 # InfraNodus MCP Server
 
 A Model Context Protocol (MCP) server that integrates InfraNodus knowledge graph and text network analysis capabilities into LLM workflows and AI assistants like Claude Desktop.
