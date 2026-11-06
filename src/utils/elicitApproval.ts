@@ -1,4 +1,59 @@
+import { EmptyResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolExtra } from "../types/index.js";
+
+/** How long the client gets to answer a ping before it counts as unreachable for a dialog. */
+export const CLIENT_REACHABLE_TIMEOUT_MS = 3_000;
+/**
+ * How long the user gets to answer the dialog. Clients give up on a tool call
+ * after about a minute (the claude.ai connector at 60 s), and the dry-run
+ * plan has to get back to them before that.
+ */
+export const ELICIT_ANSWER_TIMEOUT_MS = 45_000;
+
+/** The two calls of the SDK's Server that asking the user needs. */
+interface DialogServer {
+	request(request: { method: "ping" }, resultSchema: any, options?: any): Promise<unknown>;
+	elicitInput(params: any, options?: any): Promise<any>;
+}
+
+/**
+ * Send an elicitation to the client on the stream of the tool call that asks
+ * for it (`requestId`), after checking the client answers on that stream.
+ *
+ * Over Streamable HTTP a request from the server that is not tied to a call
+ * goes to the client's standalone GET stream. A client that never opens one
+ * (claude.ai connectors do not) can still declare the elicitation capability:
+ * the SDK then drops the request without an error and waits its default 60 s,
+ * which is as long as such clients wait for the tool result, so the call
+ * failed with a timeout. Tied to the call, the request travels on the
+ * response stream of the tool call itself.
+ *
+ * The ping settles in a few seconds whether requests from the server reach
+ * this client at all; a human answering a dialog needs longer than that, and
+ * without the check an unreachable client would cost the whole answer time on
+ * every dry run. Throws when the client cannot be reached or does not answer
+ * in time; the caller treats that as "ask in chat instead".
+ */
+export async function elicitOnCallStream(
+	server: DialogServer,
+	requestId: string | number | undefined,
+	params: any,
+	timeouts: { reachableMs?: number; answerMs?: number } = {},
+): Promise<any> {
+	const onCallStream = requestId === undefined ? {} : { relatedRequestId: requestId };
+	try {
+		await server.request({ method: "ping" }, EmptyResultSchema, {
+			...onCallStream,
+			timeout: timeouts.reachableMs ?? CLIENT_REACHABLE_TIMEOUT_MS,
+		});
+	} catch {
+		throw new Error("the client did not answer a request from the server");
+	}
+	return server.elicitInput(params, {
+		...onCallStream,
+		timeout: timeouts.answerMs ?? ELICIT_ANSWER_TIMEOUT_MS,
+	});
+}
 
 export type ElicitOutcome =
 	| { kind: "accepted"; save: boolean; note?: string }

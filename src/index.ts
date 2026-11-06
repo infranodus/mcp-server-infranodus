@@ -70,6 +70,7 @@ import {
 	recordCall,
 } from "./utils/callTracking.js";
 import { validateApiKey } from "./auth/oauth-provider.js";
+import { elicitOnCallStream } from "./utils/elicitApproval.js";
 
 // Export the config schema for Smithery
 export { configSchema };
@@ -164,8 +165,13 @@ export default function createServer({
 								handler(params, {
 									progressToken: extra?._meta?.progressToken,
 									sendNotification: extra?.sendNotification,
+									// On this call's own stream: see elicitOnCallStream.
 									elicit: (elicitParams: any) =>
-										mcpServer.server.elicitInput(elicitParams),
+										elicitOnCallStream(
+											mcpServer.server,
+											extra?.requestId,
+											elicitParams,
+										),
 									clientCapabilities:
 										mcpServer.server.getClientCapabilities(),
 									clientName: mcpServer.server.getClientVersion()?.name,
