@@ -203,36 +203,41 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Fetch a specific search result for a graph
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 
-33. **list_graphs**
+33. **get_term_graph**
+    - The graph around a term across your graphs: every statement that contains the term(s) — in all your graphs or the named ones — built into one graph with the terms themselves left out, so the topics, gaps and relations describe the context the terms sit in (the app's search view with the searched term hidden)
+    - Returns which graphs the statements came from with a count each, the statistics, topical clusters, content gaps, main concepts and top relations, the compact graph (`includeGraph`, on by default) and the statements with their graph of origin (`includeStatements`, off by default); `removeTerms: false` keeps the terms in
+    - Your own graphs only; `search` says where a term occurs, `get_node_neighborhood` walks one graph from one concept
+
+34. **list_graphs**
     - List the graphs (contexts) in your InfraNodus account, with optional filters by name, type, date, language, or favorite status
     - Use it to discover which graphs exist before analyzing them with `analyze_existing_graph_by_name`, searching them, or writing to them
 
-34. **enable_project_learnings**
+35. **enable_project_learnings**
     - Create the opt-in, per-project, append-only learnings graph (`learn-<project>`) in your account — the place where the assistant saves what it learned about operating in a project
     - Called only when you explicitly ask to start saving learnings for a project; idempotent, so calling it again just returns the existing graph
     - The assistant tells you first what will be stored (project knowledge only, never anything about you), where (a private graph you can delete at any time), and that batches are shown before saving
 
-35. **add_project_learnings**
+36. **add_project_learnings**
     - Save learnings about a project — where things live, traps, conventions, decisions, workflows, and a self-assessment of what worked well and what should be done differently next time — as statements with a `type` category each, for later sessions on any client
     - Refuses (without error) when the project has not been enabled and never creates the graph itself
     - Dry run by default: returns what would be written, marking near-duplicates as `reinforced`; writes only with `confirm: true` — or in the same call when your client supports MCP elicitation and you approve the form
     - Rejects statements with secret-like content server-side (indices only, never the content)
 
-36. **get_project_learnings**
+37. **get_project_learnings**
     - Retrieve learnings for a project: by `prompt` (GraphRAG — most relevant statements plus an overview of what is known), by `entity` (a file path, module, or concept), or a structural overview with neither
     - Call with no `project` to list the projects that have learnings in your account
     - Returns `enabled: false` with an empty list when a project has no learnings graph — not an error
 
     _Also available as the `save-learnings` prompt in clients that expose MCP prompts. Set `INFRANODUS_LEARNINGS=0` to remove these three tools from the server entirely (see [Project learnings](#project-learnings))._
 
-37. **optimize_knowledge_base**
+38. **optimize_knowledge_base**
     - Structural feedback on a whole code base, document vault, or body of procedural knowledge (rules, frameworks, principles) from its digest graph (`repo-<project>-digest` / `vault-<project>-digest`) — or from a digest you write and pass as text, saved with `saveAs`
     - Diagnoses the structure (biased / focused / diversified / dispersed) and reads it for the chosen `focus` (`codebase`, `vault`, `procedural`, `general`): what dominates, which areas are under-developed (with latent-topic ideas), which clusters never connect — missing integrations, missing bridge notes, missing hand-offs between frameworks — plus AI suggestions for what to develop next
     - `compareWith` up to two other layers of the same project (e.g. digest vs structure map, docs vs code) and get what each has that the other lacks: rules without code, code without documentation, features described but not built
     - Two ways to get the digest: the assistant reads the project and writes it (the infranodus skill's **digest** build mode, or `text` + `saveAs` here), or `generate_ontology_graph` with `ontologyMode: 'procedural'` writes it server-side from an uploaded docs/structure graph
     - Pairs with the infranodus skill's build modes: full ingestion, digest, structure map, ontology
 
-38. **submit_workflow_feedback**
+39. **submit_workflow_feedback**
     - Internal telemetry: after a workflow of InfraNodus calls, the assistant reports what it actually did with the output — how much it used, whether it contained anything new, whether it was the right tool, how many calls it took, concrete defects — as observations rather than a score; a rating is derived from them server-side
     - Autonomous: it never asks you anything and never surfaces in the conversation
     - The report contains short paraphrases of what you were working on (capped at 200 characters), the same policy as the prompts InfraNodus already logs; `MCPCAT_ANONYMOUS=1` skips the per-user log entirely

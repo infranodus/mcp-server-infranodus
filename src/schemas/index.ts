@@ -1227,6 +1227,45 @@ export const GetNodeNeighborhoodSchema = z.object({
 		.describe("Include the statements on those links (with their categories and hop distance)"),
 });
 
+export const GetTermGraphSchema = z.object({
+	terms: z
+		.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(5)])
+		.describe(
+			"The term to look up — a word, a [[concept]] or an entity name, with or without [[ ]] — or several terms (at most 5) to narrow the search to the statements that contain all of them.",
+		),
+	graphNames: z
+		.array(z.string().min(1))
+		.default([])
+		.describe(
+			`Which ${brand.name} graphs to search: one name for one graph, several names for those graphs, empty (the default) for every graph in the account.`,
+		),
+	removeTerms: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Leave the terms out of the graph (default), so the clusters and gaps describe the context around them rather than the terms themselves. false keeps them in, to see what they bridge.",
+		),
+	includeGraph: z
+		.boolean()
+		.default(true)
+		.describe(
+			"Include the compact graph (nodes with their betweenness, weighted edges) next to the statistics; the statistics and the summary come either way.",
+		),
+	includeStatements: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Include the statements that were found, each with the graph it came from and its cluster.",
+		),
+	maxNodes: z
+		.number()
+		.int()
+		.min(10)
+		.max(2000)
+		.default(150)
+		.describe("How many of the most important nodes the graph keeps."),
+});
+
 export const GenerateResponsesFromGraphSchemaBase = z.object({
 	graphName: z
 		.string()

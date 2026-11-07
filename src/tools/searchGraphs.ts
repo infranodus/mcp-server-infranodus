@@ -8,7 +8,9 @@ export const searchExistingGraphsTool = {
 	name: "search",
 	definition: {
 		title: `Search through Existing ${brand.name} Graphs`,
-		description: `Find the concepts and terms in existing ${brand.name} graphs`,
+		description:
+			`Find which existing ${brand.name} graphs mention a term: their names and links (fetch reads one result). ` +
+			`For the structure around a term — its topics, gaps and relations across graphs, with the term itself left out — use get_term_graph instead; this tool only says where the term occurs.`,
 		inputSchema: SearchExistingGraphsSchema.shape,
 		annotations: {
 			readOnlyHint: true,
