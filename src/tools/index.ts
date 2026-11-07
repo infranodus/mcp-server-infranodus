@@ -32,7 +32,7 @@ export { optimizeTextStructureTool } from "./optimizeTextStructure.js";
 export { optimizeReasoningTool } from "./optimizeReasoning.js";
 export { retrieveContextForPromptFromGraphTool } from "./retrieveContextForPromptFromGraph.js";
 export { getNodeNeighborhoodTool } from "./getNodeNeighborhood.js";
-export { getTermGraphTool } from "./getTermGraph.js";
+export { getGraphAroundTermTool } from "./getGraphAroundTerm.js";
 export { enableProjectLearningsTool } from "./enableProjectLearnings.js";
 export { addProjectLearningsTool } from "./addProjectLearnings.js";
 export { getProjectLearningsTool } from "./getProjectLearnings.js";

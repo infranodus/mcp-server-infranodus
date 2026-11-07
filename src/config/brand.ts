@@ -94,7 +94,7 @@ const BRANDS: Record<BrandId, BrandDef> = {
 			"generate_contextual_hint",
 			"retrieve_from_knowledge_base",
 			"get_node_neighborhood",
-			"get_term_graph",
+			"get_graph_around_term",
 			// Project learnings are for people operating in repos/projects,
 			// not the SEO/keyword audience.
 			"enable_project_learnings",

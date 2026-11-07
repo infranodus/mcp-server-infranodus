@@ -1227,7 +1227,7 @@ export const GetNodeNeighborhoodSchema = z.object({
 		.describe("Include the statements on those links (with their categories and hop distance)"),
 });
 
-export const GetTermGraphSchema = z.object({
+export const GetGraphAroundTermSchema = z.object({
 	terms: z
 		.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(5)])
 		.describe(

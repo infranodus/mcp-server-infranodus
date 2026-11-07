@@ -1,12 +1,12 @@
-// get_term_graph through the real handler and an intercepted fetch (no
+// get_graph_around_term through the real handler and an intercepted fetch (no
 // network), against the app's /termGraph contract (infranodus-app
 // routes/termGraph.js). The search and the build are the app's and
 // infrasonic's; here: what is sent, and how the answer is passed on.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { runWithConfig } from "../dist/api/config-store.js";
-import { getTermGraphTool } from "../dist/tools/getTermGraph.js";
-import { GetTermGraphSchema } from "../dist/schemas/index.js";
+import { getGraphAroundTermTool } from "../dist/tools/getGraphAroundTerm.js";
+import { GetGraphAroundTermSchema } from "../dist/schemas/index.js";
 
 function withFetch(handler, fn) {
 	return async () => {
@@ -34,7 +34,7 @@ function withFetch(handler, fn) {
 
 const run = (params) =>
 	runWithConfig({ apiBase: "https://api.test", apiKey: "k" }, () =>
-		getTermGraphTool.handler(GetTermGraphSchema.parse(params)),
+		getGraphAroundTermTool.handler(GetGraphAroundTermSchema.parse(params)),
 	);
 const payload = (result) => JSON.parse(result.content[0].text);
 
@@ -74,7 +74,7 @@ const appAnswer = (withNodes) => ({
 });
 
 test(
-	"get_term_graph sends the terms with the defaults and returns the structure of the term-less graph",
+	"get_graph_around_term sends the terms with the defaults and returns the structure of the term-less graph",
 	withFetch(
 		() => [appAnswer(true)],
 		async (calls) => {
@@ -107,7 +107,7 @@ test(
 );
 
 test(
-	"get_term_graph passes the scope and the options through, and keeps the statistics without the graph",
+	"get_graph_around_term passes the scope and the options through, and keeps the statistics without the graph",
 	withFetch(
 		() => [appAnswer(false)],
 		async (calls) => {
@@ -139,7 +139,7 @@ test(
 );
 
 test(
-	"get_term_graph answers an empty search without a graph, and passes refusals on",
+	"get_graph_around_term answers an empty search without a graph, and passes refusals on",
 	withFetch(
 		(path, body) =>
 			body.terms[0] === "nothing"
