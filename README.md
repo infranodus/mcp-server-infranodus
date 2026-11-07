@@ -204,7 +204,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Can be used in ChatGPT Deep Research mode via Developer Mode > Connectors
 
 33. **get_term_graph**
-    - The graph around a term across your graphs: every statement that contains the term(s) — in all your graphs or the named ones — built into one graph with the terms themselves left out, so the topics, gaps and relations describe the context the terms sit in (the app's search view with the searched term hidden)
+    - The graph around a term across your graphs: every statement that contains the term — or all of several terms (`matchAll`, the default) or any of them — in all your graphs or the named ones, built into one graph with the terms themselves left out, so the topics, gaps and relations describe the context the terms sit in (the app's search view with the searched term hidden)
     - Returns which graphs the statements came from with a count each, the statistics, topical clusters, content gaps, main concepts and top relations, the compact graph (`includeGraph`, on by default) and the statements with their graph of origin (`includeStatements`, off by default); `removeTerms: false` keeps the terms in
     - Your own graphs only; `search` says where a term occurs, `get_node_neighborhood` walks one graph from one concept
 

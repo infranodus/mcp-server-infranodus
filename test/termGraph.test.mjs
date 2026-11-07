@@ -40,6 +40,7 @@ const payload = (result) => JSON.parse(result.content[0].text);
 
 const appAnswer = (withNodes) => ({
 	terms: ["gpu"],
+	matchAll: true,
 	removedTerms: ["gpu"],
 	graphs: [{ graphName: "learn-app", statements: 2 }],
 	statementCount: 2,
@@ -81,12 +82,14 @@ test(
 			assert.equal(calls[0].path, "/termGraph");
 			assert.deepEqual(calls[0].body.terms, ["gpu"]);
 			assert.deepEqual(calls[0].body.graphNames, []);
+			assert.equal(calls[0].body.matchAll, true);
 			assert.equal(calls[0].body.removeTerms, true);
 			assert.equal(calls[0].body.includeGraph, true);
 			assert.equal(calls[0].body.includeStatements, false);
 			assert.equal(calls[0].body.maxNodes, 150);
 
 			assert.deepEqual(out.terms, ["gpu"]);
+			assert.equal(out.matchAll, true);
 			assert.deepEqual(out.removedTerms, ["gpu"]);
 			assert.deepEqual(out.graphs, [{ graphName: "learn-app", statements: 2 }]);
 			assert.equal(out.statementCount, 2);
@@ -112,6 +115,7 @@ test(
 				await run({
 					terms: ["[[GPU]]", "driver"],
 					graphNames: ["learn-app", "notes"],
+					matchAll: false,
 					removeTerms: false,
 					includeGraph: false,
 					includeStatements: true,
@@ -120,6 +124,7 @@ test(
 			);
 			assert.deepEqual(calls[0].body.terms, ["[[GPU]]", "driver"]);
 			assert.deepEqual(calls[0].body.graphNames, ["learn-app", "notes"]);
+			assert.equal(calls[0].body.matchAll, false);
 			assert.equal(calls[0].body.removeTerms, false);
 			assert.equal(calls[0].body.includeGraph, false);
 			assert.equal(calls[0].body.includeStatements, true);

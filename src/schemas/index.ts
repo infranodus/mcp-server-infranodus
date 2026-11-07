@@ -1231,7 +1231,13 @@ export const GetTermGraphSchema = z.object({
 	terms: z
 		.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(5)])
 		.describe(
-			"The term to look up — a word, a [[concept]] or an entity name, with or without [[ ]] — or several terms (at most 5) to narrow the search to the statements that contain all of them.",
+			"The term to look up — a word, a [[concept]] or an entity name, with or without [[ ]] — or several terms (at most 5): the statements that contain all of them (matchAll, the default) or any of them.",
+		),
+	matchAll: z
+		.boolean()
+		.default(true)
+		.describe(
+			"With several terms: true (default) takes only the statements that contain all of them — their shared context; false takes the statements that contain any of them — their contexts merged into one graph.",
 		),
 	graphNames: z
 		.array(z.string().min(1))

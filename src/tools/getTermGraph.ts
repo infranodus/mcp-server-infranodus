@@ -16,7 +16,7 @@ export const getTermGraphTool = {
 	definition: {
 		title: `The Graph Around a Term in Your ${brand.name} Graphs`,
 		description:
-			`The graph around a term: every statement in your ${brand.name} graphs that contains the term(s) — all your graphs, or the named ones — built into one graph with the terms themselves left out, so its topics, gaps and relations describe the context the terms sit in rather than the terms. The app's search view with the searched term hidden. ` +
+			`The graph around a term: every statement in your ${brand.name} graphs that contains the term — or all of several terms (matchAll, the default), or any of them — in all your graphs or the named ones, built into one graph with the terms themselves left out, so its topics, gaps and relations describe the context the terms sit in rather than the terms. The app's search view with the searched term hidden. ` +
 			`Returns which graphs the statements came from with a count each, the statistics (modularity, diversity, clusters), the topical clusters, content gaps, main concepts, top relations and conceptual gateways of that graph, the compact graph (nodes with betweenness, weighted edges) unless includeGraph is false, and the statements with their graph and cluster when includeStatements is true. ` +
 			`Use it for "what surrounds X across my graphs?", "what is the context of X in these graphs?", "what do my notes say around X, without X itself?". ` +
 			`For what one concept is linked to inside one graph, by hop distance, use get_node_neighborhood; for the statements most relevant to a question, retrieve_from_knowledge_base; to only learn which graphs mention a term, search. Your own graphs only.`,
@@ -35,6 +35,7 @@ export const getTermGraphTool = {
 			const includeStatements = params.includeStatements === true;
 			const response = await callMemoryEndpoint("/termGraph", {
 				terms,
+				matchAll: params.matchAll !== false,
 				graphNames: params.graphNames ?? [],
 				removeTerms: params.removeTerms !== false,
 				includeGraph,
@@ -59,6 +60,7 @@ export const getTermGraphTool = {
 				: { statements: undefined };
 			return textResult({
 				terms: body.terms,
+				matchAll: body.matchAll,
 				removedTerms: body.removedTerms,
 				graphs: body.graphs,
 				statementCount: body.statementCount,
