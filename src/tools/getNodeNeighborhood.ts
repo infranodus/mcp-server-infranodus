@@ -17,7 +17,8 @@ export const getNodeNeighborhoodTool = {
 		description:
 			`What one concept is connected to in a saved ${brand.name} graph, by hop distance, computed on the server: no need to download the whole graph and walk it. ` +
 			`Returns the concept's own stats (degree, betweenness, cluster), its neighbors nearest and strongest first (node, hop, weight, via: the node it was reached through, cluster), and the statements on those links with their categories and hop. ` +
-			`Use it for "what is X connected to?", "what does X depend on / lead to?", "which types of learnings touch X?" (the categories of the statements), on any graph including memory graphs (learn-<project>, memory-<topic>, personal-<user>). ` +
+			`The answer to any question about one node: what X is connected to, related to, or linked to, its neighbors, what it depends on or leads to, which types of learnings touch it (the statement categories); on any graph including memory graphs (learn-<project>, memory-<topic>, personal-<user>). ` +
+			`Call it even when the graph's statements are already in context: the walk is authoritative, reading co-occurrence out of a statement list is not. ` +
 			`For the statements most relevant to a question instead, use retrieve_from_knowledge_base (with hops: 2). An unknown concept returns notFound with similar node names to retry with.`,
 		inputSchema: GetNodeNeighborhoodSchema.shape,
 		annotations: {
