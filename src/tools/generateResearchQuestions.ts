@@ -67,7 +67,7 @@ export const generateResearchQuestionsTool = {
 					userName: params.userName ?? "",
 					aiTopics: "true",
 					requestMode: "question",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -76,7 +76,7 @@ export const generateResearchQuestionsTool = {
 					...input.payload,
 					aiTopics: "true",
 					requestMode: "question",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			}
 

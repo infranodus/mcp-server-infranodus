@@ -69,7 +69,7 @@ export const generateResearchIdeasTool = {
 					userName: params.userName ?? "",
 					aiTopics: "true",
 					requestMode: params.shouldTranscend ? "transcend" : "response",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -82,7 +82,7 @@ export const generateResearchIdeasTool = {
 						: responseType === "idea"
 							? "idea"
 							: "response",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			}
 

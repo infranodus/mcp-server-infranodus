@@ -59,22 +59,25 @@ const timestampsField = z
 		"Per-statement date, one entry per statement (empty string = upload time, length must match `statements`). ISO 8601 only — '2026-08-02' or '2026-08-02T14:30:00Z'; other formats are refused because day-first and month-first dates are indistinguishable below the 13th. Stored to minute precision in the server timezone; drives time filters and dynamic graph views. Requires `statements`; omit when the statements are undated.",
 	);
 
-// Models the app can generate graph statements with.
-const AI_GRAPH_MODELS = [
-	"claude-opus-5",
-	"claude-sonnet-5",
-	"claude-fable-5",
-	"gemini-2.5-pro",
-	"gemini-2.5-flash",
-	"gemini-2.5-flash-lite",
-	"grok-4.1-fast-non-reasoning",
-	"grok-4.1-fast-reasoning",
-	"gpt-4o",
-	"gpt-4o-mini",
-	"gpt-5.4",
-	"gpt-5.4-mini",
+// The models the app offers (infranodus-app MODEL_GROUPS, resolved in
+// lib/ai.js), without the legacy gpt-4 and gpt-3.5-turbo.
+const AI_MODELS = [
+	"claude-opus-5-5",
+	"claude-sonnet-5-5",
+	"claude-fable-5-1",
+	"gpt-6.1-terra",
+	"gpt-6.1-sol",
 	"gpt-5.6-terra",
 	"gpt-5.6-sol",
+	"gpt-5.4",
+	"gpt-5.4-mini",
+	"gpt-4o",
+	"gpt-4o-mini",
+	"gemini-4-argon",
+	"gemini-3.8-flash",
+	"gemini-3.5-flash-lite",
+	"grok-4.7",
+	"grok-4.20-0309-non-reasoning",
 ] as const;
 
 const ENTITY_MODES = [
@@ -98,10 +101,10 @@ const entityModesDescription =
 	"aiKnowledgeGraph: an AI model writes [[entity]] statements about the input, a topic or a text, and only those entities become nodes; no algorithm detection. Use for a knowledge graph of a topic or a text. Slower: one AI call per ~12,000 characters, which counts against the AI quota.";
 
 const aiGraphModelField = z
-	.enum(AI_GRAPH_MODELS)
+	.enum(AI_MODELS)
 	.optional()
 	.describe(
-		"Only with modifyAnalyzedText: 'aiKnowledgeGraph'. AI model that writes the entity statements. Default: claude-opus-5; the -mini and -lite variants are faster and cheaper.",
+		"Only with modifyAnalyzedText: 'aiKnowledgeGraph'. AI model that writes the entity statements. Default: claude-opus-5-5; the -mini and -lite variants are faster and cheaper.",
 	);
 
 const aiGraphInstructionsField = z
@@ -678,10 +681,10 @@ export const GenerateOntologyGraphSchema = z.object({
 			`Name of the ${brand.name} graph to save the ontology to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.`,
 		),
 	modelToUse: z
-		.enum(AI_GRAPH_MODELS)
-		.default("claude-opus-5")
+		.enum(AI_MODELS)
+		.default("claude-opus-5-5")
 		.describe(
-			"AI model used to generate the ontology. More capable models (claude-opus-5, claude-fable-5, gpt-5.6-terra) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-5.",
+			"AI model used to generate the ontology. More capable models (claude-opus-5-5, claude-fable-5-1, gpt-6.1-terra) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-5-5.",
 		),
 	saveGraph: z
 		.boolean()
@@ -739,25 +742,10 @@ export const AnalyzeLlmResultsSchema = z.object({
 			`Name of the ${brand.name} graph to save the LLM overview to. Only used when saveGraph is true. If omitted, a name is auto-generated from the prompt. Note: saving to a name that already exists appends the new statements to that graph rather than replacing it.`,
 		),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
-		.default("claude-opus-5")
+		.enum(AI_MODELS)
+		.default("claude-opus-5-5")
 		.describe(
-			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-5.",
+			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-5-5.",
 		),
 	modifyAnalyzedText: z
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
@@ -887,25 +875,10 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 			"Include graph summary string in the response to provide additional information about the text knowledge graph structure",
 		),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
+			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
 		),
 });
 
@@ -977,25 +950,10 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 			"Include graph summary string in the response to provide additional information about the text knowledge graph structure",
 		),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
+			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
 		),
 });
 export const GenerateResearchIdeasSchema =
@@ -1040,25 +998,10 @@ export const OptimizeTextStructureSchemaBase = z.object({
 			"Type of response to generate: 'response' — generates a response based on the gaps identified; 'idea' — generate a business idea that bridges the gap; 'question' — generate questions that focus on this context; 'transcend' — generate responses that go beyond the text and relate to a broader discourse.",
 		),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating optimization suggestions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
+			"AI model to use for generating optimization suggestions. Default: gpt-5.4 (Auto).",
 		),
 });
 export const OptimizeTextStructureSchema =
@@ -1083,25 +1026,10 @@ export const OptimizeReasoningSchemaBase = z.object({
 	categoriesAsNodes: categoriesAsNodesField,
 	timestamps: timestampsField,
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating the reasoning-optimization suggestions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
+			"AI model to use for generating the reasoning-optimization suggestions. Default: gpt-5.4 (Auto).",
 		),
 });
 export const OptimizeReasoningSchema = OptimizeReasoningSchemaBase;
@@ -1138,25 +1066,10 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 			"Request mode: 'question' — generate questions that focus on this context; 'transcend' — generate responses that transcend and go beyond the content of the text and relate to a broader discourse.",
 		),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
+			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
 		),
 });
 export const DevelopLatentConceptsSchema =
@@ -1341,25 +1254,10 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.min(1, "Prompt is required")
 		.describe("Prompt to generate responses to from the graph"),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating research questions: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
+			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
 		),
 });
 export const GenerateResponsesFromGraphSchema =
@@ -2071,25 +1969,10 @@ export const DevelopTextToolSchemaBase = z.object({
 			"Shall we transcend and go beyond this text to relate to a broader discourse? If false, the focus is on this text only.",
 		),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe(
-			"AI model to use for generating insights: claude-opus-5, claude-sonnet-5, claude-fable-5, gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning, gpt-4o, gpt-4o-mini, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol",
+			"AI model to use for generating insights. Default: gpt-5.4 (Auto).",
 		),
 });
 export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
@@ -2356,22 +2239,7 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 			"Also run the latent-topics pass (one extra AI call) to list under-developed areas with ideas on how to develop them. Default true.",
 		),
 	modelToUse: z
-		.enum([
-			"claude-opus-5",
-			"claude-sonnet-5",
-			"claude-fable-5",
-			"gemini-2.5-pro",
-			"gemini-2.5-flash",
-			"gemini-2.5-flash-lite",
-			"grok-4.1-fast-non-reasoning",
-			"grok-4.1-fast-reasoning",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"gpt-5.4",
-			"gpt-5.4-mini",
-			"gpt-5.6-terra",
-			"gpt-5.6-sol",
-		])
+		.enum(AI_MODELS)
 		.default("gpt-5.4")
 		.describe("AI model for the development suggestions and latent-topic ideas."),
 });

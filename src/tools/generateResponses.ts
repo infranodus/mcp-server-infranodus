@@ -67,7 +67,7 @@ export const generateResponsesFromGraphTool = {
 					aiTopics: "true",
 					requestMode: "response",
 					prompt: params.prompt ?? "",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -77,7 +77,7 @@ export const generateResponsesFromGraphTool = {
 					aiTopics: "true",
 					requestMode: "response",
 					prompt: params.prompt ?? "",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			}
 

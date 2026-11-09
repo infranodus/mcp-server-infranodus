@@ -35,21 +35,19 @@ graph-save path it triggers. Verified by reading infranodus-app source.
   same name silently merges new ontology statements into the prior graph.
 
 ## Model name normalization
-- `defineModelToUse` (ai.js:1213) maps dotted public names to dashed internal IDs:
-  `claude-opus-4.5`/`claude-opus-4.6`/`claude-opus-5` -> `claude-opus-5`;
-  `claude-sonnet-4.5`/`claude-sonnet-4.6`/`claude-sonnet-5` -> `claude-sonnet-5`; `claude-fable-5` -> `claude-fable-5`;
-  `gpt-5`/`gpt-5.4` -> `gpt-5.4`; `grok-4.1-fast-*` -> `grok-4-1-fast-*`; etc.
-- Unknown model => silent fallback to `gpt-4o-mini` (ai.js:1298). No error surfaced.
-- `generateAiResponse` returns the NORMALIZED `modelToUse` (ai.js:553/561/597...),
-  which flows to `convertGPTResponsesToArray` (ai.js:799-803). That function's content
-  extraction switch checks the DASHED names (ai.js:924-946). So sending dotted names
-  from a JSON client is safe — but ONLY because normalization happens first. Sending
-  an already-dashed internal name like `grok-4-1-fast-reasoning` also works.
-- Valid public model list: `getModelsAvailable` (ai.js:892-915): gpt-4o-mini, gpt-4o,
-  gpt-4, gpt-3.5-turbo, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol, claude-opus-5,
-  claude-sonnet-5, claude-fable-5, grok-4.1-fast-non-reasoning, grok-4.1-fast-reasoning,
-  gemini-2.5-flash, gemini-2.5-flash-lite (gemini-2.5-pro accepted by defineModelToUse but not advertised).
-  Updated 2026-08-28 from infranodus-app routes/ai.js:979 / lib/ai.js:1267.
+- `defineModelToUse` (lib/ai.js) maps retired and dotted names to the current model of the
+  same line: `claude-opus-4.x`/`claude-opus-5`/`claude-opus-5.5` -> `claude-opus-5-5`;
+  `claude-sonnet-*` -> `claude-sonnet-5-5`; `claude-fable-5`/`5.1` -> `claude-fable-5-1`;
+  `grok-3*`/`grok-4.1-fast-non-reasoning` -> `grok-4.20-0309-non-reasoning`; other grok-4* ->
+  `grok-4.7`; `gemini-2.5-pro` -> `gemini-4-argon`; `gemini-2.5-flash` -> `gemini-3.8-flash`;
+  `gemini-2.5-flash-lite` -> `gemini-3.5-flash-lite`.
+- Unknown model => silent fallback to `gpt-6.1-terra`. No error surfaced.
+- Valid public model list: `getModelsAvailable` (routes/ai.js): gpt-4o-mini, gpt-4o, gpt-4,
+  gpt-3.5-turbo, gpt-5.4, gpt-5.4-mini, gpt-5.6-terra, gpt-5.6-sol, gpt-6.1-terra, gpt-6.1-sol,
+  claude-opus-5-5, claude-sonnet-5-5, claude-fable-5-1, grok-4.20-0309-non-reasoning, grok-4.7,
+  gemini-4-argon, gemini-3.8-flash, gemini-3.5-flash-lite. The MCP `AI_MODELS` enum is this list
+  without gpt-4 and gpt-3.5-turbo.
+  Updated 2026-11-09.
 
 ## numberOfResults coercion (fragile)
 - `defineAiRequestParameters` (ai.js:828-831):

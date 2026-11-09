@@ -171,7 +171,7 @@ export const generateOntologyGraphTool = {
 					// modes use its [[entity]] [relation] [[entity]] prompt.
 					aiQueryType: mode === "procedural" ? "digest" : "ontology graph",
 					mode: "gptchat",
-					modelToUse: params.modelToUse ?? "claude-opus-5",
+					modelToUse: params.modelToUse ?? "claude-opus-5-5",
 					prompt: [{ role: "user", content }],
 					modifyAnalyzedText: "none",
 					// A digest is an ordinary statements graph, not an ontology context.

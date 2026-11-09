@@ -95,13 +95,13 @@ export const developTextTool = {
 						name: params.graphName,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-4o",
+						modelToUse: params.modelToUse ?? "gpt-5.4",
 				  }
 				: {
 						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-4o",
+						modelToUse: params.modelToUse ?? "gpt-5.4",
 				  };
 
 			const researchResponse = await makeInfraNodusRequest(
@@ -142,13 +142,13 @@ export const developTextTool = {
 						name: params.graphName,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-4o",
+						modelToUse: params.modelToUse ?? "gpt-5.4",
 				  }
 				: {
 						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-4o",
+						modelToUse: params.modelToUse ?? "gpt-5.4",
 				  };
 
 			const latentResponse = await makeInfraNodusRequest(
@@ -189,13 +189,13 @@ export const developTextTool = {
 						name: params.graphName,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-4o",
+						modelToUse: params.modelToUse ?? "gpt-5.4",
 				  }
 				: {
 						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-4o",
+						modelToUse: params.modelToUse ?? "gpt-5.4",
 				  };
 
 			const conceptualBridgesResponse = await makeInfraNodusRequest(

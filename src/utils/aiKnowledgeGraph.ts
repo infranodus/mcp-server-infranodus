@@ -53,7 +53,7 @@ export async function generateEntityStatements(
 			saveToGraphAndRedirect: false,
 			aiQueryType: "entity graph",
 			mode: "gptchat",
-			modelToUse: modelToUse ?? "claude-opus-5",
+			modelToUse: modelToUse ?? "claude-opus-5-5",
 			prompt: [{ role: "user", content: chunk }],
 			modifyAnalyzedText: "none",
 			replaceEntities: false,

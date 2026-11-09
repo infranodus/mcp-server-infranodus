@@ -61,7 +61,7 @@ export const developLatentTopicsTool = {
 					name: params.graphName,
 					aiTopics: "true",
 					requestMode: params.requestMode ?? "transcend",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -70,7 +70,7 @@ export const developLatentTopicsTool = {
 					...input.payload,
 					aiTopics: "true",
 					requestMode: params.requestMode ?? "transcend",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? "gpt-5.4",
 				};
 			}
 

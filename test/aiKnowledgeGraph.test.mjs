@@ -75,7 +75,7 @@ describe("generate_knowledge_graph with aiKnowledgeGraph", () => {
 		const { result, calls } = await run(generateKnowledgeGraphTool, GenerateGraphSchema, {
 			text: "the Beat Generation",
 			modifyAnalyzedText: "aiKnowledgeGraph",
-			modelToUse: "claude-sonnet-5",
+			modelToUse: "claude-sonnet-5-5",
 			instructions: "  only people and works  ",
 		});
 		assert.equal(result.isError, undefined);
@@ -84,7 +84,7 @@ describe("generate_knowledge_graph with aiKnowledgeGraph", () => {
 		const [ai] = aiCalls(calls);
 		assert.equal(ai.body.aiQueryType, "entity graph");
 		assert.equal(ai.body.saveToGraphAndRedirect, false);
-		assert.equal(ai.body.modelToUse, "claude-sonnet-5");
+		assert.equal(ai.body.modelToUse, "claude-sonnet-5-5");
 		assert.equal(ai.body.systemPrompt, "only people and works");
 		assert.deepEqual(ai.body.prompt, [{ role: "user", content: "the Beat Generation" }]);
 
@@ -106,7 +106,7 @@ describe("generate_knowledge_graph with aiKnowledgeGraph", () => {
 		});
 		const [ai] = aiCalls(calls);
 		assert.equal("systemPrompt" in ai.body, false);
-		assert.equal(ai.body.modelToUse, "claude-opus-5");
+		assert.equal(ai.body.modelToUse, "claude-opus-5-5");
 	});
 
 	test("splits a long text into one AI call per chunk", async () => {
