@@ -82,15 +82,18 @@ export interface WikilinksPayload {
  * Bracket handling for a mode, independent of where the statements come from
  * (split out of the text or supplied directly by the caller).
  */
+/** Only [[wikilinks]] become nodes; every other word is ignored. */
+export const WIKILINKS_ONLY_SETTINGS = {
+	doubleSquarebracketsProcessing: "PROCESS_AS_HASHTAGS_IGNORE_THE_REST",
+	partOfSpeechToProcess: "HASHTAGS_ONLY",
+} as const;
+
 function bracketSettings(
 	mode: WikilinksMode | undefined,
 ): Record<string, unknown> {
 	switch (mode) {
 		case "wikilinksOnly":
-			return {
-				doubleSquarebracketsProcessing: "PROCESS_AS_HASHTAGS_IGNORE_THE_REST",
-				partOfSpeechToProcess: "HASHTAGS_ONLY",
-			};
+			return { ...WIKILINKS_ONLY_SETTINGS };
 		case "plainText":
 			return { doubleSquarebracketsProcessing: "IGNORE_BRACKETS" };
 		default:

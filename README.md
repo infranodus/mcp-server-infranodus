@@ -621,7 +621,8 @@ Analyzes text and generates a knowledge graph.
 - `categoriesAsNodes` (boolean, default false): Show category labels as `[[label]]` nodes. Only for large knowledge bases and Obsidian vaults where the connections between pages matter; otherwise the labels stay metadata
 - `wikilinksMode` (string): How `[[wikilinks]]` become nodes — "default", "wikilinksOnly", "obsidianStyle", "parentAndConcepts", or "plainText"
 - `includeStatements` (boolean): Include original statements in response
-- `modifyAnalyzedText` (string): Entity detection — "none", "detectEntities", or "extractEntitiesOnly"
+- `modifyAnalyzedText` (string): How nodes are made — "none" (words), "detectEntities" (an algorithm marks names, mixed with words), "extractEntitiesOnly" (only the names an algorithm finds; for plain text without `[[wikilinks]]`), or "aiKnowledgeGraph" (an AI model writes `[[entity]]` statements about a topic or a text, and only those entities become nodes; slower, uses AI credits). Text already written as `[[entity]]` statements goes in with `wikilinksMode: "wikilinksOnly"`
+- `modelToUse` (string), `instructions` (string): Only with "aiKnowledgeGraph" — the AI model, and the user's own instructions (which entities, scope); they cannot change the output format
 
 ### analyze_existing_graph_by_name
 

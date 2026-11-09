@@ -3,6 +3,8 @@ import { GenerateGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+import { aiKnowledgeGraphPayload } from "../utils/aiKnowledgeGraph.js";
+import { ToolHandlerContext } from "../types/index.js";
 
 function errorContent(message: string) {
 	return {
@@ -16,27 +18,45 @@ function errorContent(message: string) {
 export const generateKnowledgeGraphTool = {
 	name: "generate_knowledge_graph",
 	definition: {
-		title: "Generate Knowledge Graph from Text",
+		title: "Generate Knowledge Graph from Text or Topic",
 		description:
-			"Generate a knowledge graph with main topics, topical clusters, concepts, concepts (nodes) relations (edges) and structural gaps. Only use when explicitly asked to analyze a text or generate a knowledge graph. Do not use for short clarifying questions that you already have an answer to from the context of the conversation.",
+			"Generate a knowledge graph with main topics, topical clusters, concepts, concepts (nodes) relations (edges) and structural gaps. By default the graph is built from the words of the text. For a knowledge graph of entities and how they relate, set modifyAnalyzedText: 'aiKnowledgeGraph': an AI model writes [[entity]] statements about the input, a topic or a text, and only those entities become nodes (slower; uses AI credits; optional instructions steer it). Statements you have already written as [[entity]] statements go in with wikilinksMode: 'wikilinksOnly', with no AI call. Nothing is saved; use create_knowledge_graph to save. Only use when explicitly asked to analyze a text or generate a knowledge graph. Do not use for short clarifying questions that you already have an answer to from the context of the conversation.",
 		inputSchema: GenerateGraphSchema.shape,
 		annotations: {
 			readOnlyHint: true,
-			idempotentHint: true,
+			// 'aiKnowledgeGraph' asks an AI model, whose answer varies.
+			idempotentHint: false,
 			destructiveHint: false,
 			openWorldHint: true,
 		},
 	},
-	handler: async (params: z.infer<typeof GenerateGraphSchema>) => {
+	handler: async (
+		params: z.infer<typeof GenerateGraphSchema>,
+		context?: ToolHandlerContext,
+	) => {
 		try {
 			const input = await resolveGraphInput(params);
 			if (!input.ok) return errorContent(input.error);
+
+			// 'aiKnowledgeGraph': an AI model first writes [[entity]] statements
+			// about the input, and the graph is built from those entities only.
+			const aiKnowledgeGraph = params.modifyAnalyzedText === "aiKnowledgeGraph";
+			let payload = input.payload;
+			if (aiKnowledgeGraph) {
+				const generated = await aiKnowledgeGraphPayload(
+					input.payload,
+					{ modelToUse: params.modelToUse, instructions: params.instructions },
+					context,
+				);
+				if (!generated.ok) return errorContent(generated.error);
+				payload = generated.payload;
+			}
 
 			const includeNodesAndEdges = params.addNodesAndEdges;
 			const includeGraph = params.includeGraph;
 			const fullGraph = params.fullGraph === true;
 			const buildingEntitiesGraph =
-				params.modifyAnalyzedText == "extractEntitiesOnly" ? true : false;
+				params.modifyAnalyzedText === "extractEntitiesOnly" || aiKnowledgeGraph;
 			// Build query parameters. fullGraph overrides the compaction flags:
 			// the API returns the raw graphology graph (all node/edge attributes,
 			// edge context_matrix, nodes_to_statements_map) and, when statements
@@ -70,10 +90,14 @@ export const generateKnowledgeGraphTool = {
 
 			const requestBody: any = {
 				aiTopics: "true",
-				...input.payload,
+				...payload,
 			};
 
-			if (params.modifyAnalyzedText && params.modifyAnalyzedText !== "none") {
+			if (
+				!aiKnowledgeGraph &&
+				params.modifyAnalyzedText &&
+				params.modifyAnalyzedText !== "none"
+			) {
 				requestBody.modifyAnalyzedText = params.modifyAnalyzedText;
 			}
 
