@@ -8,6 +8,7 @@ import {
 	transformToStructuredOutput,
 } from "../utils/transformers.js";
 import { OntologyGraphOutput } from "../types/index.js";
+import { DEFAULT_GRAPH_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -68,7 +69,7 @@ export const analyzeLlmResultsTool = {
 				contextName: graphName,
 				aiQueryType: "llm graph",
 				mode: "gptchat",
-				modelToUse: params.modelToUse ?? "claude-opus-5-5",
+				modelToUse: params.modelToUse ?? DEFAULT_GRAPH_MODEL,
 				prompt: [{ role: "user", content: params.prompt }],
 				modifyAnalyzedText,
 				contextType,

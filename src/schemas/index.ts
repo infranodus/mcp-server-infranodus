@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+	AI_MODELS,
+	DEFAULT_AI_MODEL,
+	DEFAULT_GRAPH_MODEL,
+} from "../config/models.js";
 import { brand } from "../config/brand.js";
 import {
 	WikilinksModeEnum,
@@ -58,27 +63,6 @@ const timestampsField = z
 	.describe(
 		"Per-statement date, one entry per statement (empty string = upload time, length must match `statements`). ISO 8601 only — '2026-08-02' or '2026-08-02T14:30:00Z'; other formats are refused because day-first and month-first dates are indistinguishable below the 13th. Stored to minute precision in the server timezone; drives time filters and dynamic graph views. Requires `statements`; omit when the statements are undated.",
 	);
-
-// The models the app offers (infranodus-app MODEL_GROUPS, resolved in
-// lib/ai.js), without the legacy gpt-4 and gpt-3.5-turbo.
-const AI_MODELS = [
-	"claude-opus-5-5",
-	"claude-sonnet-5-5",
-	"claude-fable-5-1",
-	"gpt-6.1-terra",
-	"gpt-6.1-sol",
-	"gpt-5.6-terra",
-	"gpt-5.6-sol",
-	"gpt-5.4",
-	"gpt-5.4-mini",
-	"gpt-4o",
-	"gpt-4o-mini",
-	"gemini-4-argon",
-	"gemini-3.8-flash",
-	"gemini-3.5-flash-lite",
-	"grok-4.7",
-	"grok-4.20-0309-non-reasoning",
-] as const;
 
 const ENTITY_MODES = [
 	"none",
@@ -682,7 +666,7 @@ export const GenerateOntologyGraphSchema = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("claude-opus-5-5")
+		.default(DEFAULT_GRAPH_MODEL)
 		.describe(
 			"AI model used to generate the ontology. More capable models (claude-opus-5-5, claude-fable-5-1, gpt-6.1-terra) produce richer, more accurate ontologies; the -mini and -lite variants are faster and cheaper. Default: claude-opus-5-5.",
 		),
@@ -743,7 +727,7 @@ export const AnalyzeLlmResultsSchema = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("claude-opus-5-5")
+		.default(DEFAULT_GRAPH_MODEL)
 		.describe(
 			"AI model whose view of the topic is being analyzed. Pick the model the user is curious about — different models surface different framings. Default: claude-opus-5-5.",
 		),
@@ -876,9 +860,9 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe(
-			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
+			"AI model to use for generating research questions. Default: gpt-6.1-terra.",
 		),
 });
 
@@ -951,9 +935,9 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe(
-			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
+			"AI model to use for generating research questions. Default: gpt-6.1-terra.",
 		),
 });
 export const GenerateResearchIdeasSchema =
@@ -999,9 +983,9 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe(
-			"AI model to use for generating optimization suggestions. Default: gpt-5.4 (Auto).",
+			"AI model to use for generating optimization suggestions. Default: gpt-6.1-terra.",
 		),
 });
 export const OptimizeTextStructureSchema =
@@ -1027,9 +1011,9 @@ export const OptimizeReasoningSchemaBase = z.object({
 	timestamps: timestampsField,
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe(
-			"AI model to use for generating the reasoning-optimization suggestions. Default: gpt-5.4 (Auto).",
+			"AI model to use for generating the reasoning-optimization suggestions. Default: gpt-6.1-terra.",
 		),
 });
 export const OptimizeReasoningSchema = OptimizeReasoningSchemaBase;
@@ -1067,9 +1051,9 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe(
-			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
+			"AI model to use for generating research questions. Default: gpt-6.1-terra.",
 		),
 });
 export const DevelopLatentConceptsSchema =
@@ -1255,9 +1239,9 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.describe("Prompt to generate responses to from the graph"),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe(
-			"AI model to use for generating research questions. Default: gpt-5.4 (Auto).",
+			"AI model to use for generating research questions. Default: gpt-6.1-terra.",
 		),
 });
 export const GenerateResponsesFromGraphSchema =
@@ -1970,9 +1954,9 @@ export const DevelopTextToolSchemaBase = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe(
-			"AI model to use for generating insights. Default: gpt-5.4 (Auto).",
+			"AI model to use for generating insights. Default: gpt-6.1-terra.",
 		),
 });
 export const DevelopTextToolSchema = DevelopTextToolSchemaBase.refine(
@@ -2240,7 +2224,7 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
-		.default("gpt-5.4")
+		.default(DEFAULT_AI_MODEL)
 		.describe("AI model for the development suggestions and latent-topic ideas."),
 });
 

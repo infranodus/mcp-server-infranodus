@@ -11,6 +11,7 @@ import { OntologyGraphOutput, ToolHandlerContext } from "../types/index.js";
 import { ProgressReporter } from "../utils/progress.js";
 import { chunkByLines } from "../utils/chunkByLines.js";
 import { WIKILINKS_ONLY_SETTINGS } from "../utils/wikilinksMode.js";
+import { DEFAULT_GRAPH_MODEL } from "../config/models.js";
 
 // Re-exported: the tests and other tools import it from here.
 export { chunkByLines };
@@ -171,7 +172,7 @@ export const generateOntologyGraphTool = {
 					// modes use its [[entity]] [relation] [[entity]] prompt.
 					aiQueryType: mode === "procedural" ? "digest" : "ontology graph",
 					mode: "gptchat",
-					modelToUse: params.modelToUse ?? "claude-opus-5-5",
+					modelToUse: params.modelToUse ?? DEFAULT_GRAPH_MODEL,
 					prompt: [{ role: "user", content }],
 					modifyAnalyzedText: "none",
 					// A digest is an ordinary statements graph, not an ontology context.

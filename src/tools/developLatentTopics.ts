@@ -6,6 +6,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { extractLatentTopicsIdeas } from "../utils/transformers.js";
+import { DEFAULT_AI_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -61,7 +62,7 @@ export const developLatentTopicsTool = {
 					name: params.graphName,
 					aiTopics: "true",
 					requestMode: params.requestMode ?? "transcend",
-					modelToUse: params.modelToUse ?? "gpt-5.4",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -70,7 +71,7 @@ export const developLatentTopicsTool = {
 					...input.payload,
 					aiTopics: "true",
 					requestMode: params.requestMode ?? "transcend",
-					modelToUse: params.modelToUse ?? "gpt-5.4",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			}
 

@@ -16,6 +16,7 @@ import {
 } from "../utils/knowledgeBase.js";
 import type { GraphResponse, ToolHandlerContext } from "../types/index.js";
 import { ProgressReporter } from "../utils/progress.js";
+import { DEFAULT_AI_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -104,7 +105,7 @@ export const optimizeKnowledgeBaseTool = {
 	) => {
 		try {
 			const focus: Focus = params.focus ?? "general";
-			const modelToUse = params.modelToUse ?? "gpt-5.4";
+			const modelToUse = params.modelToUse ?? DEFAULT_AI_MODEL;
 			const includeLatent = params.includeLatent !== false;
 			const compareWith = dedupeList(params.compareWith ?? [], 2);
 			const steps = 1 + (includeLatent ? 1 : 0) + compareWith.length * 2;

@@ -6,6 +6,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateOptimizationResult } from "../utils/transformers.js";
+import { DEFAULT_AI_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -63,7 +64,7 @@ export const optimizeTextStructureTool = {
 					name: params.graphName,
 					aiTopics: "true",
 					requestMode,
-					modelToUse: params.modelToUse ?? "gpt-5.4",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -72,7 +73,7 @@ export const optimizeTextStructureTool = {
 					...input.payload,
 					aiTopics: "true",
 					requestMode,
-					modelToUse: params.modelToUse ?? "gpt-5.4",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			}
 

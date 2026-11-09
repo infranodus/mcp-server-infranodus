@@ -12,6 +12,7 @@ import {
 	generateGaps,
 	extractLatentConceptsIdeas,
 } from "../utils/transformers.js";
+import { DEFAULT_AI_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -95,13 +96,13 @@ export const developTextTool = {
 						name: params.graphName,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-5.4",
+						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				  }
 				: {
 						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-5.4",
+						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				  };
 
 			const researchResponse = await makeInfraNodusRequest(
@@ -142,13 +143,13 @@ export const developTextTool = {
 						name: params.graphName,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-5.4",
+						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				  }
 				: {
 						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-5.4",
+						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				  };
 
 			const latentResponse = await makeInfraNodusRequest(
@@ -189,13 +190,13 @@ export const developTextTool = {
 						name: params.graphName,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-5.4",
+						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				  }
 				: {
 						...contentPayload,
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
-						modelToUse: params.modelToUse ?? "gpt-5.4",
+						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				  };
 
 			const conceptualBridgesResponse = await makeInfraNodusRequest(

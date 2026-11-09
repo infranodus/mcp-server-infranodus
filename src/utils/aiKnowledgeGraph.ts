@@ -4,6 +4,7 @@ import { chunkByLines } from "./chunkByLines.js";
 import { ProgressReporter } from "./progress.js";
 import { extractLineSeparatedStatements } from "./transformers.js";
 import { prepareStatementsPayload, type WikilinksPayload } from "./wikilinksMode.js";
+import { DEFAULT_GRAPH_MODEL } from "../config/models.js";
 
 const DEFAULT_CHUNK_SIZE = 12000;
 const WIKILINK = /\[\[[^[\]]+\]\]/g;
@@ -53,7 +54,7 @@ export async function generateEntityStatements(
 			saveToGraphAndRedirect: false,
 			aiQueryType: "entity graph",
 			mode: "gptchat",
-			modelToUse: modelToUse ?? "claude-opus-5-5",
+			modelToUse: modelToUse ?? DEFAULT_GRAPH_MODEL,
 			prompt: [{ role: "user", content: chunk }],
 			modifyAnalyzedText: "none",
 			replaceEntities: false,
