@@ -3,6 +3,7 @@ import { brand } from "../config/brand.js";
 import { RetrieveContextForPromptFromGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToGraphRagOutput } from "../utils/transformers.js";
+import { savedGraphWikilinksModeBody } from "../utils/wikilinksMode.js";
 
 export const retrieveContextForPromptFromGraphTool = {
 	name: "retrieve_from_knowledge_base",
@@ -43,6 +44,7 @@ export const retrieveContextForPromptFromGraphTool = {
 				prompt: params.prompt ? params.prompt : "",
 				modelToUse: "gpt-4o",
 				userName: params.userName ?? "",
+				...savedGraphWikilinksModeBody(params.wikilinksMode),
 			};
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

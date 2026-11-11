@@ -6,8 +6,10 @@ import {
 } from "../config/models.js";
 import { brand } from "../config/brand.js";
 import {
+	SavedGraphWikilinksModeEnum,
 	WikilinksModeEnum,
 	categoriesAsNodesDescription,
+	savedGraphWikilinksModeDescription,
 	wikilinksModeDescription,
 } from "../utils/wikilinksMode.js";
 
@@ -483,6 +485,9 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(entityDetectionDescription),
+	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
+		savedGraphWikilinksModeDescription,
+	),
 });
 export const AnalyzeExistingGraphSchema = AnalyzeExistingGraphSchemaBase;
 
@@ -1148,6 +1153,10 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		.max(50)
 		.default(8)
 		.describe("How many of the strongest matching relations (edges) to read statements from"),
+	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
+		savedGraphWikilinksModeDescription +
+			" The prompt's words can only match nodes, so on a graph saved as wikilinks only, 'wikilinksAndConcepts' gives a prompt more to match.",
+	),
 });
 
 export const GetNodeNeighborhoodSchema = z.object({

@@ -11,7 +11,8 @@ import { z } from "zod";
  * The settings are applied by the backend only when the graph context is
  * created: always for doNotSave generation (ephemeral context), and on the
  * FIRST upload for saved graphs. An existing saved graph keeps the settings
- * it was created with.
+ * it was created with; reading it in another mode is SavedGraphWikilinksModeEnum
+ * below.
  *
  * Parent modes ('obsidianStyle', 'parentAndConcepts') use the same mechanism
  * as the InfraNodus Obsidian plugin: statements travel as an array with a
@@ -43,6 +44,45 @@ export const WikilinksModeEnum = z.enum([
 ]);
 
 export type WikilinksMode = z.infer<typeof WikilinksModeEnum>;
+
+/**
+ * How a graph that is ALREADY SAVED is read, for one request. The API rebuilds
+ * a saved graph from its statements on every read, by default with the
+ * settings it was created with; these presets (the API's own `wikilinksMode`,
+ * sent as is) build it differently for that request and store nothing. So a
+ * graph of [[entity]] statements can be read as entities, or as entities plus
+ * the words around them, without being rebuilt.
+ *
+ * A separate list from WikilinksModeEnum: the parent modes need the
+ * statements and categories of an upload and mean nothing on a read, and
+ * 'default' there is one particular processing, not "as the graph was saved".
+ */
+export const SavedGraphWikilinksModeEnum = z.enum([
+	"saved",
+	"wikilinksOnly",
+	"wikilinksAndConcepts",
+	"plainText",
+]);
+
+export type SavedGraphWikilinksMode = z.infer<
+	typeof SavedGraphWikilinksModeEnum
+>;
+
+export const savedGraphWikilinksModeDescription =
+	"How the [[wikilinks]] and the words of the graph's statements become nodes, for this call only (nothing is stored; the graph keeps its settings). " +
+	"'saved' (default): as the graph was created. " +
+	"'wikilinksOnly': only [[wikilinks]] are nodes. " +
+	"'wikilinksAndConcepts': [[wikilinks]] and the words around them are both nodes. " +
+	"'plainText': brackets are dropped and everything is read as words. " +
+	"Leave it at 'saved' unless the user asks for another reading or the graph's own mode returns too little.";
+
+/** Body field for a read of a saved graph; nothing for 'saved', which is the
+ * API's behaviour without the field. */
+export function savedGraphWikilinksModeBody(
+	mode: SavedGraphWikilinksMode | undefined,
+): { wikilinksMode?: SavedGraphWikilinksMode } {
+	return mode && mode !== "saved" ? { wikilinksMode: mode } : {};
+}
 
 /** The parent modes exist to make the per-statement parent (a category) a
  * node, so categories always become nodes there. */
