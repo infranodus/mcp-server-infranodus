@@ -9,24 +9,12 @@ import {
 } from "../utils/transformers.js";
 import { OntologyGraphOutput, ToolHandlerContext } from "../types/index.js";
 import { ProgressReporter } from "../utils/progress.js";
+import { chunkByLines } from "../utils/chunkByLines.js";
+import { WIKILINKS_ONLY_SETTINGS } from "../utils/wikilinksMode.js";
+import { DEFAULT_GRAPH_MODEL } from "../config/models.js";
 
-/** Split on line boundaries so no statement is cut in half. */
-export function chunkByLines(text: string, chunkSize: number): string[] {
-	const chunks: string[] = [];
-	let current: string[] = [];
-	let size = 0;
-	for (const line of text.split("\n")) {
-		if (size + line.length + 1 > chunkSize && current.length > 0) {
-			chunks.push(current.join("\n"));
-			current = [];
-			size = 0;
-		}
-		current.push(line);
-		size += line.length + 1;
-	}
-	if (current.length > 0) chunks.push(current.join("\n"));
-	return chunks.filter((chunk) => chunk.trim().length > 0);
-}
+// Re-exported: the tests and other tools import it from here.
+export { chunkByLines };
 
 const PREAMBLES: Record<"general" | "codebase" | "procedural", string> = {
 	general:
@@ -184,7 +172,7 @@ export const generateOntologyGraphTool = {
 					// modes use its [[entity]] [relation] [[entity]] prompt.
 					aiQueryType: mode === "procedural" ? "digest" : "ontology graph",
 					mode: "gptchat",
-					modelToUse: params.modelToUse ?? "claude-opus-5",
+					modelToUse: params.modelToUse ?? DEFAULT_GRAPH_MODEL,
 					prompt: [{ role: "user", content }],
 					modifyAnalyzedText: "none",
 					// A digest is an ordinary statements graph, not an ontology context.
@@ -288,7 +276,9 @@ export const generateOntologyGraphTool = {
 					: {
 							text: rawOntologyStatements.join("\n"),
 							aiTopics,
-							modifyAnalyzedText: "extractEntitiesOnly",
+							// The statements already mark their [[entities]]; entity
+							// detection would add nodes from the relation words.
+							contextSettings: WIKILINKS_ONLY_SETTINGS,
 						};
 
 				const graphResponse = await makeInfraNodusRequest(

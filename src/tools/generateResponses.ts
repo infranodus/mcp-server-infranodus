@@ -7,6 +7,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateResponses } from "../utils/transformers.js";
+import { DEFAULT_AI_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -67,7 +68,7 @@ export const generateResponsesFromGraphTool = {
 					aiTopics: "true",
 					requestMode: "response",
 					prompt: params.prompt ?? "",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -77,7 +78,7 @@ export const generateResponsesFromGraphTool = {
 					aiTopics: "true",
 					requestMode: "response",
 					prompt: params.prompt ?? "",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			}
 

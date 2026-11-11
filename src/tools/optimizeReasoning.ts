@@ -6,6 +6,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateOptimizationResult } from "../utils/transformers.js";
+import { DEFAULT_AI_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -52,7 +53,7 @@ export const optimizeReasoningTool = {
 				...input.payload,
 				aiTopics: "true",
 				requestMode: "response",
-				modelToUse: params.modelToUse ?? "gpt-5.4",
+				modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 			};
 
 			const response = await makeInfraNodusRequest(endpoint, requestBody);

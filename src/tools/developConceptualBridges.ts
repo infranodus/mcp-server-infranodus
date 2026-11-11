@@ -6,6 +6,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { extractLatentConceptsIdeas } from "../utils/transformers.js";
+import { DEFAULT_AI_MODEL } from "../config/models.js";
 
 function errorContent(message: string) {
 	return {
@@ -61,7 +62,7 @@ export const developConceptualBridgesTool = {
 					name: params.graphName,
 					aiTopics: "true",
 					requestMode: params.requestMode ?? "transcend",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			} else {
 				const input = await resolveGraphInput(params);
@@ -70,7 +71,7 @@ export const developConceptualBridgesTool = {
 					...input.payload,
 					aiTopics: "true",
 					requestMode: params.requestMode ?? "transcend",
-					modelToUse: params.modelToUse ?? "gpt-4o",
+					modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
 				};
 			}
 
