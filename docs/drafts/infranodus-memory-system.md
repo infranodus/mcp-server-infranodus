@@ -104,7 +104,7 @@ with Claude Code (see "Hooks for other clients" below).
 | Endpoint | Behaviour |
 |---|---|
 | `POST /learnings/enable` `{ project }` | Creates `learn-<slug>` as a `MEMORY` graph. Idempotent. Refuses when a graph of that name exists that isn't a memory graph. Same semantics as today's tool |
-| `POST /learnings/get` `{ project, prompt?, entity?, type?, limit? }` | Same as `get_project_learnings`; returns `enabled: false` without error when the graph is missing |
+| `POST /learnings/get` `{ project, prompt?, entity?, type?, limit?, order?, uncheckedFor? }` | Same as `get_project_learnings`; returns `enabled: false` without error when the graph is missing |
 | `POST /learnings/add` `{ project, statements[], types[], confirm }` | Same as `add_project_learnings`: dry run unless `confirm`, refuses when not enabled, dedups |
 | `POST /memory/enable` `{ scope: "topic"\|"personal", topic? }` | Creates `memory-<topic>` or `personal-<user>` as a `MEMORY` graph |
 | `POST /memory/add` `{ scope, topic?, statements[], timestamps?[], confirm }` | Requires ≥ 2 `[[entities]]` per statement; dedups; supersedes by entity pair + relation |

@@ -2105,6 +2105,21 @@ export const GetProjectLearningsSchema = z.object({
 		.max(50)
 		.default(15)
 		.describe("Maximum number of learnings to return."),
+	order: z
+		.enum(["newest", "oldest"])
+		.optional()
+		.describe(
+			"Overview mode only (no prompt, no entity): which learnings the list starts from. Default 'newest'. Use 'oldest' when reviewing or consolidating memory, so the earliest learnings are reached.",
+		),
+	uncheckedFor: z
+		.number()
+		.int()
+		.min(1)
+		.max(3650)
+		.optional()
+		.describe(
+			"Overview mode only: leave out learnings that a consolidation pass checked in the last N days (they carry a dream-<date> category), and the 'Confirmed again' repeats. The response then has `unchecked`: how many are left to check. Use with order 'oldest' so that successive passes work through the whole graph.",
+		),
 });
 
 // ---------------------------------------------------------------------------
