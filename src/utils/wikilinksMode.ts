@@ -53,6 +53,10 @@ export type WikilinksMode = z.infer<typeof WikilinksModeEnum>;
  * graph of [[entity]] statements can be read as entities, or as entities plus
  * the words around them, without being rebuilt.
  *
+ * Offered only on the tools that search a graph (retrieval, node
+ * neighborhood), as a way to widen a search that found too little — not as
+ * another way to analyze a graph.
+ *
  * A separate list from WikilinksModeEnum: the parent modes need the
  * statements and categories of an upload and mean nothing on a read, and
  * 'default' there is one particular processing, not "as the graph was saved".
@@ -68,13 +72,12 @@ export type SavedGraphWikilinksMode = z.infer<
 	typeof SavedGraphWikilinksModeEnum
 >;
 
+// Kept short on purpose: it is repeated in every tool that takes the option,
+// and its job is to keep the model on 'saved' unless a search came back thin.
 export const savedGraphWikilinksModeDescription =
-	"How the [[wikilinks]] and the words of the graph's statements become nodes, for this call only (nothing is stored; the graph keeps its settings). " +
-	"'saved' (default): as the graph was created. " +
-	"'wikilinksOnly': only [[wikilinks]] are nodes. " +
-	"'wikilinksAndConcepts': [[wikilinks]] and the words around them are both nodes. " +
-	"'plainText': brackets are dropped and everything is read as words. " +
-	"Leave it at 'saved' unless the user asks for another reading or the graph's own mode returns too little.";
+	"Widens what the search can match by reading the graph in another node mode for this call (nothing is stored). " +
+	"Keep 'saved' unless a first call found too few statements or the user asks for a broader or more advanced search. " +
+	"'wikilinksAndConcepts': [[wikilinks]] and words are nodes; 'wikilinksOnly': only [[wikilinks]]; 'plainText': words only.";
 
 /** Body field for a read of a saved graph; nothing for 'saved', which is the
  * API's behaviour without the field. */

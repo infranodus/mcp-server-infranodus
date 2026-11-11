@@ -33,6 +33,8 @@ export const retrieveContextForPromptFromGraphTool = {
 				extendedGraphSummary: params.extendedGraphSummary ? "true" : "false",
 				hops: String(params.hops ?? 1),
 				topK: String(params.topK ?? 8),
+				// Without it the API keeps its default of 150 nodes.
+				...(params.maxNodes ? { maxnodes: String(params.maxNodes) } : {}),
 			});
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;

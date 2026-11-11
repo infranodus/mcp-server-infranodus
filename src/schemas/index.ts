@@ -485,9 +485,6 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(entityDetectionDescription),
-	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
-		savedGraphWikilinksModeDescription,
-	),
 });
 export const AnalyzeExistingGraphSchema = AnalyzeExistingGraphSchemaBase;
 
@@ -1154,9 +1151,17 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		.default(8)
 		.describe("How many of the strongest matching relations (edges) to read statements from"),
 	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
-		savedGraphWikilinksModeDescription +
-			" The prompt's words can only match nodes, so on a graph saved as wikilinks only, 'wikilinksAndConcepts' gives a prompt more to match.",
+		savedGraphWikilinksModeDescription,
 	),
+	maxNodes: z
+		.number()
+		.int()
+		.min(150)
+		.max(1000)
+		.optional()
+		.describe(
+			"How many of the graph's most connected nodes the prompt can match (default 150, max 1000). Raise it only when too few statements are found or the user asks for a broader search; larger values are slower.",
+		),
 });
 
 export const GetNodeNeighborhoodSchema = z.object({
@@ -1189,6 +1194,9 @@ export const GetNodeNeighborhoodSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe("Include the statements on those links (with their categories and hop distance)"),
+	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
+		savedGraphWikilinksModeDescription,
+	),
 });
 
 export const GetGraphAroundTermSchema = z.object({

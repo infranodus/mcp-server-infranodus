@@ -2,6 +2,7 @@ import { z } from "zod";
 import { brand } from "../config/brand.js";
 import { GetNodeNeighborhoodSchema } from "../schemas/index.js";
 import { callMemoryEndpoint } from "../api/client.js";
+import { savedGraphWikilinksModeBody } from "../utils/wikilinksMode.js";
 
 function textResult(value: unknown, isError = false) {
 	return {
@@ -38,6 +39,7 @@ export const getNodeNeighborhoodTool = {
 				hops: params.hops ?? 2,
 				maxNeighbors: params.maxNeighbors ?? 30,
 				includeStatements: params.includeStatements !== false,
+				...savedGraphWikilinksModeBody(params.wikilinksMode),
 			});
 			const body = response.body;
 			if (body.errorCode === "node_not_found") {

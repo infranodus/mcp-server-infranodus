@@ -193,7 +193,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - Query your knowledge base with a natural language prompt to get relevant statements
     - Include graph summaries for quick overviews of the knowledge structure
     - Optionally retrieve the full graph, statements, or extended analysis
-    - `wikilinksMode` reads the saved graph in another node mode for one call ("saved", "wikilinksOnly", "wikilinksAndConcepts", "plainText"), e.g. to let a prompt match the words of a graph saved as `[[wikilinks]]` only
+    - When a search finds too few statements, widen it: `wikilinksMode` reads the saved graph in another node mode for one call ("saved" by default, "wikilinksAndConcepts", "wikilinksOnly", "plainText"), and `maxNodes` (150 by default, up to 1000) lets the prompt match less connected nodes. Both make no change to the graph; `get_node_neighborhood` takes `wikilinksMode` too
     - Ideal for augmenting LLM responses with domain-specific knowledge
 
 31. **search**
@@ -636,7 +636,6 @@ Retrieves and analyzes an existing graph from your InfraNodus account.
 - `graphName` (string, required): Name of the existing graph
 - `includeStatements` (boolean): Include statements in response
 - `includeGraphSummary` (boolean): Include graph summary
-- `wikilinksMode` (string): How the saved graph is read for this call — "saved" (default, as it was created), "wikilinksOnly", "wikilinksAndConcepts", or "plainText". Nothing is stored; the graph keeps its settings
 
 ### analyze_text
 

@@ -5,7 +5,6 @@ import {
 	AnalyzeExistingGraphSchemaBase,
 } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
-import { savedGraphWikilinksModeBody } from "../utils/wikilinksMode.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 
 function errorContent(message: string) {
@@ -68,7 +67,6 @@ export const analyzeExistingGraphTool = {
 				name: params.graphName,
 				aiTopics: "true",
 				userName: params.userName ?? "",
-				...savedGraphWikilinksModeBody(params.wikilinksMode),
 			};
 			const response = await makeInfraNodusRequest(endpoint, requestBody);
 
