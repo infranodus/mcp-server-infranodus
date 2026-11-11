@@ -636,6 +636,7 @@ Retrieves and analyzes an existing graph from your InfraNodus account.
 - `graphName` (string, required): Name of the existing graph
 - `includeStatements` (boolean): Include statements in response
 - `includeGraphSummary` (boolean): Include graph summary
+- `wikilinksMode` (string): Reads the saved graph in another node mode for this call — "saved" (default), "wikilinksAndConcepts", "wikilinksOnly", or "plainText". Nothing is stored
 
 ### analyze_text
 

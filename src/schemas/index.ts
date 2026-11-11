@@ -9,6 +9,7 @@ import {
 	SavedGraphWikilinksModeEnum,
 	WikilinksModeEnum,
 	categoriesAsNodesDescription,
+	savedGraphAnalysisModeDescription,
 	savedGraphWikilinksModeDescription,
 	wikilinksModeDescription,
 } from "../utils/wikilinksMode.js";
@@ -485,6 +486,9 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(entityDetectionDescription),
+	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
+		savedGraphAnalysisModeDescription,
+	),
 });
 export const AnalyzeExistingGraphSchema = AnalyzeExistingGraphSchemaBase;
 

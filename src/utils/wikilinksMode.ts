@@ -53,9 +53,9 @@ export type WikilinksMode = z.infer<typeof WikilinksModeEnum>;
  * graph of [[entity]] statements can be read as entities, or as entities plus
  * the words around them, without being rebuilt.
  *
- * Offered only on the tools that search a graph (retrieval, node
- * neighborhood), as a way to widen a search that found too little — not as
- * another way to analyze a graph.
+ * On the tools that search a graph (retrieval, node neighborhood) it is a way
+ * to widen a search that found too little; on analyze_existing_graph_by_name
+ * it is used only when the user asks for another reading.
  *
  * A separate list from WikilinksModeEnum: the parent modes need the
  * statements and categories of an upload and mean nothing on a read, and
@@ -72,12 +72,23 @@ export type SavedGraphWikilinksMode = z.infer<
 	typeof SavedGraphWikilinksModeEnum
 >;
 
-// Kept short on purpose: it is repeated in every tool that takes the option,
-// and its job is to keep the model on 'saved' unless a search came back thin.
+// Kept short on purpose: they are repeated in every tool that takes the
+// option, and their job is to keep the model on 'saved' unless there is a
+// reason to leave it.
+const savedGraphModes =
+	"'wikilinksAndConcepts': [[wikilinks]] and words are nodes; 'wikilinksOnly': only [[wikilinks]]; 'plainText': words only.";
+
+/** On the tools that search a graph: a way to widen a search. */
 export const savedGraphWikilinksModeDescription =
 	"Widens what the search can match by reading the graph in another node mode for this call (nothing is stored). " +
 	"Keep 'saved' unless a first call found too few statements or the user asks for a broader or more advanced search. " +
-	"'wikilinksAndConcepts': [[wikilinks]] and words are nodes; 'wikilinksOnly': only [[wikilinks]]; 'plainText': words only.";
+	savedGraphModes;
+
+/** On the tool that analyzes a graph, where there is no search to widen. */
+export const savedGraphAnalysisModeDescription =
+	"Reads the graph in another node mode for this call (nothing is stored). " +
+	"Keep 'saved' unless the user asks to analyze the graph in another mode. " +
+	savedGraphModes;
 
 /** Body field for a read of a saved graph; nothing for 'saved', which is the
  * API's behaviour without the field. */

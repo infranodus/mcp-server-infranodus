@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { runWithConfig } from "../dist/api/config-store.js";
 import { retrieveContextForPromptFromGraphTool } from "../dist/tools/retrieveContextForPromptFromGraph.js";
 import { getNodeNeighborhoodTool } from "../dist/tools/getNodeNeighborhood.js";
+import { analyzeExistingGraphTool } from "../dist/tools/analyzeExistingGraph.js";
 import {
 	AnalyzeExistingGraphSchema,
 	CreateGraphSchema,
@@ -69,6 +70,15 @@ test("get_node_neighborhood does the same on /nodeNeighborhood", async () => {
 	assert.equal(both.body.wikilinksMode, "wikilinksAndConcepts");
 });
 
+test("analyze_existing_graph_by_name does the same on /graphAndStatements", async () => {
+	const analyze = (params) =>
+		requestOf(analyzeExistingGraphTool, AnalyzeExistingGraphSchema, { graphName: "site", ...params });
+	const saved = await analyze({});
+	assert.equal(saved.path, "/graphAndStatements");
+	assert.equal("wikilinksMode" in saved.body, false);
+	assert.equal((await analyze({ wikilinksMode: "plainText" })).body.wikilinksMode, "plainText");
+});
+
 test("retrieve_from_knowledge_base sends maxNodes only when asked, within 150-1000", async () => {
 	assert.equal((await retrieve({})).query.has("maxnodes"), false);
 	assert.equal((await retrieve({ maxNodes: 600 })).query.get("maxnodes"), "600");
@@ -78,14 +88,17 @@ test("retrieve_from_knowledge_base sends maxNodes only when asked, within 150-10
 	}
 });
 
-test("the option is for widening a search: not on the analysis tool, and its description stays short", () => {
-	assert.equal("wikilinksMode" in AnalyzeExistingGraphSchema.shape, false);
+test("the descriptions stay short and keep the model on 'saved'", () => {
 	for (const schema of [RetrieveContextForPromptFromGraphSchema, GetNodeNeighborhoodSchema]) {
 		const { description } = schema.shape.wikilinksMode;
 		assert.ok(description.length <= 400, `${description.length} characters`);
 		assert.match(description, /too few statements/);
 		assert.match(description, /Keep 'saved'/);
 	}
+	// The analysis tool has no search to widen, so it says when to leave 'saved' in its own words.
+	const analysis = AnalyzeExistingGraphSchema.shape.wikilinksMode.description;
+	assert.ok(analysis.length <= 400);
+	assert.match(analysis, /Keep 'saved' unless the user asks/);
 	assert.ok(RetrieveContextForPromptFromGraphSchema.shape.maxNodes.description.length <= 250);
 });
 
