@@ -146,6 +146,10 @@ test(
 			await run(getProjectLearningsTool, { project: "demo", limit: 15 });
 			assert.ok(!("order" in calls[1].body));
 			assert.ok(!("uncheckedFor" in calls[1].body));
+			assert.ok(!("transcend" in calls[1].body), "transcend ideas stay out unless asked for");
+
+			await run(getProjectLearningsTool, { project: "demo", transcend: "only" });
+			assert.equal(calls[2].body.transcend, "only");
 		},
 	),
 );

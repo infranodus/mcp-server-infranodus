@@ -2145,6 +2145,12 @@ export const GetProjectLearningsSchema = z.object({
 		.describe(
 			"Overview mode only: leave out learnings that a consolidation pass checked in the last N days (they carry a dream-<date> category), and the 'Confirmed again' repeats. The response then has `unchecked`: how many are left to check. Use with order 'oldest' so that successive passes work through the whole graph.",
 		),
+	transcend: z
+		.enum(["only", "include"])
+		.optional()
+		.describe(
+			"Transcend ideas are statements a consolidation pass brought in from outside the memory (category `transcend`): ideas to explore, checked against nothing. They are left out of every answer unless this is set. 'only' returns just them, 'include' returns them among the learnings. Works with prompt, entity and the overview, whose `transcendIdeas` says how many the graph holds. Set it only when the user asks for the transcend ideas, and present them as unverified ideas, not as learnings.",
+		),
 });
 
 // ---------------------------------------------------------------------------
