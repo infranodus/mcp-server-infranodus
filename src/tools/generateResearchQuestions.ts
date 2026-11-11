@@ -22,7 +22,7 @@ export const generateResearchQuestionsTool = {
 	definition: {
 		title: "Generate Research Questions from Text",
 		description:
-			"Analyze text or an existing graph and generate innovative research questions based on the content gaps identified between the topical clusters. Provide either text, url, or graphName. Can be used to improve the text and the discourse it relates to",
+			"Analyze text or an existing graph and generate innovative research questions that bridge its topical clusters. By default (optimize: 'optimize') the questions bridge the insight clusters: the clusters picked from the structure of the graph (biased / focused / diversified / dispersed) whose connection moves it toward a balanced shape; they are returned as insightClusters. Set optimize to 'gap' for the widest content gap, 'develop' for the main topics, 'latent' for under-developed ones. Provide either text, url, or graphName. Can be used to improve the text and the discourse it relates to",
 		inputSchema: GenerateResearchQuestionsSchemaBase.shape,
 		annotations: {
 			readOnlyHint: true,
@@ -37,10 +37,11 @@ export const generateResearchQuestionsTool = {
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
-				optimize: "gap",
+				optimize: params.optimize ?? "optimize",
 				includeStatements: "false",
 				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
-				extendedGraphSummary: "false",
+				// the insight clusters arrive in the extended summary
+				extendedGraphSummary: "true",
 				includeGraph: "false",
 				aiTopics: "true",
 				extendedAdvice: params.useSeveralGaps ? "true" : "false",

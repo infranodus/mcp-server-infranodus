@@ -67,13 +67,14 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
    - Generate research questions that bridge content gaps from text, URL, or an existing InfraNodus graph
    - Use them as prompts in your LLM models and AI workflows
    - Use any AI model (included in InfraNodus API)
-   - Content gaps are identified based on topical clustering
+   - `optimize` chooses the clusters the questions bridge: `optimize` (default) the insight clusters picked from the structure of the graph, `gap` the widest content gap, `develop` the main topics, `latent` the under-developed ones
+   - Returns the insight clusters used as `insightClusters`
 
 9. **generate_research_ideas**
    - Generate innovative research ideas based on content gaps identified in the text
    - Get actionable ideas to improve the text and develop the discourse
    - Use any AI model (included in InfraNodus API)
-   - Ideas are generated from gaps between topical clusters
+   - `optimize` chooses the clusters the ideas bridge, as in `generate_research_questions`; the default is the insight clusters, returned as `insightClusters`
 
 10. **optimize_text_structure**
     - Analyze the level of bias and coherence in text using knowledge graph analysis
@@ -234,6 +235,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 38. **optimize_knowledge_base**
     - Structural feedback on a whole code base, document vault, or body of procedural knowledge (rules, frameworks, principles) from its digest graph (`repo-<project>-digest` / `vault-<project>-digest`) — or from a digest you write and pass as text, saved with `saveAs`
     - Diagnoses the structure (biased / focused / diversified / dispersed) and reads it for the chosen `focus` (`codebase`, `vault`, `procedural`, `general`): what dominates, which areas are under-developed (with latent-topic ideas), which clusters never connect — missing integrations, missing bridge notes, missing hand-offs between frameworks — plus AI suggestions for what to develop next
+    - `optimize` chooses what the suggestions work on: `optimize` (default) the insight clusters, which are returned as `insightClusters` and stepped through with `gapDepth`; `develop` all the main topics, followed by a latent-topics pass; `latent` the under-developed ones. `includeLatent: true` adds the latent pass to `optimize`
     - `compareWith` up to two other layers of the same project (e.g. digest vs structure map, docs vs code) and get what each has that the other lacks: rules without code, code without documentation, features described but not built
     - Two ways to get the digest: the assistant reads the project and writes it (the infranodus skill's **digest** build mode, or `text` + `saveAs` here), or `generate_ontology_graph` with `ontologyMode: 'procedural'` writes it server-side from an uploaded docs/structure graph
     - Pairs with the infranodus skill's build modes: full ingestion, digest, structure map, ontology

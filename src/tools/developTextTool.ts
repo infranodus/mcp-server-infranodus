@@ -221,6 +221,9 @@ export const developTextTool = {
 				latentTopicsIdeas: latentTopics.ideas || [],
 				conceptualBridgesIdeas: conceptualBridges.ideas || [],
 				contentGaps: contentGaps.contentGaps || [],
+				...(contentGaps.insightClusters
+					? { insightClusters: contentGaps.insightClusters }
+					: {}),
 				conceptualBridges: conceptualBridges.latentConceptsToDevelop || [],
 				latentTopics: latentTopics.latentTopicsToDevelop || [],
 				mainTopics: latentTopics.mainTopics || [],
