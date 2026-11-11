@@ -6,6 +6,7 @@ import { resolveGraphInput } from "../utils/graphInput.js";
 import {
 	generateOptimizationResult,
 	extractLatentTopicsIdeas,
+	insightClustersOf,
 	transformToStructuredOutput,
 } from "../utils/transformers.js";
 import {
@@ -88,6 +89,7 @@ export const optimizeKnowledgeBaseTool = {
 			`Give it the graph built from the project (graphName: e.g. repo-<project>-digest or vault-<project>-digest — the LLM-written digest of how it works — repo-<project>-structure, repo-<project>-docs, vault-<project>-links, learn-<project>) and set focus to how the reading should be framed (codebase, vault, procedural, general). ` +
 			`No graph yet? Write a digest of the project (100–300 one-line statements on how it works, [[wikilinks]] on modules, concepts and files, grouped under \`## [[Topic]]\` headings) and pass it as text with saveAs: repo-<project>-digest (vault-<project>-digest for a notes vault). ` +
 			`It diagnoses the structure (biased / focused / diversified / dispersed) and translates it: what dominates, which areas are under-developed, which clusters never connect (missing integrations, missing bridge notes, missing hand-offs between frameworks), with AI suggestions for what to develop next. ` +
+			`The suggestions follow optimize: 'optimize' (default) works on the insight clusters, the ones picked from the structure whose connection moves the graph toward a balanced shape (returned as insightClusters; gapDepth moves to the next set), 'develop' on all the main topics, 'latent' on the under-developed ones. ` +
 			`compareWith names other layers of the same project (e.g. digest vs structure, docs vs code) and reports what each layer has that the other lacks — rules without code, code without documentation, features claimed but not built. ` +
 			`Memory works the same way: a learn-, memory- or personal- graph by graphName, or another memory system's items passed as they are in statements (nothing is saved without saveAs). Then propose statements that bridge the gaps, each with 2+ [[wikilinks]], and save only the ones the user approves (add_project_learnings / memory_add_relations). ` +
 			`Use it after the infranodus skill has ingested a repo or vault, or on any saved graph, when the user asks to optimize, review, or find what is missing or under-developed in a project, vault, set of rules, or memory.`,
@@ -106,7 +108,12 @@ export const optimizeKnowledgeBaseTool = {
 		try {
 			const focus: Focus = params.focus ?? "general";
 			const modelToUse = params.modelToUse ?? DEFAULT_AI_MODEL;
-			const includeLatent = params.includeLatent !== false;
+			const mode = params.optimize ?? "optimize";
+			const gapDepth = params.gapDepth ?? 0;
+			// 'optimize' follows the insight clusters only, so the latent pass is
+			// added there on request; 'latent' already is that pass.
+			const includeLatent =
+				mode !== "latent" && (params.includeLatent ?? mode === "develop");
 			const compareWith = dedupeList(params.compareWith ?? [], 2);
 			const steps = 1 + (includeLatent ? 1 : 0) + compareWith.length * 2;
 			const progress = new ProgressReporter(context ?? {}, steps);
@@ -170,14 +177,15 @@ export const optimizeKnowledgeBaseTool = {
 				includeGraph: "true",
 				compactGraph: "true",
 				aiTopics: "true",
-				optimize: "develop",
+				optimize: mode,
+				gapDepth: gapDepth.toString(),
 			});
 			const develop: GraphResponse = await makeInfraNodusRequest(
 				`/graphAndAdvice?${developQuery.toString()}`,
 				{
 					...sourceBody,
 					aiTopics: "true",
-					requestMode: "response",
+					requestMode: mode === "latent" ? "transcend" : "response",
 					modelToUse,
 				},
 			);
@@ -191,7 +199,13 @@ export const optimizeKnowledgeBaseTool = {
 
 			// 2. Under-developed (latent) topics.
 			let latentIdeas: string[] = [];
-			let latentTopics: string[] = [];
+			let latentTopics: string[] =
+				mode === "latent"
+					? dedupeList(
+							extractLatentTopicsIdeas(develop).latentTopicsToDevelop ?? [],
+							8,
+						)
+					: [];
 			if (includeLatent) {
 				await progress.report(step++, "Finding under-developed areas");
 				const latentQuery = new URLSearchParams({
@@ -247,9 +261,11 @@ export const optimizeKnowledgeBaseTool = {
 
 			const reading = state ? readState(focus, state) : undefined;
 			const mainClusters = dedupeList(optimization.mainTopicalClusters ?? [], 10);
+			const insightClusters = insightClustersOf(develop);
 			const report = {
 				source: sourceLabel,
 				focus,
+				optimize: mode,
 				state: state ?? "unknown",
 				...(reading ? { meaning: reading.meaning, action: reading.action } : {}),
 				dominant: mainClusters[0],
@@ -259,6 +275,7 @@ export const optimizeKnowledgeBaseTool = {
 					10,
 				),
 				missingBridges: dedupeList(optimization.contentGaps ?? [], 8),
+				...(insightClusters ? { insightClusters, gapDepth } : {}),
 				gateways: dedupeList(optimization.conceptualGateways ?? [], 8),
 				suggestions: dedupeList(optimization.suggestions ?? [], 6),
 				...(latentIdeas.length ? { latentIdeas } : {}),

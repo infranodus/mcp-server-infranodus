@@ -127,23 +127,24 @@ Identifies content gaps — missing connections between topical clusters that re
 
 **Parameters**: `text` / `url` / `graphName`
 
-**Returns**: `contentGaps` array. Format: "Gap N: ClusterA (keywords) -> ClusterB (keywords)"
+**Returns**: `contentGaps` array. Format: "Gap N: ClusterA (keywords) -> ClusterB (keywords)". Also `insightClusters`: the 1–3 clusters the AI bridges by default, one line per gap depth, each cluster tagged `gap`, `bridge` or `influence`. Format: "Insight clusters N (state): [gap] ClusterA (keywords) + [bridge] ClusterB (keywords)". Every tool that returns `contentGaps` returns `insightClusters` beside it.
 
 ---
 
 ### generate_research_questions
 
-Generates research questions that bridge content gaps identified in text.
+Generates research questions that bridge the topical clusters of a text. By default the questions bridge the insight clusters.
 
 **Use for**: Generating prompts for LLM workflows, research ideation, bridging knowledge gaps.
 
 **Parameters**:
 - `text` / `url` / `graphName`: Input source
+- `optimize`: which clusters the questions are generated from. `optimize` (default) uses the insight clusters, picked from the structure of the graph to move it toward a balanced shape; `gap` the widest content gap; `develop` all the main topics; `latent` the under-developed ones
 - `useSeveralGaps` (boolean): Generate questions for multiple gaps (more diverse)
-- `gapDepth` (number): Explore less prominent gaps (0 = top gap)
+- `gapDepth` (number): Explore less prominent gaps or insight clusters (0 = the first)
 - `modelToUse` (string): AI model to use
 
-**Returns**: `questions` array of research question strings.
+**Returns**: `questions` array of research question strings, and `insightClusters`.
 
 ---
 
@@ -153,12 +154,14 @@ Generates ideas that develop the text further based on content gaps. By default 
 
 **Parameters**:
 - `text` / `url` / `graphName`: Input source
+- `optimize`: which clusters the ideas are generated from. `optimize` (default) uses the insight clusters, picked from the structure of the graph to move it toward a balanced shape; `gap` the widest content gap; `develop` all the main topics; `latent` the under-developed ones
 - `useSeveralGaps` (boolean): Ideas for multiple gaps
+- `gapDepth` (number): Explore less prominent gaps or insight clusters (0 = the first)
 - `shouldTranscend` (boolean): Connect to broader discourse
 - `responseType`: 'response' (analytical) or 'idea' (business-oriented)
 - `modelToUse` (string): AI model to use
 
-**Returns**: `responses` array of idea strings.
+**Returns**: `responses` array of idea strings (`ideas` with `responseType: 'idea'`), and `insightClusters`.
 
 ---
 

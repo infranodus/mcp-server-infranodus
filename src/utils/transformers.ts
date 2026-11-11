@@ -41,6 +41,17 @@ export function trimDegreeDistribution(
 	};
 }
 
+/**
+ * The graph's insight clusters as the API describes them: one line per gap
+ * depth, each naming the 1–3 clusters the AI bridges by default and their role
+ * (gap / bridge / influence). Undefined when the API sent none (an older
+ * server, or a graph with fewer than two clusters).
+ */
+export function insightClustersOf(data: GraphResponse): string[] | undefined {
+	const lines = data.extendedGraphSummary?.insightClusters;
+	return Array.isArray(lines) && lines.length > 0 ? lines : undefined;
+}
+
 export function transformToStructuredOutput(
 	data: GraphResponse,
 	includeGraph: boolean = false,
@@ -62,6 +73,8 @@ export function transformToStructuredOutput(
 
 	if (data.extendedGraphSummary) {
 		output.contentGaps = data.extendedGraphSummary.contentGaps;
+		const insightClusters = insightClustersOf(data);
+		if (insightClusters) output.insightClusters = insightClusters;
 		output.mainTopicalClusters = data.extendedGraphSummary.mainTopics;
 		output.mainConcepts = data.extendedGraphSummary.mainConcepts;
 		output.conceptualGateways = data.extendedGraphSummary.conceptualGateways;
@@ -197,6 +210,8 @@ export function transformToGraphRagOutput(params: {
 
 	if (data.extendedGraphSummary && extendedGraphSummary == true) {
 		output.contentGaps = data.extendedGraphSummary.contentGaps;
+		const insightClusters = insightClustersOf(data);
+		if (insightClusters) output.insightClusters = insightClusters;
 		output.mainTopicalClusters = data.extendedGraphSummary.mainTopics;
 		output.mainConcepts = data.extendedGraphSummary.mainConcepts;
 		output.conceptualGateways = data.extendedGraphSummary.conceptualGateways;
@@ -230,6 +245,9 @@ export function generateGaps(data: GraphResponse): GapsOutput {
 	if (data.extendedGraphSummary?.contentGaps) {
 		gaps.contentGaps = data.extendedGraphSummary.contentGaps;
 	}
+
+	const insightClusters = insightClustersOf(data);
+	if (insightClusters) gaps.insightClusters = insightClusters;
 
 	return gaps;
 }
@@ -324,9 +342,12 @@ export function extractInsightsFromExtendedGraphSummary(
 	const topKeywordCombinations = data.extendedGraphSummary?.topBigrams || [];
 	const conceptsToDevelop = data.extendedGraphSummary?.conceptualGateways || [];
 
+	const insightClusters = insightClustersOf(data);
+
 	return {
 		mainTopics,
 		contentGaps,
+		...(insightClusters ? { insightClusters } : {}),
 		mainConcepts,
 		topKeywordCombinations,
 		conceptsToDevelop,
@@ -412,6 +433,9 @@ export function generateResearchQuestions(
 		researchQuestions.graphSummary = data.graphSummary;
 	}
 
+	const insightClusters = insightClustersOf(data);
+	if (insightClusters) researchQuestions.insightClusters = insightClusters;
+
 	return researchQuestions;
 }
 
@@ -431,6 +455,9 @@ export function generateResearchIdeas(
 		researchIdeas.graphSummary = data.graphSummary;
 	}
 
+	const insightClusters = insightClustersOf(data);
+	if (insightClusters) researchIdeas.insightClusters = insightClusters;
+
 	return researchIdeas;
 }
 
@@ -447,6 +474,9 @@ export function generateResponses(data: GraphResponse): ResponsesOutput {
 	if (data.graphSummary) {
 		responses.graphSummary = data.graphSummary;
 	}
+
+	const insightClusters = insightClustersOf(data);
+	if (insightClusters) responses.insightClusters = insightClusters;
 
 	return responses;
 }
@@ -480,6 +510,7 @@ export function generateOptimizationResult(
 		const ext = data.extendedGraphSummary;
 		if (ext.mainTopics) output.mainTopicalClusters = ext.mainTopics;
 		if (ext.contentGaps) output.contentGaps = ext.contentGaps;
+		if (ext.insightClusters?.length) output.insightClusters = ext.insightClusters;
 		if (ext.mainConcepts) output.mainConcepts = ext.mainConcepts;
 		if (ext.topicsToDevelop) output.topicsToDevelop = ext.topicsToDevelop;
 		if (ext.conceptualGateways)
