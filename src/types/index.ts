@@ -178,6 +178,7 @@ export interface GraphResponse {
 	graphSummary?: string;
 	extendedGraphSummary?: {
 		contentGaps?: string[];
+		insightClusters?: string[];
 		mainTopics?: string[];
 		mainTopicNames?: string[];
 		mainConcepts?: string[];
@@ -229,6 +230,7 @@ export interface SummaryOutput {
 
 export interface InsightsOutput {
 	contentGaps?: string[];
+	insightClusters?: string[];
 	mainTopics?: string[];
 	mainConcepts?: string[];
 	conceptsToDevelop?: string[];
@@ -277,6 +279,7 @@ export interface KnowledgeGraphOutput {
 	};
 	graphSummary?: string;
 	contentGaps?: string[];
+	insightClusters?: string[];
 	mainTopicalClusters?: string[];
 	mainConcepts?: string[];
 	topInfluentialNodes?: Array<{
@@ -299,6 +302,7 @@ export interface KnowledgeGraphOutput {
 
 export interface GapsOutput {
 	contentGaps?: string[];
+	insightClusters?: string[];
 }
 
 export interface TopicsOutput {
@@ -334,6 +338,7 @@ export interface OntologyGraphOutput {
 	};
 	graphSummary?: string;
 	contentGaps?: string[];
+	insightClusters?: string[];
 	mainTopicalClusters?: string[];
 	mainConcepts?: string[];
 	topInfluentialNodes?: Array<{
@@ -362,10 +367,13 @@ export interface GraphOverview {
 }
 
 export interface ResearchQuestionsOutput {
+	/** The clusters the AI bridged, per gap depth (see the tool's `optimize` input). */
+	insightClusters?: string[];
 	questions?: string[];
 	graphSummary?: string;
 	extendedGraphSummary?: {
 		contentGaps?: string[];
+		insightClusters?: string[];
 		mainTopics?: string[];
 		mainConcepts?: string[];
 		conceptualGateways?: string[];
@@ -384,6 +392,7 @@ export interface GraphRagOutput {
 	}>;
 	graphSummary?: string;
 	contentGaps?: string[];
+	insightClusters?: string[];
 	mainTopicalClusters?: string[];
 	mainTopicNames?: string[];
 	mainConcepts?: string[];
@@ -405,10 +414,13 @@ export interface GraphRagOutput {
 }
 
 export interface ResearchIdeasOutput {
+	/** The clusters the AI bridged, per gap depth (see the tool's `optimize` input). */
+	insightClusters?: string[];
 	ideas?: string[];
 	graphSummary?: string;
 	extendedGraphSummary?: {
 		contentGaps?: string[];
+		insightClusters?: string[];
 		mainTopics?: string[];
 		mainConcepts?: string[];
 		conceptualGateways?: string[];
@@ -430,10 +442,13 @@ export interface LatentTopicsOutput {
 }
 
 export interface ResponsesOutput {
+	/** The clusters the AI bridged, per gap depth (see the tool's `optimize` input). */
+	insightClusters?: string[];
 	responses?: string[];
 	graphSummary?: string;
 	extendedGraphSummary?: {
 		contentGaps?: string[];
+		insightClusters?: string[];
 		mainTopics?: string[];
 		mainConcepts?: string[];
 		conceptualGateways?: string[];
@@ -446,6 +461,7 @@ export interface OptimizeTextOutput {
 	suggestions?: string[];
 	mainTopicalClusters?: string[];
 	contentGaps?: string[];
+	insightClusters?: string[];
 	mainConcepts?: string[];
 	topicsToDevelop?: string[];
 	conceptualGateways?: string[];

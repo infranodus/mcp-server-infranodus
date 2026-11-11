@@ -302,6 +302,8 @@ export const generateOntologyGraphTool = {
 						output.statistics = structured.statistics;
 						output.graphSummary = structured.graphSummary;
 						output.contentGaps = structured.contentGaps;
+						if (structured.insightClusters)
+							output.insightClusters = structured.insightClusters;
 						output.mainTopicalClusters = structured.mainTopicalClusters;
 						output.mainConcepts = structured.mainConcepts;
 						output.conceptualGateways = structured.conceptualGateways;

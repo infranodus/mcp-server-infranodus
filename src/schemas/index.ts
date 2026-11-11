@@ -813,6 +813,35 @@ export const GenerateTopicalClustersSchema =
 		{ message: "Provide text, url, statements, or graphName for analysis." },
 	);
 
+// Which clusters the AI works on (the API's `optimize` query parameter). The
+// default follows the graph's insight clusters, chosen from its structure.
+const OPTIMIZE_MODE_OPTIMIZE =
+	"'optimize' (default): the graph's insight clusters, picked from its structure to move it toward a balanced, diversified shape — in a biased or focused graph the least influential clusters across a gap, in a diversified graph the widest gap, in a dispersed graph the most influential clusters across a gap";
+const OPTIMIZE_MODE_DEVELOP =
+	"'develop': all the main topical clusters, to develop what the content already covers";
+const OPTIMIZE_MODE_LATENT =
+	"'latent': the least represented clusters, to bring out topics that are present but under-developed";
+const OPTIMIZE_MODE_GAP =
+	"'gap': the widest structural gap, whatever the state of the graph";
+const INSIGHT_CLUSTERS_RETURNED =
+	"The response lists the insight clusters as insightClusters, one line per gap depth.";
+
+const researchOptimizeField = (what: string) =>
+	z
+		.enum(["optimize", "gap", "develop", "latent"])
+		.default("optimize")
+		.describe(
+			`Which clusters the ${what} are generated from. ${OPTIMIZE_MODE_OPTIMIZE}. ${OPTIMIZE_MODE_GAP}. ${OPTIMIZE_MODE_DEVELOP}. ${OPTIMIZE_MODE_LATENT}. ${INSIGHT_CLUSTERS_RETURNED}`,
+		);
+
+const researchGapDepthField = (what: string) =>
+	z
+		.number()
+		.default(0)
+		.describe(
+			`Which gap to generate ${what} for: 0 is the first, higher numbers reach less prominent ones. With optimize 'optimize' it selects the insight clusters at that depth, with 'gap' the next widest gap.`,
+		);
+
 export const GenerateResearchQuestionsSchemaBase = z.object({
 	text: z
 		.string()
@@ -848,10 +877,8 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.boolean()
 		.default(false)
 		.describe("Generate questions for several content gaps found in text"),
-	gapDepth: z
-		.number()
-		.default(0)
-		.describe("Depth of content gaps to generate questions for"),
+	optimize: researchOptimizeField("questions"),
+	gapDepth: researchGapDepthField("questions"),
 	includeGraphSummary: z
 		.boolean()
 		.default(false)
@@ -911,10 +938,8 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.boolean()
 		.default(false)
 		.describe("Generate ideas for several content gaps found in text"),
-	gapDepth: z
-		.number()
-		.default(0)
-		.describe("Depth of content gaps to generate ideas for"),
+	optimize: researchOptimizeField("ideas"),
+	gapDepth: researchGapDepthField("ideas"),
 	shouldTranscend: z
 		.boolean()
 		.default(false)
@@ -2216,11 +2241,25 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		.describe(
 			"Up to two other saved graphs of the same project to compare against (e.g. repo-<project>-structure when the primary is the digest, or docs when the primary is code). Each comparison reports what the other layer covers that the primary lacks, and the reverse — rules without code, code without documentation, features described but not built. Requires the primary to be a saved graph: graphName, or statements/text with saveAs.",
 		),
+	optimize: z
+		.enum(["optimize", "develop", "latent"])
+		.default("optimize")
+		.describe(
+			`Which clusters the suggestions work on. ${OPTIMIZE_MODE_OPTIMIZE}. ${OPTIMIZE_MODE_DEVELOP}. ${OPTIMIZE_MODE_LATENT}, with ideas that go beyond the current content. ${INSIGHT_CLUSTERS_RETURNED}`,
+		),
+	gapDepth: z
+		.number()
+		.int()
+		.min(0)
+		.default(0)
+		.describe(
+			"With optimize 'optimize': which insight clusters the suggestions use. 0 is the first set; raise it on a later call to get suggestions for the next, less prominent set, so repeated calls work through the graph.",
+		),
 	includeLatent: z
 		.boolean()
-		.default(true)
+		.optional()
 		.describe(
-			"Also run the latent-topics pass (one extra AI call) to list under-developed areas with ideas on how to develop them. Default true.",
+			"Also run the latent-topics pass (one extra AI call) to list under-developed areas with ideas on how to develop them. When omitted it runs with optimize 'develop' and not with 'optimize', whose suggestions follow the insight clusters only. Never run a second time when optimize is 'latent'.",
 		),
 	modelToUse: z
 		.enum(AI_MODELS)
