@@ -209,6 +209,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
     - The graph around a term across your graphs: every statement that contains the term — or all of several terms (`matchAll`, the default) or any of them — in all your graphs or the named ones, built into one graph with the terms themselves left out, so the topics, gaps and relations describe the context the terms sit in (the app's search view with the searched term hidden)
     - Returns which graphs the statements came from with a count each, the statistics, topical clusters, content gaps, main concepts and top relations, the compact graph (`includeGraph`, on by default) and the statements with their graph of origin (`includeStatements`, off by default); `removeTerms: false` keeps the terms in
     - Your own graphs only; `search` says where a term occurs, `get_node_neighborhood` walks one graph from one concept
+    - `wikilinksMode` picks how the found statements become nodes for the call ("account" by default, "wikilinksAndConcepts", "wikilinksOnly", "plainText"); it does not change which statements are found
 
 34. **list_graphs**
     - List the graphs (contexts) in your InfraNodus account, with optional filters by name, type, date, language, or favorite status

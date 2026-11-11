@@ -90,6 +90,34 @@ export const savedGraphAnalysisModeDescription =
 	"Keep 'saved' unless the user asks to analyze the graph in another mode. " +
 	savedGraphModes;
 
+/**
+ * The graph around a term is built from statements of several graphs, so no
+ * graph's saved settings apply: the default is the account's settings, and
+ * the presets replace those for the call. The mode changes what the found
+ * statements become, not which statements are found.
+ */
+export const TermGraphWikilinksModeEnum = z.enum([
+	"account",
+	"wikilinksOnly",
+	"wikilinksAndConcepts",
+	"plainText",
+]);
+
+export type TermGraphWikilinksMode = z.infer<typeof TermGraphWikilinksModeEnum>;
+
+export const termGraphWikilinksModeDescription =
+	"How the found statements become nodes, for this call. It does not change which statements are found. " +
+	"Keep 'account' (the account's settings) unless the user asks to see the term's context in another node mode. " +
+	savedGraphModes;
+
+/** Body field for /termGraph; nothing for 'account', which is the API's
+ * behaviour without the field. */
+export function termGraphWikilinksModeBody(
+	mode: TermGraphWikilinksMode | undefined,
+): { wikilinksMode?: TermGraphWikilinksMode } {
+	return mode && mode !== "account" ? { wikilinksMode: mode } : {};
+}
+
 /** Body field for a read of a saved graph; nothing for 'saved', which is the
  * API's behaviour without the field. */
 export function savedGraphWikilinksModeBody(

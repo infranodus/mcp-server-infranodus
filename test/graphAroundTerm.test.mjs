@@ -155,3 +155,22 @@ test(
 		},
 	),
 );
+
+test(
+	"wikilinksMode: nothing is sent for 'account', a preset is passed on, 'saved' is not a mode here",
+	withFetch(
+		() => [appAnswer(false)],
+		async (calls) => {
+			await run({ terms: "gpu" });
+			await run({ terms: "gpu", wikilinksMode: "account" });
+			await run({ terms: "gpu", wikilinksMode: "wikilinksAndConcepts" });
+			assert.equal("wikilinksMode" in calls[0].body, false);
+			assert.equal("wikilinksMode" in calls[1].body, false);
+			assert.equal(calls[2].body.wikilinksMode, "wikilinksAndConcepts");
+			assert.equal(GetGraphAroundTermSchema.safeParse({ terms: "gpu", wikilinksMode: "saved" }).success, false);
+			const { description } = GetGraphAroundTermSchema.shape.wikilinksMode;
+			assert.ok(description.length <= 400, `${description.length} characters`);
+			assert.match(description, /does not change which statements are found/);
+		},
+	),
+);
