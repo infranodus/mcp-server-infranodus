@@ -3,6 +3,7 @@ import { brand } from "../config/brand.js";
 import { GetGraphAroundTermSchema } from "../schemas/index.js";
 import { callMemoryEndpoint } from "../api/client.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+import { termGraphWikilinksModeBody } from "../utils/wikilinksMode.js";
 
 function textResult(value: unknown, isError = false) {
 	return {
@@ -41,6 +42,7 @@ export const getGraphAroundTermTool = {
 				includeGraph,
 				includeStatements,
 				maxNodes: params.maxNodes ?? 150,
+				...termGraphWikilinksModeBody(params.wikilinksMode),
 			});
 			const body = response.body;
 			if (response.status >= 400) {

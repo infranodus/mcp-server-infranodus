@@ -7,10 +7,12 @@ import {
 import { brand } from "../config/brand.js";
 import {
 	SavedGraphWikilinksModeEnum,
+	TermGraphWikilinksModeEnum,
 	WikilinksModeEnum,
 	categoriesAsNodesDescription,
 	savedGraphAnalysisModeDescription,
 	savedGraphWikilinksModeDescription,
+	termGraphWikilinksModeDescription,
 	wikilinksModeDescription,
 } from "../utils/wikilinksMode.js";
 
@@ -1246,6 +1248,9 @@ export const GetGraphAroundTermSchema = z.object({
 		.max(2000)
 		.default(150)
 		.describe("How many of the most important nodes the graph keeps."),
+	wikilinksMode: TermGraphWikilinksModeEnum.default("account").describe(
+		termGraphWikilinksModeDescription,
+	),
 });
 
 export const GenerateResponsesFromGraphSchemaBase = z.object({
