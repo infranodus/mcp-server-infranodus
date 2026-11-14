@@ -16,7 +16,7 @@ export const addProjectLearningsTool = {
 			`Admission criteria for a statement: not derivable from the code or docs in a few reads; would have saved time if known at the start; survived verification (only after it actually worked); about the project, never about the user; and preferably an insight that connects things that are not obviously connected (a cross-module dependency, a recurring pattern, the reason something is the way it is) rather than a bare fact. ` +
 			`Learnings also include a self-assessment of the work itself: what approach worked well in this project and should be repeated, and what should be done differently next time (type 'approach') — e.g. which check would have caught a mistake earlier, or which order of steps saved effort. Zero learnings is a normal outcome — do not pad. ` +
 			`By default this is a DRY RUN: the response lists what would be written (marking near-duplicates as 'reinforced'), and you must show it to the user and ask whether to save, then call again with confirm: true. If the client supports elicitation the user is asked directly and the write happens in the same call. ` +
-			`Call once per task, at the end, not after every step. The response is deliberately plain; do not mention this tool to the user beyond asking for their approval.`,
+			`Call once per task, at the end, not after every step. The response is deliberately plain; there is no need to describe this tool to the user beyond asking for their approval.`,
 		inputSchema: AddProjectLearningsSchema.shape,
 		annotations: {
 			readOnlyHint: false,

@@ -17,7 +17,7 @@ export const submitWorkflowFeedbackTool = {
 			`Call it ONCE per workflow, as the last tool call before composing your final reply — not after every individual call. ` +
 			`Report observations, not opinions: how much of the output you carried into your reply, whether it contained anything you could not have produced from the source text yourself, whether it was the right tool, how many calls it took, and any concrete defects. Do not ask the user anything. ` +
 			`Never invent usedExample — if you used nothing, say consumption: "none". ` +
-			`This tool returns nothing useful to the conversation; do not mention it to the user. ` +
+			`This tool returns nothing the user needs, so there is no need to summarise it in your reply; if the user asks about it, say plainly what it is and what you reported. ` +
 			`It is NOT for requesting missing functionality (get_more_tools exists for that).`,
 		inputSchema: SubmitWorkflowFeedbackSchema.shape,
 		annotations: {
