@@ -17,13 +17,16 @@ import {
 	revokeSession,
 	getSessionCount,
 	registerClient,
-	getClient,
-	validateClient,
-	validateRedirectUri,
 	createAuthorizationCode,
 	exchangeAuthorizationCode,
 	validateApiKey,
 } from "./auth/oauth-provider.js";
+import {
+	trustedRedirectApp,
+	redirectDisplayHost,
+	LOCAL_APP,
+} from "./auth/redirect-allowlist.js";
+import { recordSignIn } from "./auth/signInLog.js";
 import * as http from "http";
 import { Socket } from "net";
 import * as fs from "fs";
@@ -57,18 +60,9 @@ function escapeHtml(str: string): string {
 		.replace(/'/g, "&#39;");
 }
 
-// Allow HTTP only for localhost/127.0.0.1 (local dev); otherwise require HTTPS
-function isRedirectUriAllowed(redirectUri: string): boolean {
-	if (redirectUri.startsWith("https://")) return true;
-	if (!redirectUri.startsWith("http://")) return false;
-	try {
-		const u = new URL(redirectUri);
-		const host = u.hostname.toLowerCase();
-		return host === "localhost" || host === "127.0.0.1";
-	} catch {
-		return false;
-	}
-}
+const UNTRUSTED_REDIRECT_MESSAGE =
+	`redirect_uri is not a recognised app address. Sign-in is only sent back to known apps or to localhost. ` +
+	`Connect with your ${brand.name} API key as a Bearer token instead, or contact ${brand.domain} support to have the app added.`;
 
 // Store auth info on request (using a symbol to avoid conflicts with MCP SDK)
 const AUTH_KEY = Symbol("auth");
@@ -293,19 +287,35 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 		return;
 	}
 
-	// Accept HTTPS or http://localhost / http://127.0.0.1 (for local dev)
-	if (!isRedirectUriAllowed(redirect_uri)) {
+	// Only send the user back to a known app or to their own computer
+	// (auth/redirect-allowlist.ts). Anything else could be an attacker's site.
+	const redirectApp = trustedRedirectApp(redirect_uri);
+	if (!redirectApp) {
+		recordSignIn({
+			outcome: "refused_redirect",
+			redirectUri: redirect_uri,
+			clientId: client_id,
+		});
 		res.status(400).json({
 			error: "invalid_request",
-			error_description:
-				"redirect_uri must use HTTPS or http://localhost or http://127.0.0.1",
+			error_description: UNTRUSTED_REDIRECT_MESSAGE,
 		});
 		return;
 	}
+	recordSignIn({
+		outcome: "form_shown",
+		redirectUri: redirect_uri,
+		clientId: client_id,
+		app: redirectApp,
+	});
 
-	// Get client name from registration if available, otherwise use client_id
-	const client = getClient(client_id);
-	const clientName = escapeHtml(client?.client_name || client_id);
+	// The app is named by where the sign-in returns to, which the allowlist
+	// vouches for. A registered client_name is free text anyone can set.
+	const destination = escapeHtml(
+		redirectApp === LOCAL_APP
+			? LOCAL_APP
+			: `${redirectApp} (${redirectDisplayHost(redirect_uri)})`,
+	);
 	const safeClientId = escapeHtml(client_id);
 	const safeRedirectUri = escapeHtml(redirect_uri);
 	const safeState = escapeHtml(String(state || ""));
@@ -336,7 +346,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 </head>
 <body>
 	<h1>Authorize Access</h1>
-	<p class="client-name">Application: <strong>${clientName}</strong></p>
+	<p class="client-name">You are connecting: <strong>${destination}</strong></p>
 	<div class="info">
 		Enter your ${brand.name} API key to authorize this application to access your ${brand.name} data.
 		You can get your API key at <a href="https://${brand.domain}/api-access" target="_blank" rel="noopener noreferrer">${brand.domain}/api-access</a>.
@@ -385,11 +395,17 @@ app.post(
 			return;
 		}
 
-		// Validate redirect_uri (HTTPS or localhost/127.0.0.1 for local dev)
-		if (!redirect_uri || !isRedirectUriAllowed(redirect_uri)) {
+		// Same check as the form: the POST can be sent without ever loading it
+		const redirectApp = trustedRedirectApp(redirect_uri);
+		if (!redirectApp) {
+			recordSignIn({
+				outcome: "refused_redirect",
+				redirectUri: redirect_uri,
+				clientId: client_id,
+			});
 			res.status(400).json({
 				error: "invalid_request",
-				error_description: "Invalid redirect_uri",
+				error_description: UNTRUSTED_REDIRECT_MESSAGE,
 			});
 			return;
 		}
@@ -405,6 +421,13 @@ app.post(
 		}
 
 		const userInfo = await validateApiKey(api_key);
+		recordSignIn({
+			outcome: userInfo ? "success" : "invalid_key",
+			redirectUri: redirect_uri,
+			clientId: client_id,
+			app: redirectApp,
+			userId: userInfo?.userId,
+		});
 		if (!userInfo) {
 			const redirectUrl = new URL(redirect_uri);
 			redirectUrl.searchParams.set("error", "access_denied");
@@ -738,7 +761,12 @@ async function handleMcpRequest(
 			accept: req.headers["accept"],
 		}),
 	);
-	console.log(`[MCP] Body:`, JSON.stringify(req.body));
+	// Log what the request is, never its content: tool arguments carry the
+	// user's own texts.
+	const rpc = Array.isArray(req.body) ? req.body[0] : req.body;
+	console.log(
+		`[MCP] Request: method=${rpc?.method ?? "-"} tool=${rpc?.params?.name ?? "-"} bytes=${JSON.stringify(req.body ?? "").length}`,
+	);
 
 	// Use session ID as the transport key. The OpenAI endpoint gets its own
 	// key so one token used on both endpoints never shares a server instance.
@@ -819,7 +847,7 @@ async function handleMcpRequest(
 	}
 
 	try {
-		// Capture ALL response data for logging (including raw writes)
+		// Log response headers, sizes and status (never the content)
 		const originalWrite = res.write.bind(res);
 		const originalEnd = res.end.bind(res);
 		const originalSetHeader = res.setHeader.bind(res);
@@ -831,14 +859,14 @@ async function handleMcpRequest(
 
 		res.write = (chunk: any, ...args: any[]) => {
 			const data = typeof chunk === "string" ? chunk : chunk?.toString?.();
-			console.log(`[MCP] Response write:`, data?.slice(0, 500));
+			console.log(`[MCP] Response write: ${data?.length ?? 0} chars`);
 			return (originalWrite as any)(chunk, ...args);
 		};
 
 		res.end = (chunk?: any, ...args: any[]) => {
 			if (chunk) {
 				const data = typeof chunk === "string" ? chunk : chunk?.toString?.();
-				console.log(`[MCP] Response end with data:`, data?.slice(0, 500));
+				console.log(`[MCP] Response end with data: ${data?.length ?? 0} chars`);
 			}
 			console.log(`[MCP] Response ended, status: ${res.statusCode}`);
 			return (originalEnd as any)(chunk, ...args);

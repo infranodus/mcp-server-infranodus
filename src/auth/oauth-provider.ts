@@ -28,6 +28,38 @@ const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("he
 const TOKEN_EXPIRY_SECONDS = 86400 * 365 * 100; // 100 years - effectively never expires
 const BRAND_API_BASE = brandApiBase();
 
+// The API key travels inside authorization codes and access tokens so any
+// instance can serve a request without shared state. A JWT is only signed, so
+// the key is encrypted (AES-256-GCM) before it goes in: whoever holds a code or
+// token cannot read the key out of it.
+const API_KEY_ENCRYPTION_KEY = Buffer.from(
+	crypto.hkdfSync("sha256", JWT_SECRET, "", "mcp-api-key-encryption", 32),
+);
+
+export function encryptApiKey(apiKey: string): string {
+	const iv = crypto.randomBytes(12);
+	const cipher = crypto.createCipheriv("aes-256-gcm", API_KEY_ENCRYPTION_KEY, iv);
+	const ciphertext = Buffer.concat([cipher.update(apiKey, "utf8"), cipher.final()]);
+	return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString("base64url");
+}
+
+export function decryptApiKey(encrypted: string): string | null {
+	try {
+		const raw = Buffer.from(encrypted, "base64url");
+		const decipher = crypto.createDecipheriv(
+			"aes-256-gcm",
+			API_KEY_ENCRYPTION_KEY,
+			raw.subarray(0, 12),
+		);
+		decipher.setAuthTag(raw.subarray(12, 28));
+		return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString(
+			"utf8",
+		);
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Hash an API key for storage in JWT (we don't store the actual key in the token)
  */
@@ -138,13 +170,12 @@ export async function exchangeApiKeyForToken(apiKey: string): Promise<TokenRespo
 	// Create a stateless session ID (just for tracking, not stored in memory)
 	const sessionId = crypto.randomUUID();
 
-	// Create JWT payload - include API key directly for stateless verification
-	// The JWT is signed so it can't be tampered with
+	// Create JWT payload - carries the (encrypted) API key for stateless verification
 	const payload = {
 		type: "access_token",
 		userId: userInfo.userId,
 		userName: userInfo.userName,
-		apiKey: apiKey, // Include API key for stateless verification
+		apiKeyEnc: encryptApiKey(apiKey),
 		sessionId: sessionId,
 	};
 
@@ -168,7 +199,8 @@ export function verifyAccessToken(token: string): AuthenticatedRequest | null {
 			type?: string;
 			userId: number;
 			userName: string;
-			apiKey?: string;
+			apiKeyEnc?: string;
+			apiKey?: string; // Tokens issued before the key was encrypted; still honoured
 			apiKeyHash?: string;  // Old format
 			sessionId: string;
 		};
@@ -180,8 +212,11 @@ export function verifyAccessToken(token: string): AuthenticatedRequest | null {
 		}
 
 		// Need API key in the token for stateless verification
-		if (!decoded.apiKey) {
-			console.log(`[AUTH] Token missing apiKey - old format token, needs re-auth`);
+		const apiKey = decoded.apiKeyEnc
+			? decryptApiKey(decoded.apiKeyEnc)
+			: decoded.apiKey;
+		if (!apiKey) {
+			console.log(`[AUTH] Token carries no usable API key, needs re-auth`);
 			return null;
 		}
 
@@ -189,7 +224,7 @@ export function verifyAccessToken(token: string): AuthenticatedRequest | null {
 		return {
 			userId: decoded.userId,
 			userName: decoded.userName,
-			apiKey: decoded.apiKey,
+			apiKey,
 			sessionId: decoded.sessionId,
 		};
 	} catch (error: any) {
@@ -253,7 +288,7 @@ setInterval(() => {
 	cleanupExpiredSessions();
 	cleanupExpiredAuthCodes();
 	cleanupValidationCache();
-}, 10 * 60 * 1000);
+}, 10 * 60 * 1000).unref();
 
 // ============================================================================
 // OAuth2 Dynamic Client Registration (RFC 7591)
@@ -338,7 +373,7 @@ export function createAuthorizationCode(
 		type: "auth_code",
 		client_id: clientId,
 		redirect_uri: redirectUri,
-		api_key: apiKey, // Encrypted or hashed in production
+		api_key_enc: encryptApiKey(apiKey),
 		scope,
 		code_challenge: codeChallenge,
 		code_challenge_method: codeChallengeMethod,
@@ -352,7 +387,7 @@ interface AuthCodePayload {
 	type: string;
 	client_id: string;
 	redirect_uri: string;
-	api_key: string;
+	api_key_enc: string;
 	scope?: string;
 	code_challenge?: string;
 	code_challenge_method?: string;
@@ -404,7 +439,9 @@ export async function exchangeAuthorizationCode(
 		}
 
 		// Exchange the API key for a token
-		return exchangeApiKeyForToken(authCode.api_key);
+		const apiKey = decryptApiKey(authCode.api_key_enc ?? "");
+		if (!apiKey) return null;
+		return exchangeApiKeyForToken(apiKey);
 	} catch (error) {
 		// Invalid or expired JWT
 		return null;
