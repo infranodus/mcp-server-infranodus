@@ -6,8 +6,13 @@ import {
 } from "../config/models.js";
 import { brand } from "../config/brand.js";
 import {
+	SavedGraphWikilinksModeEnum,
+	TermGraphWikilinksModeEnum,
 	WikilinksModeEnum,
 	categoriesAsNodesDescription,
+	savedGraphAnalysisModeDescription,
+	savedGraphWikilinksModeDescription,
+	termGraphWikilinksModeDescription,
 	wikilinksModeDescription,
 } from "../utils/wikilinksMode.js";
 
@@ -483,6 +488,9 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(entityDetectionDescription),
+	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
+		savedGraphAnalysisModeDescription,
+	),
 });
 export const AnalyzeExistingGraphSchema = AnalyzeExistingGraphSchemaBase;
 
@@ -1148,6 +1156,18 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		.max(50)
 		.default(8)
 		.describe("How many of the strongest matching relations (edges) to read statements from"),
+	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
+		savedGraphWikilinksModeDescription,
+	),
+	maxNodes: z
+		.number()
+		.int()
+		.min(150)
+		.max(1000)
+		.optional()
+		.describe(
+			"How many of the graph's most connected nodes the prompt can match (default 150, max 1000). Raise it only when too few statements are found or the user asks for a broader search; larger values are slower.",
+		),
 });
 
 export const GetNodeNeighborhoodSchema = z.object({
@@ -1180,6 +1200,9 @@ export const GetNodeNeighborhoodSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe("Include the statements on those links (with their categories and hop distance)"),
+	wikilinksMode: SavedGraphWikilinksModeEnum.default("saved").describe(
+		savedGraphWikilinksModeDescription,
+	),
 });
 
 export const GetGraphAroundTermSchema = z.object({
@@ -1225,6 +1248,9 @@ export const GetGraphAroundTermSchema = z.object({
 		.max(2000)
 		.default(150)
 		.describe("How many of the most important nodes the graph keeps."),
+	wikilinksMode: TermGraphWikilinksModeEnum.default("account").describe(
+		termGraphWikilinksModeDescription,
+	),
 });
 
 export const GenerateResponsesFromGraphSchemaBase = z.object({
