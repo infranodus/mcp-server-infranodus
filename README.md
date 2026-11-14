@@ -326,6 +326,7 @@ https://mcp.infranodus.com
 2. **Add the MCP server URL to the Client Tool Where You Want to Use InfraNodus**
 
 - Once you add the URL above to your tool, it will automatically prompt you to authenticate using OAuth in order to be able to access the InfraNodus MCP hosted on it.
+- OAuth sign-in on the hosted server is only sent back to known apps (Claude, ChatGPT, Cursor, Grok, VS Code, Perplexity) or to an app on your own computer (`localhost`). If your tool is refused with "redirect_uri is not a recognised app address", connect with your InfraNodus API key as a Bearer token instead, or contact support to have the app added.
 
 4. **Using InfraNodus Tools in Your Calls**
 
@@ -722,6 +723,8 @@ The `generate_seo_report` tool demonstrates this pattern with 6 major progress c
 ## Usage Analytics & Privacy
 
 To improve the product, this MCP server records which tools are used (tool names, errors, and latency). This helps us understand which features are useful and where things break. We do **not** train any models on your data — see the [InfraNodus terms and conditions](https://infranodus.com/terms-conditions).
+
+The hosted server (`mcp.infranodus.com`) also records each OAuth sign-in attempt: the time, the app's callback address, whether it succeeded, and the user ID on success. No API keys or tokens are recorded. A locally installed server records no sign-ins.
 
 If you prefer these usage stats not to be linked to your InfraNodus account, set the `MCPCAT_ANONYMOUS` environment variable:
 
