@@ -128,6 +128,33 @@ test(
 );
 
 test(
+	"get_project_learnings passes order and uncheckedFor only when given",
+	withRoutes(
+		{ "/learnings/get": () => [{ enabled: true, project: "demo", unchecked: 3, learnings: [] }] },
+		async (calls) => {
+			const result = await run(getProjectLearningsTool, {
+				project: "demo",
+				limit: 50,
+				order: "oldest",
+				uncheckedFor: 30,
+			});
+			assert.ok(!result.isError);
+			assert.equal(calls[0].body.order, "oldest");
+			assert.equal(calls[0].body.uncheckedFor, 30);
+			assert.equal(payload(result).unchecked, 3);
+
+			await run(getProjectLearningsTool, { project: "demo", limit: 15 });
+			assert.ok(!("order" in calls[1].body));
+			assert.ok(!("uncheckedFor" in calls[1].body));
+			assert.ok(!("transcend" in calls[1].body), "transcend ideas stay out unless asked for");
+
+			await run(getProjectLearningsTool, { project: "demo", transcend: "only" });
+			assert.equal(calls[2].body.transcend, "only");
+		},
+	),
+);
+
+test(
 	"get_project_learnings: a project without learnings is not an error",
 	withRoutes(
 		{ "/learnings/get": () => [{ enabled: false, project: "nope", graphName: "learn-nope", learnings: [] }] },

@@ -227,6 +227,8 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 37. **get_project_learnings**
     - Retrieve learnings for a project: by `prompt` (GraphRAG — most relevant statements plus an overview of what is known), by `entity` (a file path, module, or concept), or a structural overview with neither
     - Call with no `project` to list the projects that have learnings in your account
+    - Transcend ideas (category `transcend`: ideas a consolidation pass brought in from outside, checked against nothing) are left out of every answer unless `transcend` is `"only"` or `"include"`
+    - The overview lists the newest learnings; `order: "oldest"` with `uncheckedFor: <days>` lists the oldest ones that no consolidation pass (a `dream-<date>` category) checked in that time, for reviewing memory in batches
     - Returns `enabled: false` with an empty list when a project has no learnings graph — not an error
 
     _Also available as the `save-learnings` prompt in clients that expose MCP prompts. Set `INFRANODUS_LEARNINGS=0` to remove these three tools from the server entirely (see [Project learnings](#project-learnings))._

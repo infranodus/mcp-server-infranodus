@@ -408,7 +408,7 @@ Create the user's topic memory (`memory-<topic>`) or personal memory (`personal-
 
 A per-project, append-only graph (`learn-<project>`) of what agents learned about operating in a project: where things live, traps, conventions, decisions, workflows, open questions, and a self-assessment (type `approach`). Opt-in: `enable_project_learnings` only on the user's request; `add_project_learnings` refuses (without error) for projects that are not enabled, is a dry run until `confirm: true`, marks near-duplicates as `reinforced`, and refuses secret-like statements. `get_project_learnings` takes `prompt` (most relevant learnings for a task), `entity`, or neither (overview), or no `project` to list the projects with learnings.
 
-**Parameters**: `project`; `statements` + `types` + `confirm` (add); `prompt`, `entity`, `type`, `limit` (get); `language` (optional, all three)
+**Parameters**: `project`; `statements` + `types` + `confirm` (add); `prompt`, `entity`, `type`, `limit`, `order`, `uncheckedFor`, `transcend` (get); `language` (optional, all three)
 
 ---
 
