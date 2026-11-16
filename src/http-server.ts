@@ -26,6 +26,7 @@ import {
 	redirectDisplayHost,
 	LOCAL_APP,
 } from "./auth/redirect-allowlist.js";
+import { brandLogoHtml } from "./auth/brandLogo.js";
 import { recordSignIn } from "./auth/signInLog.js";
 import * as http from "http";
 import { Socket } from "net";
@@ -334,6 +335,7 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
 		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
+		.logo { display: block; width: 100%; height: auto; margin-bottom: 28px; }
 		h1 { color: #333; font-size: 24px; }
 		.client-name { color: #666; margin-bottom: 20px; }
 		label { display: block; margin: 15px 0 5px; font-weight: 500; }
@@ -345,7 +347,8 @@ app.get("/oauth/authorize", (req: Request, res: Response) => {
 	</style>
 </head>
 <body>
-	<h1>Authorize Access</h1>
+	${brandLogoHtml(brand.id)}
+	<h1>Authorize Access to ${brand.name}</h1>
 	<p class="client-name">You are connecting: <strong>${destination}</strong></p>
 	<div class="info">
 		Enter your ${brand.name} API key to authorize this application to access your ${brand.name} data.
