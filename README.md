@@ -677,6 +677,8 @@ Returns the structural and rhythmic signature of one text: how the discourse mov
 - `sentence_rhythm`: sentence count, mean length, length CV (classic burstiness), lag-1 autocorrelation, share of short and long sentences, computed on prose-like statements only (fragments such as headings and menu items are skipped and counted); plus `scaling`, a summary of the backend's DFA on the sentence-length series (`fractal_variability.sentenceLength.byWords`, null under 64 sentences) with its own reading
 - `ai_likeness`: `verdict` (leans generated / leans human / inconclusive), `score` (−1 human-like to +1 generated-like), `confidence`, the weighted `evidence` behind it, and `caveats`. It is a stylistic tendency: on a 50-page check against a commercial detector it caught uniformly paced template text but read AI-drafted pages that had been edited as human.
 
+Every number above is computed by the API and read here; `amplitude` and `sentence_rhythm` arrive inside `fractal_variability`, so the tool requests a compact graph. A backend that does not ship them reports them as empty rather than failing.
+
 ### generate_content_gaps
 
 Identifies content gaps and missing connections in text.

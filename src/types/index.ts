@@ -113,10 +113,77 @@ export interface FractalSeries {
 	byRadialDistance: FractalScaling | null;
 }
 
+/**
+ * How far and how unevenly a path moves through the graph, as opposed to the
+ * shape of the sequence the exponents describe. Every distance is in units of
+ * graphRadius, so graphs of different sizes compare. Computed by the backend
+ * (src/graph/fractalVariability.js); this server only reads it.
+ */
+export interface AmplitudeStats {
+	/** steps in the path */
+	n: number;
+	/** mean step length in graph radii */
+	meanStep: number | null;
+	medianStep: number | null;
+	p95Step: number | null;
+	/** coefficient of variation of the step length: burstiness of the movement */
+	cvStep: number | null;
+	/**
+	 * Root mean square of SUCCESSIVE differences in step length, over the mean:
+	 * the RMSSD of HRV, applied to the step series. cvStep spreads every value
+	 * against the overall mean; this compares each value only with its
+	 * neighbour, so it sees alternation that cvStep and the lag-1
+	 * autocorrelation both miss.
+	 */
+	rmssdStep: number | null;
+	/** lag-1 autocorrelation of the step length: do big moves follow big moves? */
+	lag1Autocorrelation: number | null;
+	/** share of steps landing in a different cluster; null when too few steps have a community at both ends */
+	crossClusterShare: number | null;
+	/** coefficient of variation of the gaps between crossings: ~1 random, <0.7 regular, >1.3 bursty */
+	crossClusterRunCV: number | null;
+	/** mean distance from the path centroid, in graph radii */
+	meanRadial: number | null;
+	cvRadial: number | null;
+}
+
+export interface Amplitude {
+	/** RMS node distance from the node centroid: the unit the fields above are in */
+	graphRadius: number | null;
+	statements: AmplitudeStats | null;
+	words: AmplitudeStats | null;
+}
+
+/**
+ * Burstiness of the source text itself, no graph involved. Statements under
+ * the backend's PROSE_MIN_WORDS are skipped as fragments (headings, menu
+ * items, captions) and counted in skippedFragments.
+ */
+export interface SentenceRhythm {
+	sentences: number;
+	skippedFragments: number;
+	meanLength: number | null;
+	/** coefficient of variation of sentence length in words: the classic burstiness */
+	cvLength: number | null;
+	lag1Autocorrelation: number | null;
+	/** share of sentences under 8 words */
+	shortShare: number | null;
+	/** share of sentences over 30 words */
+	longShare: number | null;
+	statements: { n: number; meanLength: number | null; cvLength: number | null };
+}
+
 export interface FractalVariability {
 	statements: FractalSeries;
 	words: FractalSeries;
 	ngrams?: FractalSeries;
+	/**
+	 * Amplitude and sentence rhythm, computed by the backend alongside the
+	 * exponents. This server used to rebuild the paths and compute these
+	 * itself, which forced it to request uncompacted graphs and statements.
+	 */
+	amplitude?: Amplitude;
+	sentenceRhythm?: SentenceRhythm;
 	sentenceLength?: { byWords: FractalScaling | null };
 	/**
 	 * Influence of the current word, one value per word occurrence of the word

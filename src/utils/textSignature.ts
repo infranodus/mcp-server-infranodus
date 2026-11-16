@@ -13,298 +13,34 @@
  * backend's own reading table (infranodus-backend/docs/fractal-variability.md),
  * not from a labelled corpus. Everything is pure so it can be unit-tested.
  */
-import type { DegreeDistribution, FractalScaling, FractalSeries, FractalVariability } from "../types/index.js";
+import type {
+	Amplitude,
+	AmplitudeStats,
+	DegreeDistribution,
+	FractalScaling,
+	FractalSeries,
+	FractalVariability,
+	SentenceRhythm,
+} from "../types/index.js";
+
+// Re-exported so existing importers of these shapes keep working now that
+// they are declared next to the response type they arrive in.
+export type { Amplitude, AmplitudeStats, SentenceRhythm };
 import { trimDegreeDistribution } from "./transformers.js";
 
 // ---------------------------------------------------------------------------
-// Input shapes: the raw (non-compacted) graph response
+// Statistics kept for the readings below
 // ---------------------------------------------------------------------------
 
-export interface RawNode {
-	key: string;
-	attributes?: { x?: number; y?: number; z?: number; community?: number | string };
-}
-
-export interface RawStatement {
-	content?: string;
-	sortId?: number;
-	statementHashtags?: string[];
-	topStatementCommunity?: string | number;
-	graphCoordinates?: { x?: number; y?: number; z?: number } | null;
-}
-
-interface Point {
-	x: number;
-	y: number;
-	z: number;
-}
-
-// ---------------------------------------------------------------------------
-// Basic statistics
-// ---------------------------------------------------------------------------
+// Amplitude and sentence rhythm used to be computed here, from a path
+// rebuilt out of the raw graph and statements. That is why this server asked
+// for uncompacted graphs and statements. The backend now computes both
+// alongside the fractal exponents and ships them inside fractal_variability
+// (see infranodus-backend/src/graph/fractalVariability.js), so this file only
+// reads them. The shapes live in ../types.
 
 const round = (value: number | null, digits = 3): number | null =>
 	value == null || !Number.isFinite(value) ? null : Number(value.toFixed(digits));
-
-const mean = (values: number[]): number =>
-	values.length ? values.reduce((a, b) => a + b, 0) / values.length : NaN;
-
-const std = (values: number[]): number => {
-	if (values.length < 2) return NaN;
-	const m = mean(values);
-	return Math.sqrt(mean(values.map((v) => (v - m) * (v - m))));
-};
-
-const quantile = (values: number[], q: number): number => {
-	if (!values.length) return NaN;
-	const sorted = [...values].sort((a, b) => a - b);
-	const pos = (sorted.length - 1) * q;
-	const lo = Math.floor(pos);
-	const hi = Math.ceil(pos);
-	return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
-};
-
-/** Lag-1 autocorrelation; null when the series is constant or too short. */
-const lag1Autocorrelation = (values: number[]): number | null => {
-	if (values.length < 8) return null;
-	const m = mean(values);
-	let num = 0;
-	let den = 0;
-	for (let i = 0; i < values.length; i++) {
-		den += (values[i] - m) ** 2;
-		if (i + 1 < values.length) num += (values[i] - m) * (values[i + 1] - m);
-	}
-	return den > 0 ? num / den : null;
-};
-
-const isFinitePoint = (p: unknown): p is { x: number; y: number; z?: number } =>
-	p != null &&
-	typeof p === "object" &&
-	Number.isFinite((p as { x?: unknown }).x) &&
-	Number.isFinite((p as { y?: unknown }).y);
-
-const toPoint = (p: { x: number; y: number; z?: number }): Point => ({
-	x: p.x,
-	y: p.y,
-	z: Number.isFinite(p.z) ? (p.z as number) : 0,
-});
-
-const distance = (a: Point, b: Point): number =>
-	Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
-
-const centroid = (points: Point[]): Point => ({
-	x: mean(points.map((p) => p.x)),
-	y: mean(points.map((p) => p.y)),
-	z: mean(points.map((p) => p.z)),
-});
-
-// Hashtags occasionally arrive with a leading "#"; node keys never do.
-const stripHash = (key: string): string => (key.startsWith("#") ? key.slice(1) : key);
-
-// ---------------------------------------------------------------------------
-// Amplitude: how far and how unevenly the text moves through its graph
-// ---------------------------------------------------------------------------
-
-export interface AmplitudeStats {
-	/** number of steps in the path */
-	n: number;
-	/** mean step length in units of the graph radius (RMS node distance from the node centroid) */
-	meanStep: number | null;
-	medianStep: number | null;
-	p95Step: number | null;
-	/** coefficient of variation of the step length: the burstiness of the movement */
-	cvStep: number | null;
-	/** lag-1 autocorrelation of the step length: do big moves follow big moves? */
-	lag1Autocorrelation: number | null;
-	/** share of steps that land in a different topical cluster */
-	crossClusterShare: number | null;
-	/** coefficient of variation of the gaps between cluster crossings: ~1 random, <0.7 regular, >1.3 bursty */
-	crossClusterRunCV: number | null;
-	/** mean distance from the path centroid, in graph-radius units */
-	meanRadial: number | null;
-	cvRadial: number | null;
-}
-
-interface PathPoint {
-	point: Point;
-	community: string | null;
-}
-
-/** Root-mean-square distance of the nodes from their centroid: the scale unit. */
-export function graphRadius(nodes: RawNode[]): number | null {
-	const points = nodes
-		.map((n) => n.attributes)
-		.filter(isFinitePoint)
-		.map(toPoint);
-	if (points.length < 2) return null;
-	const c = centroid(points);
-	const radius = Math.sqrt(mean(points.map((p) => distance(p, c) ** 2)));
-	return radius > 0 ? radius : null;
-}
-
-function amplitudeOfPath(path: PathPoint[], radius: number | null): AmplitudeStats | null {
-	if (path.length < 2 || !radius) return null;
-	const points = path.map((p) => p.point);
-	const steps: number[] = [];
-	for (let i = 0; i + 1 < points.length; i++) steps.push(distance(points[i], points[i + 1]) / radius);
-	const c = centroid(points);
-	const radial = points.map((p) => distance(p, c) / radius);
-
-	// Cluster crossings: a step whose endpoints belong to different clusters.
-	let crossings: number[] | null = [];
-	let known = 0;
-	for (let i = 0; i + 1 < path.length; i++) {
-		const a = path[i].community;
-		const b = path[i + 1].community;
-		if (a == null || b == null) continue;
-		known++;
-		if (a !== b) crossings.push(i);
-	}
-	if (known < steps.length / 2) crossings = null;
-	const gaps: number[] = [];
-	if (crossings) for (let i = 1; i < crossings.length; i++) gaps.push(crossings[i] - crossings[i - 1]);
-
-	const stepMean = mean(steps);
-	const radialMean = mean(radial);
-	return {
-		n: steps.length,
-		meanStep: round(stepMean),
-		medianStep: round(quantile(steps, 0.5)),
-		p95Step: round(quantile(steps, 0.95)),
-		cvStep: stepMean > 0 ? round(std(steps) / stepMean) : null,
-		lag1Autocorrelation: round(lag1Autocorrelation(steps)),
-		crossClusterShare: crossings ? round(crossings.length / known) : null,
-		crossClusterRunCV: gaps.length >= 5 && mean(gaps) > 0 ? round(std(gaps) / mean(gaps)) : null,
-		meanRadial: round(radialMean),
-		cvRadial: radialMean > 0 ? round(std(radial) / radialMean) : null,
-	};
-}
-
-export interface Amplitude {
-	graphRadius: number | null;
-	statements: AmplitudeStats | null;
-	words: AmplitudeStats | null;
-}
-
-/**
- * Rebuild the statement and word paths the backend ran DFA on (statements at
- * graphCoordinates, words at their node positions in statementHashtags order)
- * and measure their amplitude.
- */
-export function computeAmplitude(nodes: RawNode[], statements: RawStatement[]): Amplitude {
-	const radius = graphRadius(nodes);
-	const nodeByKey = new Map<string, RawNode>();
-	for (const node of nodes) nodeByKey.set(node.key, node);
-
-	const ordered = [...statements].sort((a, b) => (a.sortId ?? 0) - (b.sortId ?? 0));
-
-	const statementPath: PathPoint[] = [];
-	const wordPath: PathPoint[] = [];
-	for (const statement of ordered) {
-		if (isFinitePoint(statement.graphCoordinates)) {
-			statementPath.push({
-				point: toPoint(statement.graphCoordinates),
-				community: statement.topStatementCommunity != null ? String(statement.topStatementCommunity) : null,
-			});
-		}
-		for (const tag of statement.statementHashtags ?? []) {
-			const attributes = nodeByKey.get(stripHash(tag))?.attributes;
-			const community = attributes?.community;
-			if (!attributes || !isFinitePoint(attributes)) continue;
-			wordPath.push({
-				point: toPoint(attributes),
-				community: community != null ? String(community) : null,
-			});
-		}
-	}
-
-	return {
-		graphRadius: round(radius),
-		statements: amplitudeOfPath(statementPath, radius),
-		words: amplitudeOfPath(wordPath, radius),
-	};
-}
-
-// ---------------------------------------------------------------------------
-// Sentence rhythm: the classic burstiness of the source text
-// ---------------------------------------------------------------------------
-
-export interface SentenceRhythm {
-	/** sentences counted, from prose-like statements only */
-	sentences: number;
-	/** statements skipped as fragments (headings, menu items, captions): under PROSE_MIN_WORDS words */
-	skippedFragments: number;
-	meanLength: number | null;
-	/** coefficient of variation of sentence length in words: the classic burstiness */
-	cvLength: number | null;
-	lag1Autocorrelation: number | null;
-	/** share of sentences under 8 words */
-	shortShare: number | null;
-	/** share of sentences over 30 words */
-	longShare: number | null;
-	statements: { n: number; meanLength: number | null; cvLength: number | null };
-}
-
-const SENTENCE_SPLIT = /(?<=[.!?…])\s+(?=[^\s])/;
-const ABBREVIATIONS = /\b(?:e\.g|i\.e|etc|vs|dr|mr|mrs|ms|prof|st|no|fig|cf)\.$/i;
-
-/** Split one statement into sentences; joins fragments cut at a known abbreviation. */
-export function splitSentences(text: string): string[] {
-	const pieces = text.split(SENTENCE_SPLIT);
-	const out: string[] = [];
-	for (const piece of pieces) {
-		const trimmed = piece.trim();
-		if (!trimmed) continue;
-		if (out.length && ABBREVIATIONS.test(out[out.length - 1])) out[out.length - 1] += " " + trimmed;
-		else out.push(trimmed);
-	}
-	return out;
-}
-
-const wordCount = (text: string): number => text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
-
-// Statements shorter than this are treated as fragments (headings, menu
-// items, list bullets, captions) and left out of the sentence rhythm: on a
-// fetched web page they outnumber the prose and flatten every text to the
-// same profile.
-export const PROSE_MIN_WORDS = 12;
-
-export function computeSentenceRhythm(statements: RawStatement[]): SentenceRhythm {
-	const ordered = [...statements].sort((a, b) => (a.sortId ?? 0) - (b.sortId ?? 0));
-	const lengths: number[] = [];
-	const statementLengths: number[] = [];
-	let skipped = 0;
-	for (const statement of ordered) {
-		const content = statement.content?.trim();
-		if (!content) continue;
-		const total = wordCount(content);
-		if (total < PROSE_MIN_WORDS) {
-			skipped++;
-			continue;
-		}
-		statementLengths.push(total);
-		for (const sentence of splitSentences(content)) {
-			const n = wordCount(sentence);
-			if (n > 0) lengths.push(n);
-		}
-	}
-	const m = mean(lengths);
-	const sm = mean(statementLengths);
-	return {
-		sentences: lengths.length,
-		skippedFragments: skipped,
-		meanLength: round(m, 1),
-		cvLength: lengths.length >= 2 && m > 0 ? round(std(lengths) / m) : null,
-		lag1Autocorrelation: round(lag1Autocorrelation(lengths)),
-		shortShare: lengths.length ? round(lengths.filter((n) => n < 8).length / lengths.length) : null,
-		longShare: lengths.length ? round(lengths.filter((n) => n > 30).length / lengths.length) : null,
-		statements: {
-			n: statementLengths.length,
-			meanLength: round(sm, 1),
-			cvLength: statementLengths.length >= 2 && sm > 0 ? round(std(statementLengths) / sm) : null,
-		},
-	};
-}
 
 // ---------------------------------------------------------------------------
 // Readings: one plain sentence per measure
@@ -544,6 +280,14 @@ export function readAmplitude(stats: AmplitudeStats | null): Record<string, stri
 				: stats.cvStep <= 0.8
 					? "The moves between ideas vary in size; the pacing is varied."
 					: "Mostly small moves with a few big leaps; the pacing is uneven.";
+	}
+	if (stats.rmssdStep != null) {
+		out.rmssdStep =
+			stats.rmssdStep < 0.3
+				? "Each move is about the size of the one before it; the text changes gear gradually."
+				: stats.rmssdStep <= 1.0
+					? "The size of a move differs noticeably from the one before it."
+					: "Move sizes swing sharply from one step to the next: the text alternates between close ideas and distant ones.";
 	}
 	if (stats.lag1Autocorrelation != null) {
 		out.lag1Autocorrelation =
@@ -956,14 +700,27 @@ export function buildTextSignature(input: {
 	diversity: DiversityStats | null | undefined;
 	fractal: FractalVariability | null | undefined;
 	degreeDistribution?: DegreeDistribution | null;
-	nodes: RawNode[];
-	statements: RawStatement[];
 }): TextSignatureOutput {
 	const fractal = input.fractal ?? null;
 	const diversity = input.diversity ?? null;
 	const degreeDistribution = input.degreeDistribution ? trimDegreeDistribution(input.degreeDistribution) : null;
-	const amplitude = computeAmplitude(input.nodes, input.statements);
-	const sentenceRhythm = computeSentenceRhythm(input.statements);
+	// Both blocks arrive inside fractal_variability; this server no longer
+	// rebuilds the path to compute them.
+	const amplitude: Amplitude = fractal?.amplitude ?? {
+		graphRadius: null,
+		statements: null,
+		words: null,
+	};
+	const sentenceRhythm: SentenceRhythm = fractal?.sentenceRhythm ?? {
+		sentences: 0,
+		skippedFragments: 0,
+		meanLength: null,
+		cvLength: null,
+		lag1Autocorrelation: null,
+		shortShare: null,
+		longShare: null,
+		statements: { n: 0, meanLength: null, cvLength: null },
+	};
 	return {
 		signature: composeSignature(diversity, fractal),
 		structure: {

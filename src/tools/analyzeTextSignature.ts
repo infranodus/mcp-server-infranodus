@@ -33,18 +33,22 @@ export const analyzeTextSignatureTool = {
 	},
 	handler: async (params: z.infer<typeof AnalyzeTextSignatureSchema>) => {
 		try {
-			// The amplitude and sentence measures need the raw graph (node
-			// positions and communities) and the raw statements (their
-			// graphCoordinates, statementHashtags and content), so the compaction
-			// flags are off. No AI topics, no summary: the tool is numeric.
+			// Everything this tool reports now arrives inside
+			// fractal_variability, which the compact graph carries, so both
+			// compaction flags are on. They used to be off only because the
+			// amplitude and sentence measures were computed here from the raw
+			// node positions, communities and statement contents; the backend
+			// computes them now. Statements are still requested because the
+			// backend derives the trajectory from them. No AI topics, no
+			// summary: the tool is numeric.
 			const queryParams = new URLSearchParams({
 				doNotSave: "true",
 				addStats: "true",
 				...(params.multifractal ? { multifractal: "true" } : {}),
 				includeStatements: "true",
 				includeGraph: "true",
-				compactGraph: "false",
-				compactStatements: "false",
+				compactGraph: "true",
+				compactStatements: "true",
 				includeGraphSummary: "false",
 			});
 			if (params.maxNodes && params.maxNodes > 0) {
@@ -62,9 +66,6 @@ export const analyzeTextSignatureTool = {
 			});
 			if (response.error) return errorContent(response.error);
 
-			// The raw (non-compacted) graph carries more than the typed
-			// GraphResponse declares: node keys and positions, statement
-			// hashtags and coordinates.
 			const graph = (response as any).graph?.graphologyGraph;
 			const attributes = graph?.attributes ?? {};
 			if (!attributes.fractal_variability && !attributes.diversity_stats) {
@@ -78,8 +79,6 @@ export const analyzeTextSignatureTool = {
 				diversity: attributes.diversity_stats,
 				fractal: attributes.fractal_variability,
 				degreeDistribution: attributes.degree_distribution ?? null,
-				nodes: graph?.nodes ?? [],
-				statements: (response as any).statements ?? [],
 			});
 
 			return {
