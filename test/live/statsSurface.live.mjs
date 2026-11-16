@@ -33,11 +33,10 @@ import { optimizeKnowledgeBaseTool } from "../../dist/tools/optimizeKnowledgeBas
 import {
 	assertStructuredStatistics,
 	assertDiversityStats,
-	assertFractalVariability,
+	assertNetworkDynamics,
 	parseToolResult,
 	assertDegreeDistribution,
-	FRACTAL_MEASURES,
-	INFLUENCE_MEASURES,
+	TEXT_TYPE_LABELS,
 } from "../helpers/statsSurface.mjs";
 
 const apiKey = process.env.INFRANODUS_API_KEY || process.env.KEYWORDGRAPH_API_KEY;
@@ -75,12 +74,12 @@ const PARAGRAPHS = [
 	"The study of complex systems draws on physics, biology, economics, and computer science, and its central lesson is that structure and dynamics cannot be separated. To understand what a system does, one must understand how its parts are connected and how those connections change over time.",
 ];
 const SHORT_TEXT = PARAGRAPHS.slice(0, 8).join("\n");
-// Under 70 words: the word path has fewer than 64 steps and the n-gram path
-// (words - 3 points) even fewer, so every ngrams measure comes back null.
+// Under 70 words: the node path has fewer than 64 steps, so no series of
+// network_dynamics.fractal_variability can be fitted and all three are null.
 const TINY_TEXT = PARAGRAPHS[0];
-// 300+ statements: the n-gram level carries numbers on both measures.
+// 300+ statements: every series is long enough for a fit.
 const VERY_LONG_TEXT = Array.from({ length: 14 }, () => PARAGRAPHS).flat().join("\n");
-// The multifractal spectrum needs a word series of at least 512 steps
+// The multifractal spectrum needs a series of at least 512 points
 // (MIN_STEPS_FOR_MULTIFRACTAL in the backend); three passes over the sample
 // get there with the default 150-node cap.
 const LONG_TEXT = [...PARAGRAPHS, ...PARAGRAPHS, ...PARAGRAPHS].join("\n");
@@ -88,14 +87,6 @@ const CONTEXTS = [
 	{ text: PARAGRAPHS.slice(0, 11).join("\n") },
 	{ text: PARAGRAPHS.slice(11).join("\n") },
 ];
-
-/** The ngrams level carries numbers on both measures. */
-function assertNgramsComputed(fractal, where) {
-	assert.ok(fractal.ngrams && typeof fractal.ngrams === "object", `${where}.ngrams is missing`);
-	for (const measure of FRACTAL_MEASURES) {
-		assert.equal(typeof fractal.ngrams[measure]?.alphaBounded, "number", `${where}.ngrams.${measure}.alphaBounded`);
-	}
-}
 
 const graphName = `mcp-stats-surface-${Date.now()}`;
 let graphCreated = false;
@@ -107,83 +98,55 @@ after(async () => {
 });
 
 describe(`live stats surface against ${apiBase}`, () => {
-	live("generate_knowledge_graph (defaults) returns fractal_variability with a null spectrum", async () => {
-		const output = parseToolResult(
-			await run(() => generateKnowledgeGraphTool.handler({ text: SHORT_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
-		);
+	const graphParams = (text, extra = {}) => ({ text, includeGraph: true, includeStatements: false, addNodesAndEdges: false, ...extra });
+
+	live("generate_knowledge_graph (defaults) returns network_dynamics without a spectrum", async () => {
+		const output = parseToolResult(await run(() => generateKnowledgeGraphTool.handler(graphParams(SHORT_TEXT))));
 		assertStructuredStatistics(output.statistics, { spectrum: "null" });
-		assertFractalVariability(output.knowledgeGraph.attributes.fractal_variability, { spectrum: "null", where: "knowledgeGraph.attributes.fractal_variability" });
+		assertNetworkDynamics(output.knowledgeGraph.attributes.network_dynamics, { spectrum: "null", where: "knowledgeGraph.attributes.network_dynamics" });
 	});
 
 	live("analyze_text with multifractal on a long text returns a computed spectrum", async () => {
-		const output = parseToolResult(
-			await run(() => analyzeTextTool.handler({ text: LONG_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, multifractal: true })),
-		);
+		const output = parseToolResult(await run(() => analyzeTextTool.handler(graphParams(LONG_TEXT, { multifractal: true }))));
 		const { computedSpectra } = assertStructuredStatistics(output.statistics, { spectrum: "required" });
-		assert.ok(computedSpectra >= 1, "at least one word series carries the spectrum");
-		assertNgramsComputed(output.statistics.fractal_variability, "statistics.fractal_variability");
-		assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability, output.statistics.fractal_variability, "graph attributes and statistics agree");
+		assert.ok(computedSpectra >= 1, "at least one series carries the spectrum");
+		assert.deepEqual(output.knowledgeGraph.attributes.network_dynamics, output.statistics.network_dynamics, "graph attributes and statistics agree");
 	});
 
-	live("generate_knowledge_graph on 300+ statements returns ngrams numbers with no extra parameter", async () => {
-		const output = parseToolResult(
-			await run(() => generateKnowledgeGraphTool.handler({ text: VERY_LONG_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
-		);
-		assertStructuredStatistics(output.statistics, { spectrum: "null" });
-		assertNgramsComputed(output.statistics.fractal_variability, "statistics.fractal_variability");
-		const { ngrams, words } = output.statistics.fractal_variability;
-		assert.equal(ngrams.byStepLength.n, words.byStepLength.n - 3, "the n-gram path is the word path minus three");
-	});
-
-	live("generate_knowledge_graph on 300+ statements returns degree_distribution and an influence level with three series", async () => {
-		const output = parseToolResult(
-			await run(() => generateKnowledgeGraphTool.handler({ text: VERY_LONG_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
-		);
-		assertStructuredStatistics(output.statistics, { spectrum: "null", degreeDistribution: "required", influence: "required" });
+	live("generate_knowledge_graph on 300+ statements returns all three series, the text type and the degree distribution", async () => {
+		const output = parseToolResult(await run(() => generateKnowledgeGraphTool.handler(graphParams(VERY_LONG_TEXT))));
+		const { computedSeries } = assertStructuredStatistics(output.statistics, { spectrum: "null", textType: "required", degreeDistribution: "required" });
+		assert.equal(computedSeries, 3, "the 4-gram, sentence and influence series are all fitted");
+		const dynamics = output.statistics.network_dynamics;
+		const fv = dynamics.fractal_variability;
+		assert.equal(typeof fv.ngram4_graph_radial_distance.dfa_alpha2, "number");
+		assert.equal(typeof fv.sentence_word_count.dfa_alpha_global, "number");
+		assert.equal(typeof fv.node_betweenness_rank.dfa_alpha1, "number");
+		assert.ok(fv.ngram4_graph_radial_distance.series_length <= dynamics.node_graph_path_amplitude.steps, "the 4-gram path is shorter than the node path");
+		// a text this long is named from memory, never from the size of its steps
+		assert.ok(TEXT_TYPE_LABELS.includes(dynamics.text_type.label), `text type: ${dynamics.text_type.label}`);
+		assert.equal(dynamics.text_type.basis, "memory");
+		assert.equal(typeof dynamics.text_type.memory_score, "number");
 		const degrees = output.statistics.degree_distribution;
 		assert.ok(degrees.nodes > output.statistics.nodeCount, "the distribution counts the whole network, the graph shows the capped one");
 		assert.ok(degrees.tail && typeof degrees.tail.alpha === "number", "tail fitted on 50+ nodes");
-		for (const measure of INFLUENCE_MEASURES) {
-			assert.equal(typeof output.statistics.fractal_variability.influence[measure]?.alphaBounded, "number", `influence.${measure}`);
-		}
 	});
 
-	live("generate_knowledge_graph on a short note returns a null tail and null influence series", async () => {
-		const output = parseToolResult(
-			await run(() => generateKnowledgeGraphTool.handler({ text: TINY_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
-		);
-		assertStructuredStatistics(output.statistics, { spectrum: "null", ngrams: "optional", degreeDistribution: "required" });
+	live("generate_knowledge_graph on a text under 70 words returns null series, no text type from memory, and a null tail", async () => {
+		const output = parseToolResult(await run(() => generateKnowledgeGraphTool.handler(graphParams(TINY_TEXT))));
+		const { computedSeries } = assertStructuredStatistics(output.statistics, { spectrum: "null", degreeDistribution: "required" });
+		assert.equal(computedSeries, 0, "no series can be fitted on a path this short");
+		const dynamics = output.statistics.network_dynamics;
+		assert.equal(dynamics.fractal_variability.sentence_word_count, null);
+		assert.ok(dynamics.fractal_variability.sentence_word_count_series_available < 64);
+		assert.notEqual(dynamics.text_type?.basis, "memory", "there is no exponent to judge memory by");
 		assert.equal(output.statistics.degree_distribution.tail, null);
-		if (output.statistics.fractal_variability.influence) {
-			assert.deepEqual(output.statistics.fractal_variability.influence, { byBetweenness: null, byDegree: null, byBetweennessRank: null });
-		}
-	});
-
-	live("analyze_text_signature on a short note returns a null sentence-length series", async () => {
-		const output = parseToolResult(await run(() => analyzeTextSignatureTool.handler({ text: SHORT_TEXT, multifractal: false })));
-		assert.equal(output.sentence_rhythm.scaling, null);
-		assert.deepEqual(output.rhythm.fractal_variability.sentenceLength, { byWords: null });
-		assert.equal(output.structure.degree_distribution?.tail, null, "tail is null under 50 nodes");
-	});
-
-	live("generate_knowledge_graph on a text under 70 words returns null ngrams series", async () => {
-		const output = parseToolResult(
-			await run(() => generateKnowledgeGraphTool.handler({ text: TINY_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
-		);
-		assertStructuredStatistics(output.statistics, { spectrum: "null" });
-		const { ngrams } = output.statistics.fractal_variability;
-		assert.ok(ngrams && typeof ngrams === "object", "ngrams level is present");
-		for (const measure of FRACTAL_MEASURES) {
-			assert.equal(ngrams[measure], null, `ngrams.${measure} should be null on a short text`);
-		}
 	});
 
 	live("analyze_text with fullGraph keeps the statistics on the non-compacted graph", async () => {
-		const output = parseToolResult(
-			await run(() => analyzeTextTool.handler({ text: SHORT_TEXT, fullGraph: true, includeStatements: false })),
-		);
+		const output = parseToolResult(await run(() => analyzeTextTool.handler({ text: SHORT_TEXT, fullGraph: true, includeStatements: false })));
 		assertStructuredStatistics(output.statistics, { spectrum: "null" });
-		assertFractalVariability(output.knowledgeGraph.attributes.fractal_variability, { where: "knowledgeGraph.attributes.fractal_variability" });
+		assertNetworkDynamics(output.knowledgeGraph.attributes.network_dynamics, { where: "knowledgeGraph.attributes.network_dynamics" });
 		assert.ok(Array.isArray(output.knowledgeGraph.nodes) && output.knowledgeGraph.nodes.length > 0, "fullGraph returns nodes");
 	});
 
@@ -197,14 +160,12 @@ describe(`live stats surface against ${apiBase}`, () => {
 				await run(() => tool.handler({ contexts: CONTEXTS, includeGraph: true, includeStatements: false, addNodesAndEdges: false, multifractal: true })),
 			);
 			assertStructuredStatistics(output.statistics, { spectrum: "any" });
-			assertFractalVariability(output.knowledgeGraph.attributes.fractal_variability, { where: "knowledgeGraph.attributes.fractal_variability" });
+			assertNetworkDynamics(output.knowledgeGraph.attributes.network_dynamics, { where: "knowledgeGraph.attributes.network_dynamics" });
 		});
 	}
 
 	live("create_knowledge_graph, analyze_existing_graph_by_name, memory_add_relations on a saved graph", async () => {
-		const created = parseToolResult(
-			await run(() => createKnowledgeGraphTool.handler({ graphName, text: SHORT_TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
-		);
+		const created = parseToolResult(await run(() => createKnowledgeGraphTool.handler({ graphName, ...graphParams(SHORT_TEXT) })));
 		graphCreated = true;
 		assertStructuredStatistics(created.statistics, { spectrum: "null" });
 
@@ -214,68 +175,56 @@ describe(`live stats surface against ${apiBase}`, () => {
 		assertStructuredStatistics(analyzed.statistics, { spectrum: "any" });
 
 		const remembered = parseToolResult(
-			await run(() => addMemoryTool.handler({ graphName, text: PARAGRAPHS.slice(8, 12).join("\n"), includeGraph: true, includeStatements: false, addNodesAndEdges: false })),
+			await run(() => addMemoryTool.handler({ graphName, ...graphParams(PARAGRAPHS.slice(8, 12).join("\n")) })),
 		);
 		assertStructuredStatistics(remembered.statistics, { spectrum: "null" });
 	});
 
-	live("analyze_text_signature returns the signature with readings, amplitude, sentence rhythm and ai_likeness", async () => {
+	live("analyze_text_signature returns the backend's text type with readings and ai_likeness", async () => {
 		const output = parseToolResult(await run(() => analyzeTextSignatureTool.handler({ text: LONG_TEXT, multifractal: true })));
 		assertDiversityStats(output.structure.diversity_stats, "structure.diversity_stats");
-		assertFractalVariability(output.rhythm.fractal_variability, { spectrum: "present" });
-		assert.equal(typeof output.signature.label, "string");
-		assert.equal(typeof output.rhythm.readings.words.stepLength, "string");
-		assert.equal(typeof output.rhythm.readings.words.multifractal, "string", "the spectrum is read");
-		assert.ok(output.amplitude.words.n >= 512, "word path rebuilt to the backend's length");
-		assert.equal(typeof output.amplitude.words.cvStep, "number");
-		assert.equal(typeof output.amplitude.words.crossClusterShare, "number");
-		assert.ok(output.sentence_rhythm.sentences >= 60);
-		assert.equal(typeof output.sentence_rhythm.cvLength, "number");
-		assert.equal(typeof output.sentence_rhythm.scaling?.alphaBounded, "number", "sentenceLength.byWords carries numbers on 100+ sentences");
-		assert.equal(typeof output.rhythm.fractal_variability.sentenceLength?.byWords?.alphaBounded, "number");
-		for (const measure of INFLUENCE_MEASURES) {
-			assert.equal(typeof output.rhythm.fractal_variability.influence?.[measure]?.alphaBounded, "number", `influence.${measure}`);
-		}
-		assert.equal(typeof output.rhythm.readings.influence?.byBetweennessRank, "string");
+		assertNetworkDynamics(output.network_dynamics, { spectrum: "required" });
+		assert.ok(TEXT_TYPE_LABELS.includes(output.signature.label), `signature: ${output.signature.label}`);
+		assert.equal(output.signature.basis, "memory");
+		assert.equal(typeof output.signature.summary, "string");
+		assert.equal(Object.keys(output.signature.label_possible_values).length, 4);
+		// the default fields are shown; the experimental ones only on request
+		assert.ok(!("step_cv" in output.network_dynamics.node_graph_path_amplitude));
+		assert.ok(output.network_dynamics.node_graph_path_amplitude.steps >= 512, "a node path long enough for the spectrum");
+		assert.ok(output.network_dynamics.sentence_rhythm.prose_sentences >= 60);
+		assert.equal(typeof output.readings.fractal_variability.sentence_word_count.dfa_alpha_global, "string");
+		assert.equal(typeof output.readings.node_graph_path_amplitude.mean_step_relative_to_graph_radius, "string");
+		assert.equal(typeof output.readings.sentence_rhythm.coverage, "string");
 		assertDegreeDistribution(output.structure.degree_distribution, "structure.degree_distribution");
-		assert.ok(output.structure.degree_distribution.nodes > output.amplitude.words.n / 10, "counts the whole network");
-		assert.ok(["leans generated", "leans human", "inconclusive"].includes(output.ai_likeness.verdict));
-		assert.ok(output.ai_likeness.evidence.length >= 3);
+		assert.ok(["leaning AI", "leaning human", "mixed"].includes(output.ai_likeness.verdict));
+		assert.equal(typeof output.ai_likeness.verdict_explanation, "string");
+		assert.ok(output.ai_likeness.evidence.length >= 1);
 	});
 
-	liveAi("optimize_text_structure returns top-level diversity_stats and fractal_variability", async () => {
+	live("analyze_text_signature on a short note has no sentence series and says how many sentences there were", async () => {
+		const output = parseToolResult(await run(() => analyzeTextSignatureTool.handler({ text: SHORT_TEXT })));
+		assert.equal(output.network_dynamics.fractal_variability.sentence_word_count, null);
+		assert.ok(output.network_dynamics.fractal_variability.sentence_word_count_series_available < 64);
+		assert.equal(output.readings.fractal_variability.sentence_word_count.dfa_alpha_global, undefined, "no reading for an exponent that was not fitted");
+	});
+
+	liveAi("optimize_text_structure returns top-level diversity_stats and network_dynamics", async () => {
 		const output = parseToolResult(await run(() => optimizeTextStructureTool.handler({ text: SHORT_TEXT })));
 		assertDiversityStats(output.diversity_stats);
-		assertFractalVariability(output.fractal_variability);
+		assertNetworkDynamics(output.network_dynamics);
 	});
 
-	liveAi("optimize_reasoning returns top-level diversity_stats and fractal_variability", async () => {
+	liveAi("optimize_reasoning returns top-level diversity_stats and network_dynamics", async () => {
 		const output = parseToolResult(await run(() => optimizeReasoningTool.handler({ text: SHORT_TEXT })));
 		assertDiversityStats(output.diversity_stats);
-		assertFractalVariability(output.fractal_variability);
+		assertNetworkDynamics(output.network_dynamics);
 	});
 
-	liveAi("optimize_knowledge_base nests fractal_variability inside statistics", async () => {
+	liveAi("optimize_knowledge_base nests network_dynamics inside statistics", async () => {
 		const report = parseToolResult(await run(() => optimizeKnowledgeBaseTool.handler({ text: SHORT_TEXT, includeLatent: false })));
 		assert.ok(report.statistics, "report.statistics missing");
-		const { fractal_variability, ...diversity } = report.statistics;
+		const { network_dynamics, degree_distribution: _degrees, ...diversity } = report.statistics;
 		assertDiversityStats(diversity, "report.statistics");
-		assertFractalVariability(fractal_variability, { where: "report.statistics.fractal_variability" });
-	});
-
-	liveAi("generate_ontology_graph (not saved) returns statistics from the graph build", async () => {
-		const output = parseToolResult(
-			await run(() => generateOntologyGraphTool.handler({ prompt: "complex systems and networks", saveGraph: false, includeGraph: true, includeAnalytics: true, includeStatements: false, multifractal: true })),
-		);
-		assert.equal(output.saved, false);
-		assertStructuredStatistics(output.statistics, { spectrum: "any" });
-	});
-
-	liveAi("analyze_llm_results (not saved) returns statistics from the graph build", async () => {
-		const output = parseToolResult(
-			await run(() => analyzeLlmResultsTool.handler({ prompt: "What are complex systems?", saveGraph: false, includeGraph: true, includeAnalytics: true, includeStatements: false, multifractal: true })),
-		);
-		assert.equal(output.saved, false);
-		assertStructuredStatistics(output.statistics, { spectrum: "any" });
+		assertNetworkDynamics(network_dynamics, { where: "report.statistics.network_dynamics" });
 	});
 });

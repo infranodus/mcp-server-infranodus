@@ -43,7 +43,7 @@ InfraNodus MCP Server enables LLM workflows and AI assistants to analyze text us
 
 4. **analyze_text_signature**
    - Structural and rhythmic signature of a text, URL, or YouTube transcript
-   - Every measure with a plain-language reading, a named profile (essay, digest, anthology...), and a hedged AI-likeness estimate
+   - Every measure with a plain-language reading, a named text type (deep dive, refrain, chapters, sweep), and a hedged AI-likeness estimate
    - Use to compare writing styles, characterise an author or genre, or flag flat, uniformly paced text
 
 5. **generate_content_gaps**
@@ -670,7 +670,7 @@ Returns the structural and rhythmic signature of one text: how the discourse mov
 
 **Response:**
 
-- `signature`: a named profile from structure x movement (biased / focused / diversified / dispersed x close / steady / leaping), e.g. `essay`, `treatise`, `narrative`, `digest`, `anthology`, `notes`, with a one-line summary. Movement is the mean step of the node path through the graph, judged against the value expected for a text of that length (`expectedMeanStep`); it needs a path of at least 50 steps
+- `signature`: the text type the backend returns in `network_dynamics.text_type`, one of four names from two questions: does the text have a core (`has_core`, from `structure`) and does it stay where it goes (`stays_where_it_goes`, memory from the DFA exponents). Has a core and stays = deep dive; has a core and keeps moving = refrain; no single core and stays = chapters; no single core and keeps moving = sweep. Comes with `label_possible_values`, `structure_possible_values`, `basis` (memory or movement), `memory_score` and `confidence` (clear or borderline). The server does not compute it: a backend without `text_type` gives a null label.
 - `structure`: `modularity`, `diversity_stats` and their readings
 - `network_dynamics`: the numbers exactly as the API returns them, in three named groups — `fractal_variability` (DFA exponents `dfa_alpha_global`, `dfa_alpha1`, `dfa_alpha2` for the series `ngram4_graph_radial_distance`, `sentence_word_count` and `node_betweenness_rank`), `node_graph_path_amplitude` (plain statistics of the node path through the graph: mean step and mean radial distance relative to the graph radius, share of steps crossing a topic cluster, and in the full set step CV, lag-1 autocorrelation and cluster dwell CV) and `sentence_rhythm` (prose sentence count, mean words per sentence, share under 8 and over 30 words, skipped fragments, and in the full set the CV and lag-1 autocorrelation)
 - `readings`: one plain-language sentence per measure, keyed the same way as `network_dynamics`, with a confidence from the series length for each DFA series

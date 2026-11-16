@@ -7,13 +7,14 @@
  * rhythm of the source text.
  *
  * Every number gets a one-sentence plain-language reading, the readings are
- * combined into a named signature (structure x movement), and a final layer
+ * joined by a named signature (the backend's text type), and a final layer
  * weighs the rhythm evidence into a hedged AI-likeness estimate. The
  * thresholds are provisional: they come from the DFA literature and from the
  * backend's own reading table (infranodus-backend/docs/fractal-variability.md),
  * not from a labelled corpus. Everything is pure so it can be unit-tested.
  */
 import type {
+	TextType,
 	Amplitude,
 	AmplitudeStats,
 	DegreeDistribution,
@@ -400,90 +401,81 @@ export function readStructure(stats: DiversityStats | null | undefined): Record<
 }
 
 // ---------------------------------------------------------------------------
-// Composite signature: structure x movement
+// Signature: the backend's text type
 // ---------------------------------------------------------------------------
 
 type Structure = "biased" | "focused" | "diversified" | "dispersed";
 type Movement = "close" | "steady" | "leaping";
 
 /*
-  The signature names a kind of text from two things: how its topics are
-  distributed (the diversity score) and how far it travels between consecutive
-  ideas (the mean step of the node path through the graph).
+  The signature is the backend's diagnosis, network_dynamics.text_type: one of
+  four names from two yes-or-no questions.
 
-  The second axis used to be the DFA exponent of the word step series. That
-  series is no longer returned: the two halves of one text agreed on its band
-  no better than chance (60 of 109 against 58), so the label it produced was
-  close to arbitrary. The mean step is the most stable measure in
-  network_dynamics within a text.
+      Does the text have a core?    structure: biased or focused -> yes,
+                                    diversified or dispersed -> no.
+      Does it stay where it goes?   memory, from the DFA exponents that held
+                                    up once text length was controlled for.
 
-  It also rises with text length alone, so it is judged against what a text of
-  that length is expected to show. Reference curve and cut points come from
-  115 texts graphed at 150 nodes (paths of 51 to 1714 steps) in November 2026:
+                       stays (memory)    keeps moving (no memory)
+      has a core       deep dive         refrain
+      no single core   chapters          sweep
 
-      expected mean step = -0.0697 + 0.1353 * ln(steps)
-      close   more than 0.0276 below the expected value
-      leaping more than 0.0293 above it
-      steady  in between
+  It is computed in the backend (infranodus-backend docs/fractal-variability.md,
+  "Text type") so that this server and the graph interface name a text the
+  same way. Nothing here recomputes it: a backend that does not return it
+  gives a signature with no label.
 
-  which splits that corpus into thirds (38 / 39 / 38). Judged this way the two
-  halves of a text land in the same band for 61 of 115 texts, against 38 by
-  chance: well above chance, and far from perfect. It is a first calibration
-  from one author's writing plus two sets of AI-written text.
+  It replaced a grid of twelve names built from structure and the size of the
+  steps (close / steady / leaping). Step size was standing in for memory and
+  follows text length; the exponents now decide. The mean-step reference below
+  is still used to read the mean step itself against texts of the same length.
 */
 const MOVEMENT_REFERENCE = { intercept: -0.0697, slope: 0.1353, close: -0.0276, leaping: 0.0293, minSteps: 50 };
 
-const SIGNATURE_GRID: Record<Structure, Record<Movement, string>> = {
-	biased: { close: "deep dive", steady: "monologue", leaping: "back-and-forth" },
-	focused: { close: "treatise", steady: "essay", leaping: "comparison" },
-	diversified: { close: "anthology", steady: "narrative", leaping: "digest" },
-	dispersed: { close: "drift", steady: "stream of consciousness", leaping: "notes" },
-};
-
 const STRUCTURE_VALUES: Record<Structure, string> = {
-	biased: "One topical cluster or node dominates the network.",
-	focused: "A main topical cluster or node with a few supporting ones.",
-	diversified: "Several topical clusters of comparable weight.",
-	dispersed: "Many loosely connected fragments with no clear centre.",
+	biased: "One topical cluster or node dominates the network. Has a core.",
+	focused: "A main topical cluster or node with a few supporting ones. Has a core.",
+	diversified: "Several topical clusters of comparable weight. No single core.",
+	dispersed: "Many loosely connected fragments with no clear centre. No single core.",
 };
 
-const MOVEMENT_VALUES: Record<Movement, string> = {
-	close: "Consecutive ideas sit near each other in the network: a point is developed before moving on.",
-	steady: "Consecutive ideas are a typical distance apart for a network of this size.",
-	leaping: "Consecutive ideas are far apart in the network: the path jumps across its topical clusters.",
+const TEXT_TYPE_VALUES: Record<NonNullable<TextType["label"]>, string> = {
+	"deep dive":
+		"Has a core and stays where it goes: the text goes into its main topic, stays there for a while, comes back to the core and goes out again.",
+	refrain:
+		"Has a core and keeps moving: the text keeps returning to the same core at an even rate, without settling into any part of it.",
+	chapters: "No single core and stays where it goes: the text moves through several topics and stays in each for a while.",
+	sweep: "No single core and keeps moving: the text touches many topics at an even rate, never settling.",
 };
 
-const SIGNATURE_SUMMARIES: Record<string, string> = {
-	"deep dive": "one theme, developed by staying close to it",
-	monologue: "one theme, pursued at a steady pace",
-	"back-and-forth": "one theme, approached from distant angles in turn",
-	treatise: "a main topic worked through closely, one neighbouring point after another",
-	essay: "a main topic developed at a steady pace, moving out and back",
-	comparison: "a main topic examined by jumping between its facets",
-	anthology: "several topics, each developed in its own place",
-	narrative: "several topics connected by steady movement between them",
-	digest: "several topics visited in quick jumps: a thread or a compilation",
-	drift: "scattered fragments that move in small steps without a centre",
-	"stream of consciousness": "scattered fragments linked by steady movement",
-	notes: "scattered fragments with large jumps between them: a scratchpad",
+const BASIS_TEXTS: Record<NonNullable<TextType["basis"]>, string> = {
+	memory:
+		"Judged from the DFA exponents (ngram4_graph_radial_distance.dfa_alpha2, node_betweenness_rank.dfa_alpha1, sentence_word_count.dfa_alpha_global): whether the path, the core concepts and the sentence lengths come in lasting phases.",
+	movement:
+		"The text is too short for the DFA exponents, so this is judged from the size of its steps and is a weak reading.",
 };
 
 export interface Signature {
-	label: string | null;
+	/** the text type, as the backend named it; null when it gave none */
+	label: TextType["label"];
+	/** every value `label` can take, with what each means */
+	label_possible_values: Record<NonNullable<TextType["label"]>, string>;
+	summary: string | null;
+	/** does the text have a core: from `structure` */
+	has_core: boolean | null;
 	structure: Structure | null;
 	/** every value `structure` can take, with what each means */
 	structure_possible_values: Record<Structure, string>;
-	/** how far the text travels between consecutive ideas, judged against texts of its length */
-	movement: Movement | null;
-	/** every value `movement` can take, with what each means */
-	movement_possible_values: Record<Movement, string>;
-	/** every value `label` can take, as structure x movement */
-	label_possible_values: Record<Structure, Record<Movement, string>>;
-	/** the field the movement was read from */
-	movementSource: "network_dynamics.node_graph_path_amplitude.mean_step_relative_to_graph_radius" | null;
-	/** the mean step a text of this length is expected to show, for comparison with the measured one */
-	expectedMeanStep: number | null;
-	summary: string | null;
+	/** does the text stay where it goes: memory, from the DFA exponents */
+	stays_where_it_goes: boolean | null;
+	/** what the stays / keeps moving reading rests on */
+	basis: TextType["basis"];
+	basis_explanation: string | null;
+	/** mean distance of the exponents from their corpus medians, in standard deviations; above 0 = stays */
+	memory_score: number | null;
+	/** "borderline": close to the dividing line, the neighbouring type is nearly as likely */
+	confidence: TextType["confidence"];
+	note: string;
 }
 
 export function movementBand(
@@ -499,25 +491,21 @@ export function movementBand(
 	return { movement, expected: Number(expected.toFixed(3)) };
 }
 
-export function composeSignature(
-	diversity: DiversityStats | null | undefined,
-	fractal: FractalVariability | null | undefined,
-): Signature {
-	const score = diversity?.diversity_score?.toLowerCase();
-	const structure = (score && score in SIGNATURE_GRID ? score : null) as Structure | null;
-	const words = fractal?.amplitude?.words;
-	const { movement, expected } = movementBand(words?.meanStep, words?.n);
-	const label = structure && movement ? SIGNATURE_GRID[structure][movement] : null;
+export function composeSignature(textType: TextType | null | undefined): Signature {
+	const type = textType ?? null;
 	return {
-		label,
-		structure,
+		label: type?.label ?? null,
+		label_possible_values: TEXT_TYPE_VALUES,
+		summary: type?.description ?? (type?.label ? TEXT_TYPE_VALUES[type.label] : null),
+		has_core: type?.has_core ?? null,
+		structure: type?.structure ?? null,
 		structure_possible_values: STRUCTURE_VALUES,
-		movement,
-		movement_possible_values: MOVEMENT_VALUES,
-		label_possible_values: SIGNATURE_GRID,
-		movementSource: movement ? "network_dynamics.node_graph_path_amplitude.mean_step_relative_to_graph_radius" : null,
-		expectedMeanStep: expected,
-		summary: label ? SIGNATURE_SUMMARIES[label] : null,
+		stays_where_it_goes: type?.stays_where_it_goes ?? null,
+		basis: type?.basis ?? null,
+		basis_explanation: type?.basis ? BASIS_TEXTS[type.basis] : null,
+		memory_score: type?.memory_score ?? null,
+		confidence: type?.confidence ?? null,
+		note: "The text type describes how a text moves through its own graph. Human-written text tends towards the types that stay where they go (deep dive, chapters) and AI-generated text towards sweep, but these are tendencies of moderate strength: never present the type as evidence of who wrote a text.",
 	};
 }
 
@@ -1077,15 +1065,24 @@ function withExperimentalReadings(
 const pickFields = <T extends object>(object: T | null | undefined, keys: string[]): T | null =>
 	object ? (Object.fromEntries(keys.filter((k) => k in object).map((k) => [k, (object as any)[k]])) as T) : null;
 
+// A series' default fields, plus its multifractal spectrum when one was
+// computed: the spectrum is asked for with its own parameter, so it is shown
+// whenever it is there, in the default view too.
+const pickSeries = (block: DfaSeriesBlock | null | undefined, keys: string[]): DfaSeriesBlock | null => {
+	const picked = pickFields(block, keys);
+	if (picked && block?.multifractal) (picked as any).multifractal = block.multifractal;
+	return picked;
+};
+
 export function toDefaultFields(dynamics: NetworkDynamics | null): NetworkDynamics | null {
 	if (!dynamics) return null;
 	const fv = dynamics.fractal_variability;
 	return {
 		fractal_variability: {
-			ngram4_graph_radial_distance: pickFields(fv?.ngram4_graph_radial_distance, ["series_length", "dfa_alpha_global", "dfa_alpha2"]),
-			sentence_word_count: pickFields(fv?.sentence_word_count, ["series_length", "dfa_alpha_global", "dfa_alpha1"]),
+			ngram4_graph_radial_distance: pickSeries(fv?.ngram4_graph_radial_distance, ["series_length", "dfa_alpha_global", "dfa_alpha2"]),
+			sentence_word_count: pickSeries(fv?.sentence_word_count, ["series_length", "dfa_alpha_global", "dfa_alpha1"]),
 			sentence_word_count_series_available: fv?.sentence_word_count_series_available ?? 0,
-			node_betweenness_rank: pickFields(fv?.node_betweenness_rank, ["series_length", "dfa_alpha1"]),
+			node_betweenness_rank: pickSeries(fv?.node_betweenness_rank, ["series_length", "dfa_alpha1"]),
 		},
 		node_graph_path_amplitude: pickFields(dynamics.node_graph_path_amplitude, [
 			"steps",
@@ -1145,7 +1142,7 @@ export function buildTextSignature(input: {
 	const sentence = summariseSentenceScaling(fractal);
 	const influence = readInfluence(fractal);
 	return {
-		signature: composeSignature(diversity, full),
+		signature: composeSignature(everything?.text_type),
 		structure: {
 			modularity: input.modularity ?? null,
 			diversity_stats: diversity,

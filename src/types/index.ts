@@ -140,7 +140,28 @@ export interface DfaSeriesBlock {
  *
  * Fields marked optional are returned only with fractalExperimental=true.
  */
+/**
+ * The backend's diagnosis of how a text moves through its graph: one of four
+ * names from two questions, whether the text has a core (structure) and
+ * whether it stays where it goes (memory, from the DFA exponents). Computed by
+ * the backend so every client shows the same name; never recomputed here.
+ */
+export interface TextType {
+	label: "deep dive" | "refrain" | "chapters" | "sweep" | null;
+	description: string | null;
+	has_core: boolean | null;
+	structure: "biased" | "focused" | "diversified" | "dispersed" | null;
+	stays_where_it_goes: boolean | null;
+	/** "memory": judged from the DFA exponents; "movement": too short for them, judged from step size */
+	basis: "memory" | "movement" | null;
+	/** mean distance of the exponents from their corpus medians, in standard deviations; above 0 = stays */
+	memory_score: number | null;
+	confidence: "clear" | "borderline" | null;
+}
+
 export interface NetworkDynamics {
+	/** absent from a backend that does not compute it yet */
+	text_type?: TextType | null;
 	fractal_variability: {
 		/** distance from the path centroid, on 4-node windows of the node path */
 		ngram4_graph_radial_distance: DfaSeriesBlock | null;
