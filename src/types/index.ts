@@ -172,9 +172,15 @@ export interface SentenceRhythm {
 }
 
 export interface FractalVariability {
-	statements: FractalSeries;
 	words: FractalSeries;
 	ngrams?: FractalSeries;
+	/**
+	 * The statement level was analysed and is gone: it needed 64 statements and
+	 * had them for 14 of 78 human texts, its step exponent flipped direction
+	 * between AI groups, and the n-gram level beat it on the same texts.
+	 * Optional so an older backend's response still parses.
+	 */
+	statements?: FractalSeries;
 	/**
 	 * Amplitude and sentence rhythm, computed by the backend alongside the
 	 * exponents. This server used to rebuild the paths and compute these

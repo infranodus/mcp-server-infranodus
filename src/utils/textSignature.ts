@@ -665,7 +665,6 @@ export interface TextSignatureOutput {
 	rhythm: {
 		fractal_variability: FractalVariability | null;
 		readings: {
-			statements: LevelReadings | null;
 			words: LevelReadings | null;
 			ngrams: LevelReadings | null;
 			/** the influence level, read on the betweenness-rank series; null under 64 words or on older backends */
@@ -726,7 +725,6 @@ export function buildTextSignature(input: {
 		rhythm: {
 			fractal_variability: fractal,
 			readings: {
-				statements: readLevel(fractal?.statements),
 				words: readLevel(fractal?.words),
 				ngrams: readLevel(fractal?.ngrams),
 				influence: readInfluence(fractal),
