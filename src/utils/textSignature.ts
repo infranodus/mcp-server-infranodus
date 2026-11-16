@@ -286,14 +286,6 @@ export function readAmplitude(stats: AmplitudeStats | null): Record<string, stri
 					? "The moves between ideas vary in size; the pacing is varied."
 					: "Mostly small moves with a few big leaps; the pacing is uneven.";
 	}
-	if (stats.rmssdStep != null) {
-		out.rmssdStep =
-			stats.rmssdStep < 0.3
-				? "Each move is about the size of the one before it; the text changes gear gradually."
-				: stats.rmssdStep <= 1.0
-					? "The size of a move differs noticeably from the one before it."
-					: "Move sizes swing sharply from one step to the next: the text alternates between close ideas and distant ones.";
-	}
 	if (stats.lag1Autocorrelation != null) {
 		out.lag1Autocorrelation =
 			stats.lag1Autocorrelation > 0.15
@@ -681,7 +673,7 @@ export interface TextSignatureOutput {
 		};
 	};
 	amplitude: Amplitude & {
-		readings: { statements: Record<string, string | null> | null; words: Record<string, string | null> | null };
+		readings: { words: Record<string, string | null> | null };
 	};
 	sentence_rhythm: SentenceRhythm & {
 		readings: Record<string, string | null>;
@@ -711,11 +703,7 @@ export function buildTextSignature(input: {
 	const degreeDistribution = input.degreeDistribution ? trimDegreeDistribution(input.degreeDistribution) : null;
 	// Both blocks arrive inside fractal_variability; this server no longer
 	// rebuilds the path to compute them.
-	const amplitude: Amplitude = fractal?.amplitude ?? {
-		graphRadius: null,
-		statements: null,
-		words: null,
-	};
+	const amplitude: Amplitude = fractal?.amplitude ?? { graphRadius: null, words: null };
 	const sentenceRhythm: SentenceRhythm = fractal?.sentenceRhythm ?? {
 		sentences: 0,
 		skippedFragments: 0,
@@ -724,7 +712,7 @@ export function buildTextSignature(input: {
 		lag1Autocorrelation: null,
 		shortShare: null,
 		longShare: null,
-		statements: { n: 0, meanLength: null, cvLength: null },
+		statements: 0,
 	};
 	return {
 		signature: composeSignature(diversity, fractal),
@@ -746,7 +734,7 @@ export function buildTextSignature(input: {
 		},
 		amplitude: {
 			...amplitude,
-			readings: { statements: readAmplitude(amplitude.statements), words: readAmplitude(amplitude.words) },
+			readings: { words: readAmplitude(amplitude.words) },
 		},
 		sentence_rhythm: {
 			...sentenceRhythm,

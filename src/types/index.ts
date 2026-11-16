@@ -124,18 +124,8 @@ export interface AmplitudeStats {
 	n: number;
 	/** mean step length in graph radii */
 	meanStep: number | null;
-	medianStep: number | null;
-	p95Step: number | null;
 	/** coefficient of variation of the step length: burstiness of the movement */
 	cvStep: number | null;
-	/**
-	 * Root mean square of SUCCESSIVE differences in step length, over the mean:
-	 * the RMSSD of HRV, applied to the step series. cvStep spreads every value
-	 * against the overall mean; this compares each value only with its
-	 * neighbour, so it sees alternation that cvStep and the lag-1
-	 * autocorrelation both miss.
-	 */
-	rmssdStep: number | null;
 	/** lag-1 autocorrelation of the step length: do big moves follow big moves? */
 	lag1Autocorrelation: number | null;
 	/** share of steps landing in a different cluster; null when too few steps have a community at both ends */
@@ -150,8 +140,15 @@ export interface AmplitudeStats {
 export interface Amplitude {
 	/** RMS node distance from the node centroid: the unit the fields above are in */
 	graphRadius: number | null;
-	statements: AmplitudeStats | null;
+	/**
+	 * Word level only. medianStep, p95Step, rmssdStep and the whole
+	 * statement-level block were measured against a 115-text corpus and
+	 * removed: the first three duplicate meanStep and cvStep (r >= 0.87) and
+	 * the statement block lost a head-to-head with this one on every
+	 * comparable field.
+	 */
 	words: AmplitudeStats | null;
+	statements?: AmplitudeStats | null;
 }
 
 /**
@@ -170,7 +167,8 @@ export interface SentenceRhythm {
 	shortShare: number | null;
 	/** share of sentences over 30 words */
 	longShare: number | null;
-	statements: { n: number; meanLength: number | null; cvLength: number | null };
+	/** how many prose-like statements the sentences were taken from */
+	statements: number;
 }
 
 export interface FractalVariability {
