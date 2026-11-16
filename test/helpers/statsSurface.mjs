@@ -1,5 +1,5 @@
 // Shared checks for the "network statistics" surface of a tool response:
-// the diversity_stats object and the fractal_variability object that the
+// the diversity_stats object and the network_dynamics object that the
 // backend attaches to the graph attributes when addStats=true, and that the
 // server forwards next to each other (see utils/transformers.ts).
 //
@@ -19,21 +19,12 @@ export const DIVERSITY_KEYS = [
 	"fair_influence_by_cluster",
 ];
 
-export const FRACTAL_SERIES = ["statements", "words", "ngrams"];
-// Older backends omit the ngrams level; the tests keep a fixture without it.
-export const OPTIONAL_FRACTAL_SERIES = ["ngrams"];
-export const FRACTAL_MEASURES = ["byStepLength", "byRadialDistance"];
-// The fourth level is not a path: one measure, byWords (words per sentence,
-// in order), null under 64 sentences. Older backends omit it.
-export const SENTENCE_LEVEL = "sentenceLength";
-export const SENTENCE_MEASURE = "byWords";
-// The influence level is not a path either: three series over the word path
-// (node betweenness, node degree, betweenness rank in [0, 1]); the rank series
-// is the one to read and the only one that can carry a spectrum. Older
-// backends omit the level.
-export const INFLUENCE_LEVEL = "influence";
-export const INFLUENCE_MEASURES = ["byBetweenness", "byDegree", "byBetweennessRank"];
-export const INFLUENCE_SPECTRUM_MEASURE = "byBetweennessRank";
+// The three DFA series of network_dynamics.fractal_variability. Each is null
+// when the text is too short for a fit (64 points; 64 sentences for the
+// sentence series).
+export const DYNAMICS_SERIES = ["ngram4_graph_radial_distance", "sentence_word_count", "node_betweenness_rank"];
+// The text type the backend names (network_dynamics.text_type).
+export const TEXT_TYPE_LABELS = ["deep dive", "refrain", "chapters", "sweep"];
 
 export function assertDiversityStats(stats, where = "diversity_stats") {
 	assert.ok(stats && typeof stats === "object", `${where} is missing`);
@@ -73,79 +64,74 @@ function assertMultifractal(spectrum, where) {
 	}
 }
 
-function assertScaling(scaling, where, spectrum) {
-	assert.equal(typeof scaling.n, "number", `${where}.n`);
-	assert.equal(typeof scaling.alphaBounded, "number", `${where}.alphaBounded`);
-	assert.equal(typeof scaling.alphaLabel, "string", `${where}.alphaLabel`);
-	assertNumberOrNull(scaling.alpha1, `${where}.alpha1`);
-	assertNumberOrNull(scaling.alpha2, `${where}.alpha2`);
-	assert.ok("multifractal" in scaling, `${where}.multifractal key is missing`);
+function assertSeriesBlock(block, where, spectrum) {
+	assert.equal(typeof block.series_length, "number", `${where}.series_length`);
+	for (const key of ["dfa_alpha_global", "dfa_alpha1", "dfa_alpha2"]) {
+		if (key in block) assertNumberOrNull(block[key], `${where}.${key}`);
+	}
 	if (spectrum === "null") {
-		assert.equal(scaling.multifractal, null, `${where}.multifractal should be null`);
-	} else if (scaling.multifractal !== null) {
-		assertMultifractal(scaling.multifractal, `${where}.multifractal`);
+		assert.ok(block.multifractal == null, `${where}.multifractal should be absent or null`);
+	} else if (block.multifractal != null) {
+		assertMultifractal(block.multifractal, `${where}.multifractal`);
 	}
 }
 
 /**
- * Check the fractal_variability object.
- *   spectrum: "null"     — every multifractal must be null (flag off / short input)
- *             "required" — at least one series must carry a computed spectrum
- *             "any"      — null or a well-formed spectrum, either is fine
- *   ngrams:   "required" — the ngrams level must be present (default)
- *             "optional" — may be absent (response from an older backend)
- * Each measure may be null (series too short); when present it must be a
- * complete scaling record.
+ * Check the network_dynamics object.
+ *   spectrum: "null"     - no series carries a multifractal spectrum (flag off / short input)
+ *             "required" - at least one series must carry a computed spectrum
+ *             "any"      - absent, null or a well-formed spectrum, all fine
+ *   textType: "optional" - text_type may be absent (an older backend) (default)
+ *             "required" - text_type must be there
+ * A series may be null (too short); when present it must be a complete block.
  */
-export function assertFractalVariability(
-	fractal,
-	{ spectrum = "any", ngrams = "required", sentenceLength = "optional", influence = "optional", where = "fractal_variability" } = {},
-) {
-	assert.ok(fractal && typeof fractal === "object", `${where} is missing`);
-	let computedSpectra = 0;
+export function assertNetworkDynamics(dynamics, { spectrum = "any", textType = "optional", where = "network_dynamics" } = {}) {
+	assert.ok(dynamics && typeof dynamics === "object", `${where} is missing`);
+	const fv = dynamics.fractal_variability;
+	assert.ok(fv && typeof fv === "object", `${where}.fractal_variability is missing`);
 	let computedSeries = 0;
-	if (influence === "required" || INFLUENCE_LEVEL in fractal) {
-		const level = fractal[INFLUENCE_LEVEL];
-		assert.ok(level && typeof level === "object", `${where}.${INFLUENCE_LEVEL}`);
-		for (const measure of INFLUENCE_MEASURES) {
-			const path = `${where}.${INFLUENCE_LEVEL}.${measure}`;
-			assert.ok(measure in level, `${path} key is missing`);
-			if (level[measure] === null) continue;
-			computedSeries += 1;
-			assertScaling(level[measure], path, spectrum);
-			if (measure !== INFLUENCE_SPECTRUM_MEASURE) {
-				assert.equal(level[measure].multifractal, null, `${path}.multifractal: only the rank series carries a spectrum`);
-			} else if (level[measure].multifractal) {
-				computedSpectra += 1;
-			}
+	let computedSpectra = 0;
+	for (const series of DYNAMICS_SERIES) {
+		const path = `${where}.fractal_variability.${series}`;
+		assert.ok(series in fv, `${path} key is missing`);
+		if (fv[series] === null) continue;
+		computedSeries += 1;
+		assertSeriesBlock(fv[series], path, spectrum);
+		if (fv[series].multifractal) computedSpectra += 1;
+	}
+	assert.equal(typeof fv.sentence_word_count_series_available, "number", `${where}.fractal_variability.sentence_word_count_series_available`);
+
+	assert.ok("node_graph_path_amplitude" in dynamics, `${where}.node_graph_path_amplitude key is missing`);
+	const amp = dynamics.node_graph_path_amplitude;
+	if (amp !== null) {
+		assert.equal(typeof amp.steps, "number", `${where}.node_graph_path_amplitude.steps`);
+		for (const key of ["mean_step_relative_to_graph_radius", "cross_cluster_step_share", "mean_radial_distance_relative_to_graph_radius", "radial_distance_cv"]) {
+			assert.ok(key in amp, `${where}.node_graph_path_amplitude.${key} key is missing`);
+			assertNumberOrNull(amp[key], `${where}.node_graph_path_amplitude.${key}`);
 		}
 	}
-	// sentenceLength does not fit the series x measures iteration below.
-	if (sentenceLength === "required" || SENTENCE_LEVEL in fractal) {
-		const level = fractal[SENTENCE_LEVEL];
-		const path = `${where}.${SENTENCE_LEVEL}.${SENTENCE_MEASURE}`;
-		assert.ok(level && typeof level === "object", `${where}.${SENTENCE_LEVEL}`);
-		assert.ok(SENTENCE_MEASURE in level, `${path} key is missing`);
-		assert.ok(!("byStepLength" in level) && !("byRadialDistance" in level), `${where}.${SENTENCE_LEVEL} is not a path level`);
-		if (level[SENTENCE_MEASURE] !== null) {
-			computedSeries += 1;
-			assertScaling(level[SENTENCE_MEASURE], path, spectrum);
-			if (level[SENTENCE_MEASURE].multifractal) computedSpectra += 1;
+
+	const rhythm = dynamics.sentence_rhythm;
+	assert.ok(rhythm && typeof rhythm === "object", `${where}.sentence_rhythm is missing`);
+	assert.equal(typeof rhythm.prose_sentences, "number", `${where}.sentence_rhythm.prose_sentences`);
+	assert.equal(typeof rhythm.skipped_fragments_under_12_words, "number", `${where}.sentence_rhythm.skipped_fragments_under_12_words`);
+	for (const key of ["mean_words_per_sentence", "share_under_8_words", "share_over_30_words"]) {
+		assertNumberOrNull(rhythm[key], `${where}.sentence_rhythm.${key}`);
+	}
+
+	if (textType === "required" || dynamics.text_type != null) {
+		const type = dynamics.text_type;
+		assert.ok(type && typeof type === "object", `${where}.text_type is missing`);
+		assert.ok(type.label === null || TEXT_TYPE_LABELS.includes(type.label), `${where}.text_type.label: ${type.label}`);
+		if (type.label !== null) {
+			assert.equal(typeof type.description, "string", `${where}.text_type.description`);
+			assert.equal(typeof type.has_core, "boolean", `${where}.text_type.has_core`);
+			assert.equal(typeof type.stays_where_it_goes, "boolean", `${where}.text_type.stays_where_it_goes`);
+			assert.ok(["memory", "movement"].includes(type.basis), `${where}.text_type.basis`);
+			assert.ok(["clear", "borderline"].includes(type.confidence), `${where}.text_type.confidence`);
 		}
 	}
-	for (const series of FRACTAL_SERIES) {
-		if (ngrams === "optional" && OPTIONAL_FRACTAL_SERIES.includes(series) && !(series in fractal)) continue;
-		assert.ok(fractal[series] && typeof fractal[series] === "object", `${where}.${series}`);
-		for (const measure of FRACTAL_MEASURES) {
-			const path = `${where}.${series}.${measure}`;
-			assert.ok(measure in fractal[series], `${path} key is missing`);
-			const scaling = fractal[series][measure];
-			if (scaling === null) continue;
-			computedSeries += 1;
-			assertScaling(scaling, path, spectrum);
-			if (scaling.multifractal) computedSpectra += 1;
-		}
-	}
+
 	if (spectrum === "required") {
 		assert.ok(computedSpectra > 0, `${where}: no series carries a multifractal spectrum`);
 	}
@@ -163,9 +149,10 @@ export function assertStructuredStatistics(statistics, options = {}) {
 	if (options.degreeDistribution === "required" || "degree_distribution" in statistics) {
 		assertDegreeDistribution(statistics.degree_distribution, "statistics.degree_distribution");
 	}
-	return assertFractalVariability(statistics.fractal_variability, {
-		...options,
-		where: "statistics.fractal_variability",
+	const { degreeDistribution: _degreeDistribution, ...dynamicsOptions } = options;
+	return assertNetworkDynamics(statistics.network_dynamics, {
+		...dynamicsOptions,
+		where: "statistics.network_dynamics",
 	});
 }
 
@@ -223,91 +210,69 @@ export function parseToolResult(result) {
 }
 
 /**
- * A fractal_variability fixture in the shape the backend returns. The values
- * follow the sample in the backend's docs/fractal-variability-response.md.
- *   withSpectrum: the word and ngram levels carry a multifractal spectrum
- *   ngrams: "present" (default), "null" (short text: both measures null), or
- *           "absent" (response from an older backend without the level)
+ * A network_dynamics fixture in the shape the backend returns by default.
+ * The values come from a real 2300-word text.
+ *   withSpectrum: every measured series carries a multifractal spectrum, as
+ *                 under multifractal=true
+ *   sentences: "present" (default) or "null" (under 64 sentences: no series)
+ *   textType: "present" (default) or "absent" (an older backend)
  */
-export function fractalFixture({ withSpectrum = true, ngrams = "present", sentenceLength = "present", influence = "present" } = {}) {
+export function networkDynamicsFixture({ withSpectrum = false, sentences = "present", textType = "present" } = {}) {
 	const q = [-3, -2, -1, 0, 1, 2, 3];
 	const spectrum = withSpectrum
 		? {
-				label: "multifractal",
-				source: "correlations",
-				significant: true,
-				z: 3.27,
-				p: 0.09,
-				width: 1.18,
-				q,
-				hq: [1.66, 1.53, 1.41, 0.56, 0.53, 0.51, 0.5],
-				hCurveSlope: -0.16,
-				hCurveCurvature: 0.02,
-				hCurveNonlinearity: 0.21,
-				hMinLocation: 5,
+				multifractal: {
+					label: "weak",
+					source: "correlations",
+					significant: true,
+					z: 3.27,
+					p: 0.09,
+					width: 0.18,
+					q,
+					hq: [0.81, 0.78, 0.75, 0.72, 0.69, 0.66, 0.63],
+					hCurveSlope: -0.03,
+					hCurveCurvature: 0.01,
+					hCurveNonlinearity: 0.01,
+					hMinLocation: 3,
+				},
 			}
-		: null;
-	const scaling = (n, alpha, label, multifractal) => ({
-		n,
-		alphaBounded: alpha,
-		alphaLabel: label,
-		alpha1: alpha - 0.02,
-		alpha1Label: label,
-		alpha2: alpha + 0.02,
-		alpha2Label: label,
-		multifractal,
-	});
+		: {};
 	return {
-		statements: {
-			byStepLength: scaling(149, 0.557, "regular", null),
-			byRadialDistance: scaling(150, 1.594, "complex", null),
+		...(textType === "present"
+			? {
+					text_type: {
+						label: "refrain",
+						description:
+							"Has a core and keeps moving: the text keeps returning to the same core at an even rate, without settling into any part of it.",
+						has_core: true,
+						structure: "focused",
+						stays_where_it_goes: false,
+						basis: "memory",
+						memory_score: -0.27,
+						confidence: "clear",
+					},
+				}
+			: {}),
+		fractal_variability: {
+			ngram4_graph_radial_distance: { series_length: 1059, dfa_alpha_global: 0.714, dfa_alpha2: 0.593, ...spectrum },
+			sentence_word_count: sentences === "present" ? { series_length: 191, dfa_alpha_global: 0.745, dfa_alpha1: 0.653, ...spectrum } : null,
+			sentence_word_count_series_available: sentences === "present" ? 191 : 14,
+			node_betweenness_rank: { series_length: 1062, dfa_alpha1: 0.556, ...spectrum },
 		},
-		words: {
-			byStepLength: scaling(899, 0.476, "random", spectrum),
-			byRadialDistance: scaling(900, 1.506, "complex", spectrum),
+		node_graph_path_amplitude: {
+			steps: 1061,
+			mean_step_relative_to_graph_radius: 0.826,
+			cross_cluster_step_share: 0.359,
+			mean_radial_distance_relative_to_graph_radius: 0.911,
+			radial_distance_cv: 0.251,
 		},
-		...(ngrams === "present"
-			? {
-					ngrams: {
-						byStepLength: scaling(896, 0.643, "regular", spectrum),
-						byRadialDistance: scaling(897, 1.571, "complex", spectrum),
-					},
-				}
-			: ngrams === "null"
-				? { ngrams: { byStepLength: null, byRadialDistance: null } }
-				: {}),
-		// Sample numbers from the backend's docs/fractal-variability-response.md.
-		...(sentenceLength === "present"
-			? {
-					sentenceLength: {
-						byWords: {
-							n: 450,
-							alphaBounded: 0.561,
-							alphaLabel: "regular",
-							alpha1: 0.682,
-							alpha1Label: "regular",
-							alpha2: 0.53,
-							alpha2Label: "random",
-							multifractal: spectrum,
-						},
-					},
-				}
-			: sentenceLength === "null"
-				? { sentenceLength: { byWords: null } }
-				: {}),
-		// Sample numbers from docs/fractal-variability-response.md; the spectrum
-		// only on the rank series.
-		...(influence === "present"
-			? {
-					influence: {
-						byBetweenness: scaling(900, 0.538, "random", null),
-						byDegree: scaling(900, 0.51, "random", null),
-						byBetweennessRank: scaling(900, 0.557, "regular", spectrum),
-					},
-				}
-			: influence === "null"
-				? { influence: { byBetweenness: null, byDegree: null, byBetweennessRank: null } }
-				: {}),
+		sentence_rhythm: {
+			prose_sentences: sentences === "present" ? 112 : 9,
+			skipped_fragments_under_12_words: 53,
+			mean_words_per_sentence: 18.3,
+			share_under_8_words: 0.152,
+			share_over_30_words: 0.143,
+		},
 	};
 }
 

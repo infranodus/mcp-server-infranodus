@@ -1,331 +1,472 @@
-// Offline tests for analyze_text_signature: the pure signature builder
-// (amplitude of the path through the graph, sentence rhythm, readings,
-// composite label, AI-likeness) and the tool handler with an intercepted
-// fetch (request flags, response shape). No network. Part of `npm test`.
+// Offline tests for analyze_text_signature. The backend computes every
+// measure and the text type (network_dynamics); this server maps the public
+// names to its reading shape, writes one sentence per measure, passes the
+// backend's text type through as the signature, weighs a hedged AI-likeness
+// estimate, and decides which fields are shown. The tool handler is tested
+// with an intercepted fetch (request flags, response shape). No network.
+// Part of `npm test`.
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { runWithConfig } from "../dist/api/config-store.js";
 import { analyzeTextSignatureTool } from "../dist/tools/analyzeTextSignature.js";
 import {
 	buildTextSignature,
-	computeAmplitude,
-	computeSentenceRhythm,
 	composeSignature,
-	estimateAiLikeness,
-	rhythmBand,
-	readStepAlpha,
-	readScales,
-	readMultifractal,
 	confidenceFor,
-	splitSentences,
-	readSentenceAlpha,
-	summariseSentenceScaling,
-	readInfluence,
+	estimateAiLikeness,
+	interpretNetworkDynamics,
+	movementBand,
 	readDegreeDistribution,
-	PROSE_MIN_WORDS,
+	readStructure,
+	toDefaultFields,
+	toReadingShape,
 } from "../dist/utils/textSignature.js";
-import { fractalFixture, diversityFixture, degreeDistributionFixture, parseToolResult } from "./helpers/statsSurface.mjs";
+import { diversityFixture, degreeDistributionFixture, parseToolResult } from "./helpers/statsSurface.mjs";
 
 const CONFIG = { apiBase: "https://api.test/api/v1", apiKey: "test-key" };
 
 // ---------------------------------------------------------------------------
-// Fixtures: a small graph with two clusters far apart, and statements that
-// walk through it
+// Fixtures: network_dynamics as the backend returns it with
+// fractalExperimental=true (every field), taken from a real 2300-word text
 // ---------------------------------------------------------------------------
 
-// Cluster 0 around the origin, cluster 1 far along x.
-const NODES = [
-	{ key: "a", attributes: { x: 0, y: 0, z: 0, community: 0 } },
-	{ key: "b", attributes: { x: 1, y: 0, z: 0, community: 0 } },
-	{ key: "c", attributes: { x: 0, y: 1, z: 0, community: 0 } },
-	{ key: "d", attributes: { x: 100, y: 0, z: 0, community: 1 } },
-	{ key: "e", attributes: { x: 101, y: 0, z: 0, community: 1 } },
-	{ key: "f", attributes: { x: 100, y: 1, z: 0, community: 1 } },
-	{ key: "nopos", attributes: { community: 1 } },
-];
+const REFRAIN = {
+	label: "refrain",
+	description:
+		"Has a core and keeps moving: the text keeps returning to the same core at an even rate, without settling into any part of it.",
+	has_core: true,
+	structure: "focused",
+	stays_where_it_goes: false,
+	basis: "memory",
+	memory_score: -0.27,
+	confidence: "clear",
+};
 
-const prose = (n) => Array.from({ length: n }, (_, i) => `word${i}`).join(" ") + ".";
+const series = (n, global, a1, a2) => ({
+	series_length: n,
+	dfa_alpha_global: global,
+	dfa_alpha_global_label: "regular",
+	dfa_alpha1: a1,
+	dfa_alpha1_label: "regular",
+	dfa_alpha2: a2,
+	dfa_alpha2_label: "regular",
+	multifractal: null,
+});
 
-function statement(id, hashtags, community, coords, content) {
+function networkDynamicsFixture(overrides = {}) {
 	return {
-		sortId: id,
-		content,
-		statementHashtags: hashtags,
-		topStatementCommunity: String(community),
-		graphCoordinates: coords,
+		text_type: REFRAIN,
+		fractal_variability: {
+			ngram4_graph_radial_distance: series(1059, 0.714, 1.181, 0.593),
+			sentence_word_count: series(191, 0.745, 0.653, 0.9),
+			sentence_word_count_series_available: 191,
+			node_betweenness_rank: series(1062, 0.554, 0.556, 0.563),
+		},
+		node_graph_path_amplitude: {
+			graph_radius_rms: 113.731,
+			steps: 1061,
+			mean_step_relative_to_graph_radius: 0.826,
+			step_cv: 0.606,
+			step_lag1_autocorrelation: 0.201,
+			cross_cluster_step_share: 0.359,
+			cluster_dwell_cv: 1.116,
+			mean_radial_distance_relative_to_graph_radius: 0.911,
+			radial_distance_cv: 0.251,
+		},
+		sentence_rhythm: {
+			prose_sentences: 112,
+			prose_statements: 54,
+			skipped_fragments_under_12_words: 53,
+			mean_words_per_sentence: 18.3,
+			words_per_sentence_cv: 0.576,
+			words_per_sentence_lag1_autocorrelation: -0.104,
+			share_under_8_words: 0.152,
+			share_over_30_words: 0.143,
+		},
+		...overrides,
 	};
 }
 
-/** Statements that stay in cluster 0 then jump to cluster 1: two blocks. */
-const BLOCK_STATEMENTS = [
-	statement(1, ["a", "b", "c", "a"], 0, { x: 0.3, y: 0.3, z: 0 }, "Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu. Short one here. Then a much longer sentence follows with many more words in it than the others had."),
-	statement(2, ["#b", "c", "a", "b"], 0, { x: 0.4, y: 0.4, z: 0 }, prose(14)),
-	statement(3, ["d", "e", "f", "d"], 1, { x: 100.3, y: 0.3, z: 0 }, prose(20) + " " + prose(5)),
-	statement(4, ["e", "f", "nopos", "unknown"], 1, { x: 100.4, y: 0.4, z: 0 }, prose(30)),
-	statement(5, ["Heading"], 0, null, "Just a heading"),
-];
+// ---------------------------------------------------------------------------
+// Public names -> the internal reading shape, and the default field set
+// ---------------------------------------------------------------------------
 
-describe("computeAmplitude", () => {
-	test("rebuilds the word and statement paths and measures them in graph-radius units", () => {
-		const amp = computeAmplitude(NODES, BLOCK_STATEMENTS);
-		assert.ok(amp.graphRadius > 0);
-		// Word path: 4 + 4 + 4 + 2 positioned words (nopos and unknown dropped) = 14 points, 13 steps.
-		assert.equal(amp.words.n, 13);
-		// Statement path: 4 positioned statements (the heading has no coordinates), 3 steps.
-		assert.equal(amp.statements.n, 3);
-		// Exactly one word step crosses the clusters (c -> d), out of 13.
-		assert.equal(amp.words.crossClusterShare, Number((1 / 13).toFixed(3)));
-		// One statement step crosses (2 -> 3) out of 3.
-		assert.equal(amp.statements.crossClusterShare, Number((1 / 3).toFixed(3)));
-		// The jump dominates: p95 far above the median, high CV.
-		assert.ok(amp.words.p95Step > amp.words.medianStep * 5);
-		assert.ok(amp.words.cvStep > 1);
-		// Too few crossings for a run CV.
-		assert.equal(amp.words.crossClusterRunCV, null);
+describe("toReadingShape", () => {
+	test("maps the API's public names to the shape the readers use", () => {
+		const shape = toReadingShape(networkDynamicsFixture());
+		assert.deepEqual(shape.ngrams.byRadialDistance, {
+			n: 1059,
+			alphaBounded: 0.714,
+			alphaLabel: "regular",
+			alpha1: 1.181,
+			alpha1Label: "regular",
+			alpha2: 0.593,
+			alpha2Label: "regular",
+			multifractal: null,
+		});
+		assert.equal(shape.sentenceLength.sentences, 191);
+		assert.equal(shape.sentenceLength.byWords.alphaBounded, 0.745);
+		assert.equal(shape.influence.byBetweennessRank.alpha1, 0.556);
+		assert.deepEqual(shape.amplitude, {
+			graphRadius: 113.731,
+			words: {
+				n: 1061,
+				meanStep: 0.826,
+				cvStep: 0.606,
+				lag1Autocorrelation: 0.201,
+				crossClusterShare: 0.359,
+				crossClusterRunCV: 1.116,
+				meanRadial: 0.911,
+				cvRadial: 0.251,
+			},
+		});
+		assert.deepEqual(shape.sentenceRhythm, {
+			sentences: 112,
+			skippedFragments: 53,
+			meanLength: 18.3,
+			cvLength: 0.576,
+			lag1Autocorrelation: -0.104,
+			shortShare: 0.152,
+			longShare: 0.143,
+			statements: 54,
+		});
 	});
 
-	test("returns nulls without positions", () => {
-		const amp = computeAmplitude([{ key: "a", attributes: {} }], BLOCK_STATEMENTS);
-		assert.equal(amp.graphRadius, null);
-		assert.equal(amp.words, null);
-		assert.equal(amp.statements, null);
-	});
-});
-
-describe("sentence rhythm", () => {
-	test("splitSentences keeps abbreviations together", () => {
-		const parts = splitSentences("We use e.g. graphs. They work! Do they? Yes.");
-		assert.deepEqual(parts, ["We use e.g. graphs.", "They work!", "Do they?", "Yes."]);
-	});
-
-	test("skips fragments below the prose threshold and measures the rest", () => {
-		const rhythm = computeSentenceRhythm(BLOCK_STATEMENTS);
-		assert.equal(rhythm.skippedFragments, 1, "the heading is a fragment");
-		assert.equal(rhythm.statements.n, 4);
-		// Statement 1: 3 sentences; 2: 1; 3: 2; 4: 1.
-		assert.equal(rhythm.sentences, 7);
-		assert.ok(rhythm.cvLength > 0.4, "a short sentence next to long ones is bursty");
-		assert.ok(rhythm.shortShare > 0);
-		assert.ok(PROSE_MIN_WORDS > 1);
-	});
-
-	test("flat text reads flat", () => {
-		const flat = Array.from({ length: 12 }, (_, i) => statement(i + 1, [], 0, null, prose(15) + " " + prose(15)));
-		const rhythm = computeSentenceRhythm(flat);
-		assert.equal(rhythm.sentences, 24);
-		assert.equal(rhythm.cvLength, 0);
-		assert.equal(rhythm.shortShare, 0);
+	test("a series the backend could not fit stays null, and nothing gives nothing", () => {
+		const short = networkDynamicsFixture();
+		short.fractal_variability.sentence_word_count = null;
+		short.fractal_variability.sentence_word_count_series_available = 14;
+		const shape = toReadingShape(short);
+		assert.equal(shape.sentenceLength.byWords, null);
+		assert.equal(shape.sentenceLength.sentences, 14);
+		assert.equal(toReadingShape(null), null);
+		assert.equal(toReadingShape(undefined), null);
 	});
 });
 
-describe("readings", () => {
-	test("rhythmBand follows the text-specific table", () => {
-		assert.equal(rhythmBand(0.4), "alternating");
-		assert.equal(rhythmBand(0.5), "random");
-		assert.equal(rhythmBand(0.75), "fractal");
-		assert.equal(rhythmBand(0.95), "persistent");
-		assert.equal(rhythmBand(1.1), "blocks");
-		assert.equal(rhythmBand(null), null);
-		assert.equal(readStepAlpha(NaN), null);
-		assert.match(readStepAlpha(0.75), /keeps coming back/);
-		assert.match(readStepAlpha(1.2), /chapters or sections/);
+describe("toDefaultFields", () => {
+	test("keeps the default fields and drops the experimental ones", () => {
+		const shown = toDefaultFields(networkDynamicsFixture());
+		assert.deepEqual(Object.keys(shown), ["fractal_variability", "node_graph_path_amplitude", "sentence_rhythm"]);
+		assert.deepEqual(shown.fractal_variability.ngram4_graph_radial_distance, { series_length: 1059, dfa_alpha_global: 0.714, dfa_alpha2: 0.593 });
+		assert.deepEqual(shown.fractal_variability.sentence_word_count, { series_length: 191, dfa_alpha_global: 0.745, dfa_alpha1: 0.653 });
+		assert.equal(shown.fractal_variability.sentence_word_count_series_available, 191);
+		assert.deepEqual(shown.fractal_variability.node_betweenness_rank, { series_length: 1062, dfa_alpha1: 0.556 });
+		assert.deepEqual(Object.keys(shown.node_graph_path_amplitude), [
+			"steps",
+			"mean_step_relative_to_graph_radius",
+			"cross_cluster_step_share",
+			"mean_radial_distance_relative_to_graph_radius",
+			"radial_distance_cv",
+		]);
+		assert.deepEqual(Object.keys(shown.sentence_rhythm), [
+			"prose_sentences",
+			"skipped_fragments_under_12_words",
+			"mean_words_per_sentence",
+			"share_under_8_words",
+			"share_over_30_words",
+		]);
+		assert.equal(toDefaultFields(null), null);
 	});
 
-	test("readScales contrasts short and long scales", () => {
-		assert.match(readScales({ alpha1: 0.8, alpha2: 0.5 }), /document as a whole does not/);
-		assert.match(readScales({ alpha1: 0.5, alpha2: 0.8 }), /overall arc is planned/);
-		assert.equal(readScales({ alpha1: 0.8, alpha2: null }), null);
+	test("keeps a multifractal spectrum that was computed: it is asked for with its own parameter", () => {
+		const spectrum = { label: "weak", source: "correlations", significant: true, z: 3.2, p: 0.09, width: 0.18 };
+		const dynamics = networkDynamicsFixture();
+		dynamics.fractal_variability.ngram4_graph_radial_distance.multifractal = spectrum;
+		const shown = toDefaultFields(dynamics);
+		assert.deepEqual(shown.fractal_variability.ngram4_graph_radial_distance, { series_length: 1059, dfa_alpha_global: 0.714, dfa_alpha2: 0.593, multifractal: spectrum });
+		// a null spectrum (not asked for, or a series too short) is not shown
+		assert.equal("multifractal" in shown.fractal_variability.sentence_word_count, false);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Readings: one sentence per measure
+// ---------------------------------------------------------------------------
+
+describe("interpretNetworkDynamics", () => {
+	const readings = interpretNetworkDynamics(toDefaultFields(networkDynamicsFixture()));
+
+	test("is keyed like the payload, with a reliability line per series and a note per block", () => {
+		const fv = readings.fractal_variability;
+		assert.deepEqual(Object.keys(fv), ["ngram4_graph_radial_distance", "sentence_word_count", "node_betweenness_rank"]);
+		assert.deepEqual(Object.keys(fv.ngram4_graph_radial_distance), ["reliability", "dfa_alpha_global", "dfa_alpha2", "note"]);
+		assert.deepEqual(Object.keys(fv.sentence_word_count), ["reliability", "dfa_alpha_global", "dfa_alpha1", "note"]);
+		assert.deepEqual(Object.keys(fv.node_betweenness_rank), ["reliability", "dfa_alpha1", "note"]);
+		assert.match(fv.ngram4_graph_radial_distance.reliability, /^256 points or more/);
+		assert.match(fv.sentence_word_count.reliability, /^128 to 255 points/);
+		assert.equal(typeof readings.node_graph_path_amplitude.note, "string");
+		assert.equal(typeof readings.sentence_rhythm.note, "string");
 	});
 
-	test("readMultifractal distinguishes the source of the width", () => {
-		assert.match(readMultifractal({ multifractal: { label: "multifractal", source: "correlations", significant: true } }), /rare big leaps/);
-		assert.match(readMultifractal({ multifractal: { label: "multifractal", source: "distribution", significant: true } }), /not placed in any pattern/);
-		assert.match(readMultifractal({ multifractal: { label: "monofractal", significant: false } }), /no multifractal structure/);
-		assert.equal(readMultifractal({ multifractal: null }), null);
+	test("names the API field and its value at the start of each DFA sentence", () => {
+		const fv = readings.fractal_variability;
+		assert.match(fv.ngram4_graph_radial_distance.dfa_alpha2, /^dfa_alpha2 0\.593: /);
+		assert.match(fv.sentence_word_count.dfa_alpha_global, /^dfa_alpha_global 0\.745: sentence length is moderately persistent/);
+		assert.match(fv.node_betweenness_rank.dfa_alpha1, /^dfa_alpha1 0\.556: /);
 	});
 
-	test("confidenceFor follows the backend length table", () => {
-		assert.equal(confidenceFor(10), "none");
+	test("reads the amplitude and the sentence rhythm in plain words", () => {
+		const amp = readings.node_graph_path_amplitude;
+		assert.match(amp.cross_cluster_step_share, /^36% of steps cross into another topic cluster/);
+		assert.match(amp.mean_radial_distance_relative_to_graph_radius, /^Mean distance from the centre 0\.911 graph radii/);
+		assert.match(amp.radial_distance_cv, /^Distance variation 0\.251/);
+		const rhythm = readings.sentence_rhythm;
+		assert.match(rhythm.mean_words_per_sentence, /^18\.3 words per sentence on average/);
+		assert.match(rhythm.share_under_8_words, /^15% of sentences are under 8 words/);
+		assert.match(rhythm.coverage, /112 sentences were measured; 53 statements under 12 words/);
+	});
+
+	test("reads the mean step against a path of the same length", () => {
+		// 0.826 over 1061 steps sits below the 0.873 expected at that length
+		assert.match(readings.node_graph_path_amplitude.mean_step_relative_to_graph_radius, /close together for a text of this length/);
+		const short = networkDynamicsFixture();
+		short.node_graph_path_amplitude.steps = 150; // expected about 0.608
+		assert.match(
+			interpretNetworkDynamics(toDefaultFields(short)).node_graph_path_amplitude.mean_step_relative_to_graph_radius,
+			/jumps far across the graph .* for a text of this length/,
+		);
+	});
+
+	test("says the measures are not a detector, and never mentions the calibration set", () => {
+		assert.match(readings.about, /not an AI detector/);
+		assert.equal(/reference corpus|calibration/i.test(JSON.stringify(readings)), false);
+	});
+
+	test("a missing sentence series says how many sentences there were", () => {
+		const short = networkDynamicsFixture();
+		short.fractal_variability.sentence_word_count = null;
+		short.fractal_variability.sentence_word_count_series_available = 14;
+		const r = interpretNetworkDynamics(toDefaultFields(short));
+		assert.match(JSON.stringify(r.fractal_variability.sentence_word_count), /14 sentence/);
+		assert.equal(interpretNetworkDynamics(null), null);
+	});
+});
+
+describe("supporting readers", () => {
+	test("movementBand judges the mean step against the length of the path", () => {
+		assert.deepEqual(movementBand(0.6, 400), { movement: "close", expected: 0.741 });
+		assert.deepEqual(movementBand(0.74, 400), { movement: "steady", expected: 0.741 });
+		assert.deepEqual(movementBand(0.9, 400), { movement: "leaping", expected: 0.741 });
+		// under 50 steps there is no reference
+		assert.deepEqual(movementBand(0.7, 20), { movement: null, expected: null });
+		assert.deepEqual(movementBand(null, 400), { movement: null, expected: null });
+	});
+
+	test("confidenceFor follows the series length", () => {
+		assert.equal(confidenceFor(40), "none");
 		assert.equal(confidenceFor(100), "indicative");
 		assert.equal(confidenceFor(200), "usable");
 		assert.equal(confidenceFor(600), "reliable");
-	});
-});
-
-describe("sentence-length level (fractal_variability.sentenceLength.byWords)", () => {
-	test("readSentenceAlpha speaks about pace, not topics", () => {
-		assert.match(readSentenceAlpha(0.5), /no rhythm across sentences/);
-		assert.match(readSentenceAlpha(0.75), /1\/f rhythm/);
-		assert.match(readSentenceAlpha(1.2), /pace drifts/);
-		assert.equal(readSentenceAlpha(null), null);
+		assert.equal(confidenceFor(null), "none");
 	});
 
-	test("summarises the series from the fixture", () => {
-		const summary = summariseSentenceScaling(fractalFixture({ withSpectrum: false }));
-		assert.equal(summary.n, 450);
-		assert.equal(summary.alphaBounded, 0.561);
-		assert.equal(summary.alphaLabel, "regular");
-		assert.equal(summary.alpha1, 0.682);
-		assert.equal(summary.alpha2, 0.53);
-		assert.equal(summary.multifractalLabel, null);
-		assert.match(summary.readings.alpha, /no rhythm across sentences/);
-		assert.match(summary.readings.scales, /does not carry across paragraphs/, "alpha1 fractal, alpha2 random");
-		assert.equal(summary.readings.multifractal, null);
-		assert.equal(summary.readings.confidence, "reliable");
+	test("readStructure describes the diversity statistics", () => {
+		const r = readStructure(diversityFixture());
+		assert.match(r.diversity, /Several distinct topics/);
+		assert.equal(typeof r.topNodesEntropy, "string");
+		assert.equal(readStructure(null), null);
 	});
 
-	test("reads the spectrum when present", () => {
-		const summary = summariseSentenceScaling(fractalFixture({ withSpectrum: true }));
-		assert.equal(summary.multifractalLabel, "multifractal");
-		assert.match(summary.readings.multifractal, /rare big leaps/);
-	});
-
-	test("is null under 64 sentences and on older backends", () => {
-		assert.equal(summariseSentenceScaling(fractalFixture({ sentenceLength: "null" })), null);
-		assert.equal(summariseSentenceScaling(fractalFixture({ sentenceLength: "absent" })), null);
-		assert.equal(summariseSentenceScaling(null), null);
-	});
-});
-
-describe("influence level and degree distribution", () => {
-	test("readInfluence reads the rank series only", () => {
-		const readings = readInfluence(fractalFixture({ withSpectrum: true }));
-		assert.match(readInfluence({ influence: { byBetweennessRank: { n: 300, alphaBounded: 0.75, alpha1: 0.75, alpha2: 0.75, multifractal: null } } }).byBetweennessRank, /nested cycles/);
-		assert.match(readings.byBetweennessRank, /without pattern/, "0.557 is memoryless");
-		assert.match(readings.multifractal, /rare big leaps/);
-		assert.equal(readings.confidence, "reliable");
-		assert.equal(readInfluence(fractalFixture({ influence: "null" })), null);
-		assert.equal(readInfluence(fractalFixture({ influence: "absent" })), null);
-	});
-
-	test("readDegreeDistribution describes concentration and never says scale-free", () => {
-		const readings = readDegreeDistribution(degreeDistributionFixture());
-		assert.match(readings.gini, /moderately concentrated/);
-		assert.match(readings.tail, /tail exponent of 2\.31/);
-		assert.match(readings.tail, /not evidence of a scale-free/);
-		assert.match(readings.nodes, /before the node cap/);
-		assert.match(readDegreeDistribution(degreeDistributionFixture({ tail: "null" })).tail, /Too few concepts/);
+	test("readDegreeDistribution describes concentration and never claims a scale-free network", () => {
+		const r = readDegreeDistribution(degreeDistributionFixture());
+		assert.equal(typeof r.gini, "string");
+		assert.match(r.tail, /not evidence of a scale-free network/);
 		assert.match(readDegreeDistribution({ gini: 0.7, tail: null, nodes: 10, edges: 5, histogram: [] }).gini, /few hub concepts/);
 		assert.equal(readDegreeDistribution(null), null);
 	});
 });
 
+// ---------------------------------------------------------------------------
+// Signature: the backend's text type, passed through
+// ---------------------------------------------------------------------------
+
 describe("composeSignature", () => {
-	const series = (alpha, n = 300) => ({ byStepLength: { n, alphaBounded: alpha, alpha1: alpha, alpha2: alpha, multifractal: null }, byRadialDistance: null });
-
-	test("reads structure from diversity and rhythm from the statements level when long enough", () => {
-		const sig = composeSignature({ diversity_score: "diversified" }, { statements: series(0.75), words: series(0.5) });
-		assert.equal(sig.label, "narrative");
-		assert.equal(sig.rhythmSource, "statements");
-		assert.match(sig.summary, /woven together/);
+	test("passes the backend's text type through with its explanations", () => {
+		const sig = composeSignature(REFRAIN);
+		assert.equal(sig.label, "refrain");
+		assert.equal(sig.summary, REFRAIN.description);
+		assert.equal(sig.has_core, true);
+		assert.equal(sig.structure, "focused");
+		assert.equal(sig.stays_where_it_goes, false);
+		assert.equal(sig.basis, "memory");
+		assert.match(sig.basis_explanation, /DFA exponents/);
+		assert.equal(sig.memory_score, -0.27);
+		assert.equal(sig.confidence, "clear");
+		assert.match(sig.note, /never present the type as evidence/);
 	});
 
-	test("falls back to the words level when the statement series is short", () => {
-		const sig = composeSignature({ diversity_score: "focused" }, { statements: series(0.75, 70), words: series(0.5) });
-		assert.equal(sig.label, "report");
-		assert.equal(sig.rhythmSource, "words");
+	test("lists the four types and the four structures with what each means", () => {
+		const sig = composeSignature(REFRAIN);
+		assert.deepEqual(Object.keys(sig.label_possible_values), ["deep dive", "refrain", "chapters", "sweep"]);
+		assert.match(sig.label_possible_values["deep dive"], /^Has a core and stays where it goes/);
+		assert.match(sig.label_possible_values.refrain, /^Has a core and keeps moving/);
+		assert.match(sig.label_possible_values.chapters, /^No single core and stays where it goes/);
+		assert.match(sig.label_possible_values.sweep, /^No single core and keeps moving/);
+		assert.deepEqual(Object.keys(sig.structure_possible_values), ["biased", "focused", "diversified", "dispersed"]);
+		assert.match(sig.structure_possible_values.biased, /Has a core\.$/);
+		assert.match(sig.structure_possible_values.dispersed, /No single core\.$/);
 	});
 
-	test("maps persistent to the fractal column and blocks to its own", () => {
-		assert.equal(composeSignature({ diversity_score: "biased" }, { words: series(0.95) }).label, "deep dive");
-		assert.equal(composeSignature({ diversity_score: "dispersed" }, { words: series(1.2) }).label, "drift");
+	test("says so when the backend fell back on the size of the steps", () => {
+		const sig = composeSignature({ ...REFRAIN, basis: "movement", memory_score: null, confidence: "borderline" });
+		assert.match(sig.basis_explanation, /too short for the DFA exponents/);
+		assert.equal(sig.confidence, "borderline");
 	});
 
-	test("is null without data", () => {
-		const sig = composeSignature(null, null);
-		assert.equal(sig.label, null);
-		assert.equal(sig.rhythmSource, null);
+	test("computes nothing: no text type from the backend, no label", () => {
+		for (const missing of [null, undefined]) {
+			const sig = composeSignature(missing);
+			assert.equal(sig.label, null);
+			assert.equal(sig.summary, null);
+			assert.equal(sig.has_core, null);
+			assert.equal(sig.stays_where_it_goes, null);
+			assert.equal(sig.basis_explanation, null);
+			// the scheme is still explained
+			assert.equal(Object.keys(sig.label_possible_values).length, 4);
+		}
+		const unnamed = composeSignature({ ...REFRAIN, label: null, description: null, stays_where_it_goes: null, basis: null });
+		assert.equal(unnamed.label, null);
+		assert.equal(unnamed.has_core, true);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// AI-likeness: weighted evidence, hedged verdict
+// ---------------------------------------------------------------------------
 
 describe("estimateAiLikeness", () => {
-	const rhythm = (cv, sentences = 60, shortShare = 0.1) => ({ sentences, skippedFragments: 0, meanLength: 15, cvLength: cv, lag1Autocorrelation: 0, shortShare, longShare: 0, statements: { n: 10, meanLength: 90, cvLength: cv } });
-	const amplitude = (cvStep, runCV) => ({ graphRadius: 1, statements: null, words: { n: 300, meanStep: 0.7, medianStep: 0.5, p95Step: 1.5, cvStep, lag1Autocorrelation: 0.2, crossClusterShare: 0.3, crossClusterRunCV: runCV, meanRadial: 0.8, cvRadial: 0.3 } });
-	const fractal = (alpha) => ({ statements: { byStepLength: null, byRadialDistance: null }, words: { byStepLength: { n: 300, alphaBounded: alpha, alpha1: alpha, alpha2: alpha, multifractal: null }, byRadialDistance: null } });
+	const inputFor = (dynamics) => {
+		const shape = toReadingShape(dynamics);
+		return { sentenceRhythm: shape.sentenceRhythm, amplitude: shape.amplitude, fractal: shape };
+	};
 
-	test("flat, evenly paced, memoryless text leans generated", () => {
-		const ai = estimateAiLikeness({ sentenceRhythm: rhythm(0.2, 60, 0), amplitude: amplitude(0.3, 0.5), fractal: fractal(0.5) });
-		assert.equal(ai.verdict, "leans generated");
-		assert.ok(ai.score > 0.5);
-		assert.equal(ai.confidence, "medium");
-		assert.ok(ai.evidence.every((e) => e.direction > 0));
+	test("variably paced text leans human, with the reason in verdict_explanation", () => {
+		const ai = estimateAiLikeness(inputFor(networkDynamicsFixture()));
+		assert.equal(ai.verdict, "leaning human");
+		assert.match(ai.verdict_explanation, /^Variably paced/);
+		assert.ok(ai.score < 0);
+		assert.ok(ai.evidence.some((e) => e.signal === "sentence length variability (CV)" && e.direction < 0));
 	});
 
-	test("bursty, fractal text leans human", () => {
-		const ai = estimateAiLikeness({ sentenceRhythm: rhythm(0.8, 60, 0.25), amplitude: amplitude(1.0, 1.5), fractal: fractal(0.75) });
-		assert.equal(ai.verdict, "leans human");
-		assert.ok(ai.score < -0.5);
+	test("flat, evenly paced text leans AI", () => {
+		const flat = networkDynamicsFixture();
+		flat.sentence_rhythm = { ...flat.sentence_rhythm, words_per_sentence_cv: 0.2, share_under_8_words: 0, share_over_30_words: 0, words_per_sentence_lag1_autocorrelation: 0 };
+		flat.fractal_variability.sentence_word_count = series(191, 0.5, 0.5, 0.5);
+		flat.node_graph_path_amplitude = { ...flat.node_graph_path_amplitude, step_cv: 0.3, cluster_dwell_cv: 0.2 };
+		const ai = estimateAiLikeness(inputFor(flat));
+		assert.equal(ai.verdict, "leaning AI");
+		assert.match(ai.verdict_explanation, /^Evenly paced/);
+		assert.ok(ai.score > 0);
 	});
 
-	test("short texts are inconclusive with low confidence", () => {
-		const ai = estimateAiLikeness({ sentenceRhythm: rhythm(0.2, 12, 0), amplitude: amplitude(0.3, 0.5), fractal: fractal(0.5) });
-		assert.equal(ai.verdict, "inconclusive");
-		assert.equal(ai.confidence, "low");
+	test("the verdict is one of three, and the score stays within -1 and 1", () => {
+		for (const dynamics of [networkDynamicsFixture(), networkDynamicsFixture({ sentence_rhythm: { ...networkDynamicsFixture().sentence_rhythm, words_per_sentence_cv: 0.45 } })]) {
+			const ai = estimateAiLikeness(inputFor(dynamics));
+			assert.ok(["leaning AI", "leaning human", "mixed"].includes(ai.verdict));
+			assert.ok(ai.score >= -1 && ai.score <= 1);
+			assert.equal(typeof ai.verdict_explanation, "string");
+		}
 	});
 
-	test("sentence rhythm outweighs the topic-path memory", () => {
-		// Generated prose with one topic per paragraph reads fractal on the path; the flat rhythm must still win.
-		const ai = estimateAiLikeness({ sentenceRhythm: rhythm(0.25, 60, 0), amplitude: { graphRadius: 1, statements: null, words: null }, fractal: fractal(0.75) });
-		assert.equal(ai.verdict, "leans generated");
-	});
-
-	test("the sentence-length DFA counts as evidence once it has 128 sentences", () => {
-		const withSentences = (alpha, n) => ({ ...fractal(0.75), sentenceLength: { byWords: { n, alphaBounded: alpha, alpha1: alpha, alpha2: alpha, multifractal: null } } });
-		const flat = estimateAiLikeness({ sentenceRhythm: rhythm(0.5, 60, 0.1), amplitude: { graphRadius: 1, statements: null, words: null }, fractal: withSentences(0.5, 300) });
-		const flatSignal = flat.evidence.find((e) => e.signal.startsWith("sentence-length rhythm"));
-		assert.ok(flatSignal, "sentence-length evidence present");
-		assert.equal(flatSignal.direction, 1);
-		const literary = estimateAiLikeness({ sentenceRhythm: rhythm(0.5, 60, 0.1), amplitude: { graphRadius: 1, statements: null, words: null }, fractal: withSentences(0.8, 300) });
-		assert.equal(literary.evidence.find((e) => e.signal.startsWith("sentence-length rhythm")).direction, -1);
-		const short = estimateAiLikeness({ sentenceRhythm: rhythm(0.5, 60, 0.1), amplitude: { graphRadius: 1, statements: null, words: null }, fractal: withSentences(0.5, 100) });
-		assert.ok(!short.evidence.some((e) => e.signal.startsWith("sentence-length rhythm")), "under 128 sentences it is not evidence");
-	});
-
-	test("always carries the caveats", () => {
-		const ai = estimateAiLikeness({ sentenceRhythm: rhythm(null, 0), amplitude: { graphRadius: null, statements: null, words: null }, fractal: null });
+	test("without evidence there is no score, and the caveats are always there", () => {
+		const ai = estimateAiLikeness({
+			sentenceRhythm: { sentences: 0, skippedFragments: 0, meanLength: null, cvLength: null, lag1Autocorrelation: null, shortShare: null, longShare: null, statements: 0 },
+			amplitude: { graphRadius: null, words: null },
+			fractal: null,
+		});
 		assert.equal(ai.score, null);
-		assert.equal(ai.verdict, "inconclusive");
+		assert.equal(ai.verdict, "mixed");
+		assert.match(ai.verdict_explanation, /^Inconclusive/);
 		assert.ok(ai.caveats.length >= 3);
+		assert.ok(ai.caveats.some((c) => /never treat it as proof of authorship/.test(c)));
 	});
 });
 
+// ---------------------------------------------------------------------------
+// The assembled output
+// ---------------------------------------------------------------------------
+
 describe("buildTextSignature", () => {
-	test("assembles every block with readings", () => {
-		const out = buildTextSignature({
-			modularity: 0.71,
-			diversity: diversityFixture(),
-			fractal: fractalFixture(),
-			nodes: NODES,
-			statements: BLOCK_STATEMENTS,
-		});
+	const input = (extra = {}) => ({
+		modularity: 0.71,
+		diversity: diversityFixture(),
+		networkDynamics: networkDynamicsFixture(),
+		degreeDistribution: degreeDistributionFixture(),
+		...extra,
+	});
+
+	test("assembles the signature, the structure, the numbers, the readings and the estimate", () => {
+		const out = buildTextSignature(input());
+		assert.deepEqual(Object.keys(out), ["signature", "structure", "network_dynamics", "readings", "ai_likeness", "notes"]);
+		assert.equal(out.signature.label, "refrain");
 		assert.equal(out.structure.modularity, 0.71);
 		assert.deepEqual(out.structure.diversity_stats, diversityFixture());
 		assert.match(out.structure.readings.diversity, /Several distinct topics/);
-		assert.deepEqual(out.rhythm.fractal_variability, fractalFixture());
-		for (const level of ["statements", "words", "ngrams"]) {
-			assert.ok(out.rhythm.readings[level], `${level} readings`);
-			assert.equal(typeof out.rhythm.readings[level].stepLength, "string");
-			assert.ok(["none", "indicative", "usable", "reliable"].includes(out.rhythm.readings[level].confidence));
+		assert.equal(typeof out.structure.degreeReadings.gini, "string");
+		assert.equal(typeof out.readings.fractal_variability.sentence_word_count.dfa_alpha_global, "string");
+		assert.ok(["leaning AI", "leaning human", "mixed"].includes(out.ai_likeness.verdict));
+		assert.ok(out.notes.length >= 4);
+		assert.ok(out.notes.some((n) => /not an AI detector/.test(n)));
+	});
+
+	test("shows the default fields unless the experimental ones are asked for", () => {
+		const shown = buildTextSignature(input()).network_dynamics;
+		assert.deepEqual(Object.keys(shown.fractal_variability.ngram4_graph_radial_distance), ["series_length", "dfa_alpha_global", "dfa_alpha2"]);
+		assert.equal("step_cv" in shown.node_graph_path_amplitude, false);
+		assert.equal("words_per_sentence_cv" in shown.sentence_rhythm, false);
+
+		const everything = buildTextSignature(input({ includeExperimental: true }));
+		const ngram = everything.network_dynamics.fractal_variability.ngram4_graph_radial_distance;
+		assert.equal(ngram.dfa_alpha1, 1.181);
+		assert.equal(ngram.dfa_alpha_global_label, "regular");
+		assert.equal(everything.network_dynamics.node_graph_path_amplitude.step_cv, 0.606);
+		assert.equal(everything.network_dynamics.sentence_rhythm.words_per_sentence_cv, 0.576);
+		// and the experimental fields get readings too
+		for (const key of ["step_cv", "step_lag1_autocorrelation", "cluster_dwell_cv"]) {
+			assert.equal(typeof everything.readings.node_graph_path_amplitude[key], "string", key);
 		}
-		assert.equal(out.amplitude.words.n, 13);
-		assert.equal(typeof out.amplitude.readings.words.cvStep, "string");
-		assert.equal(out.sentence_rhythm.sentences, 7);
-		assert.equal(typeof out.sentence_rhythm.readings.cvLength, "string");
-		assert.equal(out.structure.degree_distribution, null, "no degree distribution given");
-		assert.equal(out.structure.degreeReadings, null);
-		assert.match(out.rhythm.readings.influence.byBetweennessRank, /without pattern/);
-		const wide = buildTextSignature({ modularity: 0.5, diversity: diversityFixture(), fractal: fractalFixture(), degreeDistribution: degreeDistributionFixture({ rows: 70 }), nodes: NODES, statements: BLOCK_STATEMENTS });
-		assert.equal(wide.structure.degree_distribution.histogram.length, 40, "histogram trimmed like the other tools");
+		for (const key of ["words_per_sentence_cv", "words_per_sentence_lag1_autocorrelation"]) {
+			assert.equal(typeof everything.readings.sentence_rhythm[key], "string", key);
+		}
+	});
+
+	test("ai_likeness uses the experimental measures whether or not they are shown", () => {
+		const hidden = buildTextSignature(input());
+		const shown = buildTextSignature(input({ includeExperimental: true }));
+		assert.deepEqual(hidden.ai_likeness, shown.ai_likeness);
+		assert.ok(hidden.ai_likeness.evidence.some((e) => e.signal === "sentence length variability (CV)"));
+	});
+
+	test("the histogram of the degree distribution is trimmed to 40 rows", () => {
+		const wide = buildTextSignature(input({ degreeDistribution: degreeDistributionFixture({ rows: 70 }) }));
+		assert.equal(wide.structure.degree_distribution.histogram.length, 40);
 		assert.equal(wide.structure.degree_distribution.histogramTruncated, true);
-		assert.match(wide.structure.degreeReadings.gini, /concentrated/);
-		assert.equal(out.sentence_rhythm.scaling.n, 450, "the backend's sentence-length DFA is summarised");
-		assert.equal(typeof out.sentence_rhythm.scaling.readings.alpha, "string");
-		assert.ok(out.rhythm.fractal_variability.sentenceLength, "and passed through unchanged");
-		const older = buildTextSignature({ modularity: 0.5, diversity: diversityFixture(), fractal: fractalFixture({ sentenceLength: "absent" }), nodes: NODES, statements: BLOCK_STATEMENTS });
-		assert.equal(older.sentence_rhythm.scaling, null);
-		assert.ok(out.signature.label);
-		assert.ok(["leans generated", "leans human", "inconclusive"].includes(out.ai_likeness.verdict));
-		assert.ok(out.notes.length >= 2);
+		const none = buildTextSignature(input({ degreeDistribution: null }));
+		assert.equal(none.structure.degree_distribution, null);
+		assert.equal(none.structure.degreeReadings, null);
+	});
+
+	test("a long text is named from memory, whatever the size of its steps", () => {
+		const long = networkDynamicsFixture({ text_type: { ...REFRAIN, structure: "biased", memory_score: -0.57 } });
+		long.node_graph_path_amplitude.steps = 6470;
+		long.node_graph_path_amplitude.mean_step_relative_to_graph_radius = 1.05;
+		const out = buildTextSignature(input({ networkDynamics: long }));
+		assert.equal(out.signature.label, "refrain");
+		assert.equal(out.signature.basis, "memory");
+	});
+
+	test("an older backend, without text_type or without network_dynamics, gives no label and does not throw", () => {
+		const older = buildTextSignature(input({ networkDynamics: networkDynamicsFixture({ text_type: undefined }) }));
+		assert.equal(older.signature.label, null);
+		assert.equal(typeof older.readings.sentence_rhythm.mean_words_per_sentence, "string");
+
+		const none = buildTextSignature(input({ networkDynamics: null }));
+		assert.equal(none.signature.label, null);
+		assert.equal(none.network_dynamics, null);
+		assert.equal(none.readings, null);
+		assert.equal(none.ai_likeness.score, null);
+		assert.deepEqual(none.structure.diversity_stats, diversityFixture());
 	});
 });
 
@@ -339,18 +480,18 @@ function fakeResponse(body) {
 
 function graphResponse() {
 	return {
-		statements: BLOCK_STATEMENTS,
+		statements: [],
 		graph: {
 			graphologyGraph: {
 				attributes: {
 					modularity: 0.71,
 					diversity_stats: diversityFixture(),
-					fractal_variability: fractalFixture(),
+					network_dynamics: networkDynamicsFixture(),
 					degree_distribution: degreeDistributionFixture(),
 					top_clusters: [],
 					gaps: [],
 				},
-				nodes: NODES,
+				nodes: [],
 				edges: [],
 			},
 		},
@@ -373,54 +514,56 @@ async function withFakeApi(fn, body = graphResponse()) {
 }
 
 describe("analyze_text_signature handler", () => {
-	test("asks for the raw graph and statements, forwards the multifractal flag, and returns the signature", async () => {
-		const { result, calls } = await withFakeApi(() =>
-			analyzeTextSignatureTool.handler({ text: "Some text.\nMore text.", multifractal: true, modifyAnalyzedText: "none", wikilinksMode: "default" }),
-		);
+	const params = (extra = {}) => ({ text: "Some text.\nMore text.", modifyAnalyzedText: "none", wikilinksMode: "default", ...extra });
+
+	test("asks for the statistics and every network_dynamics field, without saving", async () => {
+		const { result, calls } = await withFakeApi(() => analyzeTextSignatureTool.handler(params()));
 		assert.equal(calls.length, 1);
 		const query = new URL(calls[0].url).searchParams;
-		assert.equal(query.get("addStats"), "true");
-		assert.equal(query.get("multifractal"), "true");
-		assert.equal(query.get("includeGraph"), "true");
-		assert.equal(query.get("compactGraph"), "false");
-		assert.equal(query.get("includeStatements"), "true");
-		assert.equal(query.get("compactStatements"), "false");
 		assert.equal(query.get("doNotSave"), "true");
+		assert.equal(query.get("addStats"), "true");
+		assert.equal(query.get("fractalExperimental"), "true", "ai_likeness needs the experimental measures");
+		assert.equal(query.get("includeGraph"), "true");
+		assert.equal(query.get("compactGraph"), "true");
+		assert.equal(query.get("includeStatements"), "true");
+		assert.equal(query.get("compactStatements"), "true");
+		assert.equal(query.get("includeGraphSummary"), "false");
+		assert.equal(query.get("multifractal"), null, "the spectrum is off unless asked for");
 		assert.equal(calls[0].body.modifyAnalyzedText, "none");
 
 		const output = parseToolResult(result);
-		assert.ok(output.signature);
+		assert.equal(output.signature.label, "refrain");
 		assert.deepEqual(output.structure.diversity_stats, diversityFixture());
-		assert.deepEqual(output.rhythm.fractal_variability, fractalFixture());
-		assert.equal(output.amplitude.words.n, 13);
-		assert.equal(output.sentence_rhythm.sentences, 7);
 		assert.deepEqual(output.structure.degree_distribution, degreeDistributionFixture());
-		assert.equal(typeof output.structure.degreeReadings.gini, "string");
-		assert.equal(typeof output.rhythm.readings.influence.byBetweennessRank, "string");
+		// the default fields are shown although every field was fetched
+		assert.equal("step_cv" in output.network_dynamics.node_graph_path_amplitude, false);
+		assert.equal(typeof output.readings.sentence_rhythm.coverage, "string");
 		assert.ok(output.ai_likeness.caveats.length > 0);
 	});
 
-	test("omits the multifractal flag when off and passes maxNodes", async () => {
-		const { calls } = await withFakeApi(() =>
-			analyzeTextSignatureTool.handler({ text: "Some text.", multifractal: false, maxNodes: 400, modifyAnalyzedText: "none", wikilinksMode: "default" }),
+	test("forwards the multifractal flag and maxNodes, and shows the experimental fields on request", async () => {
+		const { result, calls } = await withFakeApi(() =>
+			analyzeTextSignatureTool.handler(params({ multifractal: true, maxNodes: 400, includeExperimental: true })),
 		);
 		const query = new URL(calls[0].url).searchParams;
-		assert.equal(query.get("multifractal"), null);
+		assert.equal(query.get("multifractal"), "true");
 		assert.equal(query.get("maxnodes"), "400");
+		const output = parseToolResult(result);
+		assert.equal(output.network_dynamics.node_graph_path_amplitude.step_cv, 0.606);
 	});
 
 	test("errors when the API returns no statistics", async () => {
-		const { result } = await withFakeApi(
-			() => analyzeTextSignatureTool.handler({ text: "Tiny.", multifractal: true, modifyAnalyzedText: "none", wikilinksMode: "default" }),
-			{ statements: [], graph: { graphologyGraph: { attributes: {}, nodes: [], edges: [] } } },
-		);
+		const { result } = await withFakeApi(() => analyzeTextSignatureTool.handler(params({ text: "Tiny." })), {
+			statements: [],
+			graph: { graphologyGraph: { attributes: {}, nodes: [], edges: [] } },
+		});
 		assert.equal(result.isError, true);
 		assert.match(JSON.parse(result.content[0].text).error, /no network statistics/);
 	});
 
 	test("refuses an empty input", async () => {
 		const { result, calls } = await withFakeApi(() =>
-			analyzeTextSignatureTool.handler({ multifractal: true, modifyAnalyzedText: "none", wikilinksMode: "default" }),
+			analyzeTextSignatureTool.handler({ modifyAnalyzedText: "none", wikilinksMode: "default" }),
 		);
 		assert.equal(calls.length, 0);
 		assert.equal(result.isError, true);

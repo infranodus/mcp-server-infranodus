@@ -5,8 +5,9 @@
 //   1. the request: addStats=true is always sent, and multifractal=true is
 //      sent only when the tool's `multifractal` flag is set (for tools that
 //      have it);
-//   2. the response surface: diversity_stats and fractal_variability arrive
-//      side by side, unchanged, in the place documented for that tool.
+//   2. the response surface: diversity_stats and network_dynamics (the
+//      backend's text type included) arrive side by side, unchanged, in the
+//      place documented for that tool.
 // No network is used. Runs as part of `npm test`.
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -27,14 +28,12 @@ import { optimizeKnowledgeBaseTool } from "../dist/tools/optimizeKnowledgeBase.j
 import {
 	assertStructuredStatistics,
 	assertDiversityStats,
-	assertFractalVariability,
+	assertNetworkDynamics,
 	parseToolResult,
-	fractalFixture,
+	networkDynamicsFixture,
 	diversityFixture,
 	degreeDistributionFixture,
 	assertDegreeDistribution,
-	FRACTAL_MEASURES,
-	INFLUENCE_MEASURES,
 } from "./helpers/statsSurface.mjs";
 
 const CONFIG = { apiBase: "https://api.test/api/v1", apiKey: "test-key" };
@@ -42,27 +41,18 @@ const TEXT = "Complex systems are made of many parts.\nNetworks describe complex
 const CONTEXTS = [{ text: TEXT }, { text: "Ecosystems show resilience.\nCities grow along fractal patterns." }];
 
 const DIVERSITY = diversityFixture();
-const FRACTAL = fractalFixture();
+const DYNAMICS = networkDynamicsFixture();
 const DEGREES = degreeDistributionFixture();
 
-/** The ngrams level of a fixture carries numbers on both measures. */
-function assertNgramsComputed(fractal, where) {
-	assert.ok(fractal.ngrams && typeof fractal.ngrams === "object", `${where}.ngrams is missing`);
-	for (const measure of FRACTAL_MEASURES) {
-		assert.equal(typeof fractal.ngrams[measure]?.alphaBounded, "number", `${where}.ngrams.${measure}.alphaBounded`);
-		assert.equal(typeof fractal.ngrams[measure]?.alpha2, "number", `${where}.ngrams.${measure}.alpha2`);
-	}
-}
-
 /** A compact /graphAndStatements-style response with both stats objects. */
-function graphResponse(fractal = FRACTAL, degrees = DEGREES) {
+function graphResponse(dynamics = DYNAMICS, degrees = DEGREES) {
 	return {
 		graph: {
 			graphologyGraph: {
 				attributes: {
 					modularity: 0.71,
 					diversity_stats: DIVERSITY,
-					fractal_variability: fractal,
+					network_dynamics: dynamics,
 					degree_distribution: degrees,
 					top_clusters: [{ community: "0", nodes: [{ nodeName: "system", bc: 0.3 }], bcRatio: 0.5 }],
 					gaps: [],
@@ -212,10 +202,10 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 					flag ? "multifractal=true must be sent when the flag is on" : "multifractal must be absent when the flag is off",
 				);
 
-				assertStructuredStatistics(output.statistics, { spectrum: "any" });
-				assertNgramsComputed(output.statistics.fractal_variability, "statistics.fractal_variability");
+				assertStructuredStatistics(output.statistics, { spectrum: "null", textType: "required" });
 				assert.deepEqual(output.statistics.diversity_stats, DIVERSITY, "diversity_stats is forwarded unchanged");
-				assert.deepEqual(output.statistics.fractal_variability, FRACTAL, "fractal_variability is forwarded unchanged");
+				assert.deepEqual(output.statistics.network_dynamics, DYNAMICS, "network_dynamics is forwarded unchanged");
+				assert.equal(output.statistics.network_dynamics.text_type.label, "refrain", "the backend's text type is forwarded, not recomputed");
 				assert.equal(output.statistics.modularity, 0.71);
 				assert.equal(output.statistics.clusterCount, DIVERSITY.total_clusters);
 				assert.equal(output.statistics.nodeCount, 2);
@@ -223,30 +213,43 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 
 				assert.ok(output.knowledgeGraph?.attributes, `${name}: knowledgeGraph.attributes missing with includeGraph`);
 				assert.deepEqual(output.knowledgeGraph.attributes.diversity_stats, DIVERSITY);
-				assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability, FRACTAL);
-				assertNgramsComputed(output.knowledgeGraph.attributes.fractal_variability, "knowledgeGraph.attributes.fractal_variability");
-				assert.equal(typeof output.statistics.fractal_variability.sentenceLength.byWords.alphaBounded, "number", "sentenceLength.byWords is forwarded");
-				for (const measure of INFLUENCE_MEASURES) {
-					assert.equal(typeof output.statistics.fractal_variability.influence[measure].alphaBounded, "number", `influence.${measure} is forwarded`);
-				}
+				assert.deepEqual(output.knowledgeGraph.attributes.network_dynamics, DYNAMICS);
 				assert.deepEqual(output.statistics.degree_distribution, DEGREES, "degree_distribution is forwarded next to diversity_stats");
 			});
 		}
 	}
 
-	test("ngrams series are null on a short text and nothing throws", async () => {
-		const shortFractal = fractalFixture({ withSpectrum: false, ngrams: "null" });
+	test("the sentence series is null on a short text and nothing throws", async () => {
+		const short = networkDynamicsFixture({ sentences: "null" });
 		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async () => fakeResponse(graphResponse(shortFractal));
+		globalThis.fetch = async () => fakeResponse(graphResponse(short));
 		try {
 			const result = await runWithConfig(CONFIG, () =>
 				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
 			);
 			const output = parseToolResult(result);
-			assertStructuredStatistics(output.statistics, { spectrum: "null" });
-			assert.deepEqual(output.statistics.fractal_variability, shortFractal, "fractal_variability is forwarded unchanged");
-			assert.deepEqual(output.statistics.fractal_variability.ngrams, { byStepLength: null, byRadialDistance: null });
-			assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability.ngrams, { byStepLength: null, byRadialDistance: null });
+			const { computedSeries } = assertStructuredStatistics(output.statistics, { spectrum: "null" });
+			assert.equal(computedSeries, 2, "the other two series are still there");
+			assert.deepEqual(output.statistics.network_dynamics, short, "network_dynamics is forwarded unchanged");
+			assert.equal(output.statistics.network_dynamics.fractal_variability.sentence_word_count, null);
+			assert.equal(output.statistics.network_dynamics.fractal_variability.sentence_word_count_series_available, 14);
+			assert.equal(output.knowledgeGraph.attributes.network_dynamics.fractal_variability.sentence_word_count, null);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test("a multifractal spectrum on each series is forwarded as it came", async () => {
+		const withSpectrum = networkDynamicsFixture({ withSpectrum: true });
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = async () => fakeResponse(graphResponse(withSpectrum));
+		try {
+			const output = parseToolResult(await runWithConfig(CONFIG, () =>
+				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, multifractal: true }),
+			));
+			const { computedSpectra } = assertStructuredStatistics(output.statistics, { spectrum: "required" });
+			assert.equal(computedSpectra, 3);
+			assert.deepEqual(output.statistics.network_dynamics, withSpectrum);
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
@@ -255,7 +258,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 	test("degree_distribution: histogram trimmed to 40 rows with a flag, full under fullGraph", async () => {
 		const wide = degreeDistributionFixture({ rows: 70 });
 		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async () => fakeResponse(graphResponse(FRACTAL, wide));
+		globalThis.fetch = async () => fakeResponse(graphResponse(DYNAMICS, wide));
 		try {
 			const trimmed = parseToolResult(await runWithConfig(CONFIG, () =>
 				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
@@ -280,7 +283,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 	test("degree_distribution with a null tail (under 50 nodes) is forwarded as is", async () => {
 		const small = degreeDistributionFixture({ rows: 5, tail: "null" });
 		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async () => fakeResponse(graphResponse(FRACTAL, small));
+		globalThis.fetch = async () => fakeResponse(graphResponse(DYNAMICS, small));
 		try {
 			const output = parseToolResult(await runWithConfig(CONFIG, () =>
 				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
@@ -293,26 +296,12 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		}
 	});
 
-	test("influence series are null on a short text and nothing throws", async () => {
-		const shortFractal = fractalFixture({ withSpectrum: false, influence: "null" });
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async () => fakeResponse(graphResponse(shortFractal));
-		try {
-			const output = parseToolResult(await runWithConfig(CONFIG, () =>
-				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
-			));
-			assertStructuredStatistics(output.statistics, { spectrum: "null", influence: "required" });
-			assert.deepEqual(output.statistics.fractal_variability.influence, { byBetweenness: null, byDegree: null, byBetweennessRank: null });
-		} finally {
-			globalThis.fetch = originalFetch;
-		}
-	});
-
-	test("an older backend without influence or degree_distribution is forwarded unchanged", async () => {
-		const oldFractal = fractalFixture({ influence: "absent", sentenceLength: "absent", ngrams: "absent" });
+	test("an older backend without text_type or degree_distribution is forwarded unchanged", async () => {
+		const older = networkDynamicsFixture({ textType: "absent" });
+		assert.ok(!("text_type" in older));
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = async () => {
-			const response = graphResponse(oldFractal);
+			const response = graphResponse(older);
 			delete response.graph.graphologyGraph.attributes.degree_distribution;
 			return fakeResponse(response);
 		};
@@ -320,63 +309,10 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 			const output = parseToolResult(await runWithConfig(CONFIG, () =>
 				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
 			));
-			assertStructuredStatistics(output.statistics, { spectrum: "any", ngrams: "optional" });
-			assert.deepEqual(output.statistics.fractal_variability, oldFractal);
-			assert.ok(!("influence" in output.statistics.fractal_variability), "no influence level is fabricated");
+			assertStructuredStatistics(output.statistics, { spectrum: "null" });
+			assert.deepEqual(output.statistics.network_dynamics, older);
+			assert.ok(!("text_type" in output.statistics.network_dynamics), "no text type is fabricated");
 			assert.ok(!("degree_distribution" in output.statistics), "no degree_distribution is fabricated");
-		} finally {
-			globalThis.fetch = originalFetch;
-		}
-	});
-
-	test("sentenceLength.byWords is null on a short text and nothing throws", async () => {
-		const shortFractal = fractalFixture({ withSpectrum: false, sentenceLength: "null" });
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async () => fakeResponse(graphResponse(shortFractal));
-		try {
-			const result = await runWithConfig(CONFIG, () =>
-				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
-			);
-			const output = parseToolResult(result);
-			assertStructuredStatistics(output.statistics, { spectrum: "null", sentenceLength: "required" });
-			assert.deepEqual(output.statistics.fractal_variability.sentenceLength, { byWords: null });
-			assert.deepEqual(output.knowledgeGraph.attributes.fractal_variability.sentenceLength, { byWords: null });
-		} finally {
-			globalThis.fetch = originalFetch;
-		}
-	});
-
-	test("an older backend without the sentenceLength level is forwarded unchanged", async () => {
-		const oldFractal = fractalFixture({ sentenceLength: "absent" });
-		assert.ok(!("sentenceLength" in oldFractal));
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async () => fakeResponse(graphResponse(oldFractal));
-		try {
-			const result = await runWithConfig(CONFIG, () =>
-				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
-			);
-			const output = parseToolResult(result);
-			assertStructuredStatistics(output.statistics, { spectrum: "any" });
-			assert.deepEqual(output.statistics.fractal_variability, oldFractal);
-			assert.ok(!("sentenceLength" in output.statistics.fractal_variability), "no sentenceLength level is fabricated");
-		} finally {
-			globalThis.fetch = originalFetch;
-		}
-	});
-
-	test("an older backend without the ngrams level is forwarded unchanged", async () => {
-		const oldFractal = fractalFixture({ ngrams: "absent" });
-		assert.ok(!("ngrams" in oldFractal));
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = async () => fakeResponse(graphResponse(oldFractal));
-		try {
-			const result = await runWithConfig(CONFIG, () =>
-				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
-			);
-			const output = parseToolResult(result);
-			assertStructuredStatistics(output.statistics, { spectrum: "any", ngrams: "optional" });
-			assert.deepEqual(output.statistics.fractal_variability, oldFractal);
-			assert.ok(!("ngrams" in output.statistics.fractal_variability), "no ngrams level is fabricated");
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
@@ -394,17 +330,17 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 			);
 			const output = parseToolResult(result);
 			assert.deepEqual(output.statistics, { modularity: 0, diversity_stats: {}, clusterCount: 0 });
-			assert.equal(output.statistics.fractal_variability, undefined);
+			assert.equal(output.statistics.network_dynamics, undefined);
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
 	});
 
-	test("fractal_variability is omitted, not fabricated, when the backend does not send it", async () => {
+	test("network_dynamics is omitted, not fabricated, when the backend does not send it", async () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = async () => {
 			const response = graphResponse();
-			delete response.graph.graphologyGraph.attributes.fractal_variability;
+			delete response.graph.graphologyGraph.attributes.network_dynamics;
 			return fakeResponse(response);
 		};
 		try {
@@ -413,7 +349,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 			);
 			const output = parseToolResult(result);
 			assert.deepEqual(output.statistics.diversity_stats, DIVERSITY);
-			assert.ok(!("fractal_variability" in output.statistics));
+			assert.ok(!("network_dynamics" in output.statistics));
 		} finally {
 			globalThis.fetch = originalFetch;
 		}
@@ -421,7 +357,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Optimize tools: top-level diversity_stats and fractal_variability, always
+// Optimize tools: top-level diversity_stats and network_dynamics, always
 // requested with the graph (no flag: /graphAndAdvice does not honor it).
 // ---------------------------------------------------------------------------
 describe("optimize tools: top-level statistics surface", () => {
@@ -440,17 +376,16 @@ describe("optimize tools: top-level statistics surface", () => {
 			assert.equal(query.get("includeGraph"), "true", "the graph must be requested or the stats never arrive");
 
 			assertDiversityStats(output.diversity_stats);
-			assertFractalVariability(output.fractal_variability);
+			assertNetworkDynamics(output.network_dynamics, { textType: "required" });
 			assertDegreeDistribution(output.degree_distribution);
 			assert.deepEqual(output.degree_distribution, DEGREES, "degree_distribution is a top-level field of the optimize output");
-			assertNgramsComputed(output.fractal_variability, "fractal_variability");
 			assert.deepEqual(output.diversity_stats, DIVERSITY);
-			assert.deepEqual(output.fractal_variability, FRACTAL);
+			assert.deepEqual(output.network_dynamics, DYNAMICS);
 			assert.ok(Array.isArray(output.suggestions) && output.suggestions.length > 0);
 		});
 	}
 
-	test("optimize_knowledge_base nests fractal_variability inside statistics", async () => {
+	test("optimize_knowledge_base nests network_dynamics inside statistics", async () => {
 		const { result, calls } = await withFakeApi(() =>
 			optimizeKnowledgeBaseTool.handler({ text: TEXT, includeLatent: false }),
 		);
@@ -461,14 +396,13 @@ describe("optimize tools: top-level statistics surface", () => {
 		assert.equal(queryOf(develop.url).get("addStats"), "true");
 
 		assert.ok(report.statistics, "report.statistics missing");
-		const { fractal_variability, degree_distribution, ...diversity } = report.statistics;
+		const { network_dynamics, degree_distribution, ...diversity } = report.statistics;
 		assertDiversityStats(diversity, "report.statistics");
 		assert.deepEqual(diversity, DIVERSITY);
 		assertDegreeDistribution(degree_distribution, "report.statistics.degree_distribution");
 		assert.deepEqual(degree_distribution, DEGREES);
-		assertFractalVariability(fractal_variability, { where: "report.statistics.fractal_variability" });
-		assertNgramsComputed(fractal_variability, "report.statistics.fractal_variability");
-		assert.deepEqual(fractal_variability, FRACTAL);
+		assertNetworkDynamics(network_dynamics, { textType: "required", where: "report.statistics.network_dynamics" });
+		assert.deepEqual(network_dynamics, DYNAMICS);
 		assert.equal(report.state, "diversified");
 	});
 });

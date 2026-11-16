@@ -108,28 +108,212 @@ export interface FractalScaling {
 	} | null;
 }
 
+/**
+ * One DFA-fitted series inside network_dynamics.fractal_variability. By default
+ * the API returns series_length plus the exponents listed for that series;
+ * with fractalExperimental=true it returns all eight fields.
+ * dfa_alpha_global is fitted over scales 4 to N/4, dfa_alpha1 over 4 to 16,
+ * dfa_alpha2 over 16 to N/4.
+ */
+export interface DfaSeriesBlock {
+	series_length: number;
+	dfa_alpha_global?: number | null;
+	dfa_alpha_global_label?: string | null;
+	dfa_alpha1?: number | null;
+	dfa_alpha1_label?: string | null;
+	dfa_alpha2?: number | null;
+	dfa_alpha2_label?: string | null;
+	multifractal?: FractalScaling["multifractal"];
+}
+
+/**
+ * graph.attributes.network_dynamics: how a text moves through its concept graph
+ * and how its sentences are paced. Present when the graph is built with
+ * statistics. Three kinds of measure, kept apart by name:
+ *
+ *   fractal_variability         DFA scaling exponents, one block per series
+ *   node_graph_path_amplitude   plain statistics of the node path through the
+ *                               graph layout, distances divided by the graph
+ *                               radius (RMS node distance from the centroid)
+ *   sentence_rhythm             plain statistics of sentence length in the
+ *                               source text; no graph involved
+ *
+ * Fields marked optional are returned only with fractalExperimental=true.
+ */
+/**
+ * The backend's diagnosis of how a text moves through its graph: one of four
+ * names from two questions, whether the text has a core (structure) and
+ * whether it stays where it goes (memory, from the DFA exponents). Computed by
+ * the backend so every client shows the same name; never recomputed here.
+ */
+export interface TextType {
+	label: "deep dive" | "refrain" | "chapters" | "sweep" | null;
+	description: string | null;
+	has_core: boolean | null;
+	structure: "biased" | "focused" | "diversified" | "dispersed" | null;
+	stays_where_it_goes: boolean | null;
+	/** "memory": judged from the DFA exponents; "movement": too short for them, judged from step size */
+	basis: "memory" | "movement" | null;
+	/** mean distance of the exponents from their corpus medians, in standard deviations; above 0 = stays */
+	memory_score: number | null;
+	confidence: "clear" | "borderline" | null;
+}
+
+export interface NetworkDynamics {
+	/** absent from a backend that does not compute it yet */
+	text_type?: TextType | null;
+	fractal_variability: {
+		/** distance from the path centroid, on 4-node windows of the node path */
+		ngram4_graph_radial_distance: DfaSeriesBlock | null;
+		/** words per sentence, in reading order; null under 64 sentences */
+		sentence_word_count: DfaSeriesBlock | null;
+		/** sentences found, reported even when sentence_word_count is null */
+		sentence_word_count_series_available: number;
+		/** rank-normalised betweenness of each node, in reading order */
+		node_betweenness_rank: DfaSeriesBlock | null;
+	};
+	node_graph_path_amplitude: {
+		graph_radius_rms?: number | null;
+		steps: number;
+		mean_step_relative_to_graph_radius: number | null;
+		step_cv?: number | null;
+		step_lag1_autocorrelation?: number | null;
+		/** share of steps whose two ends sit in different topic clusters */
+		cross_cluster_step_share: number | null;
+		cluster_dwell_cv?: number | null;
+		mean_radial_distance_relative_to_graph_radius: number | null;
+		radial_distance_cv: number | null;
+	} | null;
+	sentence_rhythm: {
+		/** sentences counted from prose-like statements only (12+ words) */
+		prose_sentences: number;
+		prose_statements?: number;
+		skipped_fragments_under_12_words: number;
+		mean_words_per_sentence: number | null;
+		words_per_sentence_cv?: number | null;
+		words_per_sentence_lag1_autocorrelation?: number | null;
+		share_under_8_words: number | null;
+		share_over_30_words: number | null;
+	};
+}
+
 export interface FractalSeries {
-	byStepLength: FractalScaling | null;
+	/** No longer returned by the backend for any level; optional so older responses parse. */
+	byStepLength?: FractalScaling | null;
 	byRadialDistance: FractalScaling | null;
 }
 
+/**
+ * How far and how unevenly a path moves through the graph, as opposed to the
+ * shape of the sequence the exponents describe. Every distance is in units of
+ * graphRadius, so graphs of different sizes compare. Computed by the backend
+ * (src/graph/fractalVariability.js); this server only reads it.
+ */
+export interface AmplitudeStats {
+	/** steps in the path */
+	n: number;
+	/** mean step length in graph radii */
+	meanStep: number | null;
+	/** coefficient of variation of the step length: burstiness of the movement */
+	cvStep: number | null;
+	/** lag-1 autocorrelation of the step length: do big moves follow big moves? */
+	lag1Autocorrelation: number | null;
+	/** share of steps landing in a different cluster; null when too few steps have a community at both ends */
+	crossClusterShare: number | null;
+	/** coefficient of variation of the gaps between crossings: ~1 random, <0.7 regular, >1.3 bursty */
+	crossClusterRunCV: number | null;
+	/** mean distance from the path centroid, in graph radii */
+	meanRadial: number | null;
+	cvRadial: number | null;
+}
+
+export interface Amplitude {
+	/** RMS node distance from the node centroid: the unit the fields above are in */
+	graphRadius: number | null;
+	/**
+	 * Word level only. medianStep, p95Step, rmssdStep and the whole
+	 * statement-level block were measured against a 115-text corpus and
+	 * removed: the first three duplicate meanStep and cvStep (r >= 0.87) and
+	 * the statement block lost a head-to-head with this one on every
+	 * comparable field.
+	 */
+	words: AmplitudeStats | null;
+	statements?: AmplitudeStats | null;
+}
+
+/**
+ * Burstiness of the source text itself, no graph involved. Statements under
+ * the backend's PROSE_MIN_WORDS are skipped as fragments (headings, menu
+ * items, captions) and counted in skippedFragments.
+ */
+export interface SentenceRhythm {
+	sentences: number;
+	skippedFragments: number;
+	meanLength: number | null;
+	/** coefficient of variation of sentence length in words: the classic burstiness */
+	cvLength: number | null;
+	lag1Autocorrelation: number | null;
+	/** share of sentences under 8 words */
+	shortShare: number | null;
+	/** share of sentences over 30 words */
+	longShare: number | null;
+	/** how many prose-like statements the sentences were taken from */
+	statements: number;
+}
+
+/**
+ * Internal reading shape. The API returns NetworkDynamics (above); the signature
+ * readers in utils/textSignature.ts convert it to this shape so that their
+ * band logic did not have to be rewritten when the public names changed.
+ */
 export interface FractalVariability {
-	statements: FractalSeries;
-	words: FractalSeries;
+	/**
+	 * The backend now fits only ngrams.byRadialDistance. The word level and
+	 * the n-gram step series were removed: with text length controlled for,
+	 * their exponents fall to chance or flip direction between AI groups.
+	 */
+	words?: FractalSeries;
 	ngrams?: FractalSeries;
-	sentenceLength?: { byWords: FractalScaling | null };
+	/**
+	 * The statement level was analysed and is gone: it needed 64 statements and
+	 * had them for 14 of 78 human texts, its step exponent flipped direction
+	 * between AI groups, and the n-gram level beat it on the same texts.
+	 * Optional so an older backend's response still parses.
+	 */
+	statements?: FractalSeries;
+	/**
+	 * Amplitude and sentence rhythm, computed by the backend alongside the
+	 * exponents. This server used to rebuild the paths and compute these
+	 * itself, which forced it to request uncompacted graphs and statements.
+	 */
+	amplitude?: Amplitude;
+	sentenceRhythm?: SentenceRhythm;
+	/**
+	 * DFA over the sequence of sentence lengths. `sentences` is the series
+	 * length and is always present; `byWords` is null under 64 sentences,
+	 * which is about half of normal prose. Read the exponent against texts of
+	 * similar length: the measure survives a length control but its
+	 * availability does not.
+	 */
+	sentenceLength?: { sentences: number; byWords: FractalScaling | null };
 	/**
 	 * Influence of the current word, one value per word occurrence of the word
-	 * path: node betweenness, node degree, and betweenness rank-normalised to
-	 * [0, 1]. Read byBetweennessRank: raw betweenness is spikes at the hubs and
-	 * its alpha is biased upward. The multifractal spectrum, when requested, is
-	 * on the rank series only. Null under 64 word occurrences; omitted by older
-	 * backends.
+	 * path: node betweenness, rank-normalised to [0, 1]. Rank rather than raw,
+	 * because raw betweenness is spikes at the hub concepts and a fit over it
+	 * reads the spikes rather than the ordering. The multifractal spectrum,
+	 * when requested, runs on this series. Null under 64 word occurrences;
+	 * omitted by older backends.
+	 *
+	 * byBetweenness and byDegree were here and are gone: neither separated
+	 * authored from generated text in a direction that held across both AI
+	 * groups, and together they were two thirds of this block's payload. They
+	 * stay optional in this type so a response from an older backend still
+	 * parses.
 	 */
 	influence?: {
-		byBetweenness: FractalScaling | null;
-		byDegree: FractalScaling | null;
 		byBetweennessRank: FractalScaling | null;
+		byBetweenness?: FractalScaling | null;
+		byDegree?: FractalScaling | null;
 	};
 }
 
@@ -162,7 +346,7 @@ export interface GraphResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
-				fractal_variability?: FractalVariability;
+				network_dynamics?: NetworkDynamics;
 				degree_distribution?: DegreeDistribution;
 				top_influential_nodes?: Array<{
 					node: string;
@@ -248,7 +432,7 @@ export interface SearchResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
-				fractal_variability?: FractalVariability;
+				network_dynamics?: NetworkDynamics;
 				degree_distribution?: DegreeDistribution;
 				top_influential_nodes?: Array<{
 					node: string;
@@ -271,7 +455,7 @@ export interface KnowledgeGraphOutput {
 	statistics: {
 		modularity: number;
 		diversity_stats?: any;
-		fractal_variability?: FractalVariability;
+		network_dynamics?: NetworkDynamics;
 		degree_distribution?: DegreeDistribution;
 		nodeCount?: number;
 		edgeCount?: number;
@@ -330,7 +514,7 @@ export interface OntologyGraphOutput {
 	statistics?: {
 		modularity: number;
 		diversity_stats?: any;
-		fractal_variability?: FractalVariability;
+		network_dynamics?: NetworkDynamics;
 		degree_distribution?: DegreeDistribution;
 		nodeCount?: number;
 		edgeCount?: number;
@@ -468,7 +652,7 @@ export interface OptimizeTextOutput {
 	topRelations?: string[];
 	topKeywordCombinations?: string[];
 	diversity_stats?: any;
-	fractal_variability?: FractalVariability;
+	network_dynamics?: NetworkDynamics;
 	degree_distribution?: DegreeDistribution;
 	diversityStatistics?: {
 		modularity: string;
