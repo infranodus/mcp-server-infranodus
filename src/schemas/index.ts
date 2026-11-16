@@ -22,7 +22,7 @@ import {
  * metadata. Reused across schemas — zod field instances are immutable.
  */
 /**
- * Opt-in multifractal spectrum inside `fractal_variability`. Shared by the
+ * Opt-in multifractal spectrum inside `network_dynamics.fractal_variability`. Shared by the
  * graph-generation tools whose endpoints (/graphAndStatements,
  * /graphsAndStatements) honor the flag.
  */
@@ -30,7 +30,7 @@ const multifractalField = z
 	.boolean()
 	.default(false)
 	.describe(
-		"Compute the multifractal spectrum (q, h(q), width, label) inside the fractal_variability statistics. Off by default: it adds ~0.5 s per graph. Only meaningful when the graph statistics are returned (includeGraph, fullGraph, addNodesAndEdges, or extractEntitiesOnly); without them the basic fractal_variability block is returned with multifractal: null.",
+		"Compute the multifractal spectrum (q, h(q), width, label) inside the network_dynamics.fractal_variability statistics. Off by default: it adds ~0.5 s per graph. Only meaningful when the graph statistics are returned (includeGraph, fullGraph, addNodesAndEdges, or extractEntitiesOnly); without them the basic network_dynamics block is returned without the spectrum.",
 	);
 
 const statementsField = z
@@ -409,11 +409,17 @@ export const AnalyzeTextSignatureSchemaBase = z.object({
 	statements: statementsField,
 	categories: categoriesField,
 	timestamps: timestampsField,
+	includeExperimental: z
+		.boolean()
+		.default(false)
+		.describe(
+			"Also return the experimental fields of network_dynamics, with their readings: the label and all three DFA exponents (dfa_alpha_global, dfa_alpha1, dfa_alpha2) for every series, the graph radius, step_cv, step_lag1_autocorrelation, cluster_dwell_cv, words_per_sentence_cv, words_per_sentence_lag1_autocorrelation and prose_statements. Off by default: the default response carries the fields that can be interpreted reliably plus the ones still being evaluated. The experimental fields are less stable within a single text; use them for research and comparison across many texts. ai_likeness is computed from all of them either way; this only controls whether they are shown.",
+		),
 	multifractal: z
 		.boolean()
-		.default(true)
+		.default(false)
 		.describe(
-			"Compute the multifractal spectrum of the topic path (adds ~0.5-1 s). On by default here because it feeds the pacing reading and the AI-likeness estimate; set false for speed.",
+			"Compute the multifractal spectrum of each returned DFA series (adds ~0.5-1 s). Off by default: it is a research measure and is unreliable under 512 points.",
 		),
 	maxNodes: z
 		.number()

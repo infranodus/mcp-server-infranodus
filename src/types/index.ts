@@ -108,8 +108,77 @@ export interface FractalScaling {
 	} | null;
 }
 
+/**
+ * One DFA-fitted series inside network_dynamics.fractal_variability. By default
+ * the API returns series_length plus the exponents listed for that series;
+ * with fractalExperimental=true it returns all eight fields.
+ * dfa_alpha_global is fitted over scales 4 to N/4, dfa_alpha1 over 4 to 16,
+ * dfa_alpha2 over 16 to N/4.
+ */
+export interface DfaSeriesBlock {
+	series_length: number;
+	dfa_alpha_global?: number | null;
+	dfa_alpha_global_label?: string | null;
+	dfa_alpha1?: number | null;
+	dfa_alpha1_label?: string | null;
+	dfa_alpha2?: number | null;
+	dfa_alpha2_label?: string | null;
+	multifractal?: FractalScaling["multifractal"];
+}
+
+/**
+ * graph.attributes.network_dynamics: how a text moves through its concept graph
+ * and how its sentences are paced. Present when the graph is built with
+ * statistics. Three kinds of measure, kept apart by name:
+ *
+ *   fractal_variability         DFA scaling exponents, one block per series
+ *   node_graph_path_amplitude   plain statistics of the node path through the
+ *                               graph layout, distances divided by the graph
+ *                               radius (RMS node distance from the centroid)
+ *   sentence_rhythm             plain statistics of sentence length in the
+ *                               source text; no graph involved
+ *
+ * Fields marked optional are returned only with fractalExperimental=true.
+ */
+export interface NetworkDynamics {
+	fractal_variability: {
+		/** distance from the path centroid, on 4-node windows of the node path */
+		ngram4_graph_radial_distance: DfaSeriesBlock | null;
+		/** words per sentence, in reading order; null under 64 sentences */
+		sentence_word_count: DfaSeriesBlock | null;
+		/** sentences found, reported even when sentence_word_count is null */
+		sentence_word_count_series_available: number;
+		/** rank-normalised betweenness of each node, in reading order */
+		node_betweenness_rank: DfaSeriesBlock | null;
+	};
+	node_graph_path_amplitude: {
+		graph_radius_rms?: number | null;
+		steps: number;
+		mean_step_relative_to_graph_radius: number | null;
+		step_cv?: number | null;
+		step_lag1_autocorrelation?: number | null;
+		/** share of steps whose two ends sit in different topic clusters */
+		cross_cluster_step_share: number | null;
+		cluster_dwell_cv?: number | null;
+		mean_radial_distance_relative_to_graph_radius: number | null;
+		radial_distance_cv: number | null;
+	} | null;
+	sentence_rhythm: {
+		/** sentences counted from prose-like statements only (12+ words) */
+		prose_sentences: number;
+		prose_statements?: number;
+		skipped_fragments_under_12_words: number;
+		mean_words_per_sentence: number | null;
+		words_per_sentence_cv?: number | null;
+		words_per_sentence_lag1_autocorrelation?: number | null;
+		share_under_8_words: number | null;
+		share_over_30_words: number | null;
+	};
+}
+
 export interface FractalSeries {
-	byStepLength: FractalScaling | null;
+	/** No longer returned by the backend for any level; optional so older responses parse. */
+	byStepLength?: FractalScaling | null;
 	byRadialDistance: FractalScaling | null;
 }
 
@@ -171,8 +240,18 @@ export interface SentenceRhythm {
 	statements: number;
 }
 
+/**
+ * Internal reading shape. The API returns NetworkDynamics (above); the signature
+ * readers in utils/textSignature.ts convert it to this shape so that their
+ * band logic did not have to be rewritten when the public names changed.
+ */
 export interface FractalVariability {
-	words: FractalSeries;
+	/**
+	 * The backend now fits only ngrams.byRadialDistance. The word level and
+	 * the n-gram step series were removed: with text length controlled for,
+	 * their exponents fall to chance or flip direction between AI groups.
+	 */
+	words?: FractalSeries;
 	ngrams?: FractalSeries;
 	/**
 	 * The statement level was analysed and is gone: it needed 64 statements and
@@ -246,7 +325,7 @@ export interface GraphResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
-				fractal_variability?: FractalVariability;
+				network_dynamics?: NetworkDynamics;
 				degree_distribution?: DegreeDistribution;
 				top_influential_nodes?: Array<{
 					node: string;
@@ -332,7 +411,7 @@ export interface SearchResponse {
 				gaps: GraphGap[];
 				dotGraphByCluster?: any;
 				diversity_stats?: any;
-				fractal_variability?: FractalVariability;
+				network_dynamics?: NetworkDynamics;
 				degree_distribution?: DegreeDistribution;
 				top_influential_nodes?: Array<{
 					node: string;
@@ -355,7 +434,7 @@ export interface KnowledgeGraphOutput {
 	statistics: {
 		modularity: number;
 		diversity_stats?: any;
-		fractal_variability?: FractalVariability;
+		network_dynamics?: NetworkDynamics;
 		degree_distribution?: DegreeDistribution;
 		nodeCount?: number;
 		edgeCount?: number;
@@ -414,7 +493,7 @@ export interface OntologyGraphOutput {
 	statistics?: {
 		modularity: number;
 		diversity_stats?: any;
-		fractal_variability?: FractalVariability;
+		network_dynamics?: NetworkDynamics;
 		degree_distribution?: DegreeDistribution;
 		nodeCount?: number;
 		edgeCount?: number;
@@ -552,7 +631,7 @@ export interface OptimizeTextOutput {
 	topRelations?: string[];
 	topKeywordCombinations?: string[];
 	diversity_stats?: any;
-	fractal_variability?: FractalVariability;
+	network_dynamics?: NetworkDynamics;
 	degree_distribution?: DegreeDistribution;
 	diversityStatistics?: {
 		modularity: string;

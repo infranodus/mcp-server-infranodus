@@ -1,13 +1,13 @@
 /**
  * Text signature: the structural and rhythmic profile of a text, built from
  * the graph statistics the backend already returns (diversity_stats,
- * fractal_variability) plus what this module derives from the raw graph —
+ * network_dynamics) plus what this module derives from the raw graph —
  * the amplitude of the text's movement through its own concept network
  * (mean step, burstiness, cluster crossings) and the classic sentence-length
  * rhythm of the source text.
  *
  * Every number gets a one-sentence plain-language reading, the readings are
- * combined into a named signature (structure x rhythm), and a final layer
+ * combined into a named signature (structure x movement), and a final layer
  * weighs the rhythm evidence into a hedged AI-likeness estimate. The
  * thresholds are provisional: they come from the DFA literature and from the
  * backend's own reading table (infranodus-backend/docs/fractal-variability.md),
@@ -19,8 +19,10 @@ import type {
 	DegreeDistribution,
 	FractalScaling,
 	FractalSeries,
+	DfaSeriesBlock,
 	FractalVariability,
 	SentenceRhythm,
+	NetworkDynamics,
 } from "../types/index.js";
 
 // Re-exported so existing importers of these shapes keep working now that
@@ -35,7 +37,7 @@ import { trimDegreeDistribution } from "./transformers.js";
 // Amplitude and sentence rhythm used to be computed here, from a path
 // rebuilt out of the raw graph and statements. That is why this server asked
 // for uncompacted graphs and statements. The backend now computes both
-// alongside the fractal exponents and ships them inside fractal_variability
+// alongside the fractal exponents and ships them inside network_dynamics
 // (see infranodus-backend/src/graph/fractalVariability.js), so this file only
 // reads them. The shapes live in ../types.
 
@@ -178,7 +180,7 @@ export interface SentenceScalingSummary {
 	};
 }
 
-/** Summary of the backend's DFA on the sentence-length series (fractal_variability.sentenceLength.byWords). */
+/** Summary of the backend's DFA on the sentence-length series (network_dynamics.fractal_variability.sentence_word_count; internally sentenceLength.byWords). */
 export function summariseSentenceScaling(
 	fractal: FractalVariability | null | undefined,
 ): SentenceScalingSummary | null {
@@ -398,57 +400,103 @@ export function readStructure(stats: DiversityStats | null | undefined): Record<
 }
 
 // ---------------------------------------------------------------------------
-// Composite signature: structure x rhythm
+// Composite signature: structure x movement
 // ---------------------------------------------------------------------------
 
 type Structure = "biased" | "focused" | "diversified" | "dispersed";
-type GridRhythm = "alternating" | "random" | "fractal" | "blocks";
+type Movement = "close" | "steady" | "leaping";
 
-const SIGNATURE_GRID: Record<Structure, Record<GridRhythm, string>> = {
-	biased: { alternating: "back-and-forth", random: "boilerplate", fractal: "deep dive", blocks: "monologue" },
-	focused: { alternating: "comparison", random: "report", fractal: "essay", blocks: "treatise" },
-	diversified: { alternating: "dialogue", random: "digest", fractal: "narrative", blocks: "anthology" },
-	dispersed: { alternating: "ping-pong", random: "notes", fractal: "stream of consciousness", blocks: "drift" },
+/*
+  The signature names a kind of text from two things: how its topics are
+  distributed (the diversity score) and how far it travels between consecutive
+  ideas (the mean step of the node path through the graph).
+
+  The second axis used to be the DFA exponent of the word step series. That
+  series is no longer returned: the two halves of one text agreed on its band
+  no better than chance (60 of 109 against 58), so the label it produced was
+  close to arbitrary. The mean step is the most stable measure in
+  network_dynamics within a text.
+
+  It also rises with text length alone, so it is judged against what a text of
+  that length is expected to show. Reference curve and cut points come from
+  115 texts graphed at 150 nodes (paths of 51 to 1714 steps) in November 2026:
+
+      expected mean step = -0.0697 + 0.1353 * ln(steps)
+      close   more than 0.0276 below the expected value
+      leaping more than 0.0293 above it
+      steady  in between
+
+  which splits that corpus into thirds (38 / 39 / 38). Judged this way the two
+  halves of a text land in the same band for 61 of 115 texts, against 38 by
+  chance: well above chance, and far from perfect. It is a first calibration
+  from one author's writing plus two sets of AI-written text.
+*/
+const MOVEMENT_REFERENCE = { intercept: -0.0697, slope: 0.1353, close: -0.0276, leaping: 0.0293, minSteps: 50 };
+
+const SIGNATURE_GRID: Record<Structure, Record<Movement, string>> = {
+	biased: { close: "deep dive", steady: "monologue", leaping: "back-and-forth" },
+	focused: { close: "treatise", steady: "essay", leaping: "comparison" },
+	diversified: { close: "anthology", steady: "narrative", leaping: "digest" },
+	dispersed: { close: "drift", steady: "stream of consciousness", leaping: "notes" },
+};
+
+const STRUCTURE_VALUES: Record<Structure, string> = {
+	biased: "One topical cluster or node dominates the network.",
+	focused: "A main topical cluster or node with a few supporting ones.",
+	diversified: "Several topical clusters of comparable weight.",
+	dispersed: "Many loosely connected fragments with no clear centre.",
+};
+
+const MOVEMENT_VALUES: Record<Movement, string> = {
+	close: "Consecutive ideas sit near each other in the network: a point is developed before moving on.",
+	steady: "Consecutive ideas are a typical distance apart for a network of this size.",
+	leaping: "Consecutive ideas are far apart in the network: the path jumps across its topical clusters.",
 };
 
 const SIGNATURE_SUMMARIES: Record<string, string> = {
-	"back-and-forth": "one topic, argued from alternating sides",
-	boilerplate: "one topic, listed rather than developed",
-	"deep dive": "one theme, developed in layers that keep returning to it",
-	monologue: "one theme, pursued in a straight line without return",
-	comparison: "a main topic examined by alternating between its facets",
-	report: "a main topic with its points listed one after another",
-	essay: "an argument that circles its core and returns to it at every scale",
-	treatise: "a main topic worked through in sections, each closed before the next",
-	dialogue: "several topics taken in turns, as in a conversation",
-	digest: "several topics with no path between them: a thread or a compilation",
-	narrative: "several topics woven together and revisited at every scale",
-	anthology: "several topics treated one after another in separate blocks",
-	"ping-pong": "scattered fragments that alternate without settling",
-	notes: "scattered fragments with no thread: a scratchpad",
-	"stream of consciousness": "scattered fragments that nonetheless return to each other",
-	drift: "scattered fragments that wander off and do not come back",
+	"deep dive": "one theme, developed by staying close to it",
+	monologue: "one theme, pursued at a steady pace",
+	"back-and-forth": "one theme, approached from distant angles in turn",
+	treatise: "a main topic worked through closely, one neighbouring point after another",
+	essay: "a main topic developed at a steady pace, moving out and back",
+	comparison: "a main topic examined by jumping between its facets",
+	anthology: "several topics, each developed in its own place",
+	narrative: "several topics connected by steady movement between them",
+	digest: "several topics visited in quick jumps: a thread or a compilation",
+	drift: "scattered fragments that move in small steps without a centre",
+	"stream of consciousness": "scattered fragments linked by steady movement",
+	notes: "scattered fragments with large jumps between them: a scratchpad",
 };
 
 export interface Signature {
 	label: string | null;
 	structure: Structure | null;
-	rhythm: GridRhythm | null;
-	/** which fractal level the rhythm was read from */
-	rhythmSource: "statements" | "words" | null;
+	/** every value `structure` can take, with what each means */
+	structure_possible_values: Record<Structure, string>;
+	/** how far the text travels between consecutive ideas, judged against texts of its length */
+	movement: Movement | null;
+	/** every value `movement` can take, with what each means */
+	movement_possible_values: Record<Movement, string>;
+	/** every value `label` can take, as structure x movement */
+	label_possible_values: Record<Structure, Record<Movement, string>>;
+	/** the field the movement was read from */
+	movementSource: "network_dynamics.node_graph_path_amplitude.mean_step_relative_to_graph_radius" | null;
+	/** the mean step a text of this length is expected to show, for comparison with the measured one */
+	expectedMeanStep: number | null;
 	summary: string | null;
 }
 
-/** The headline series: statements when long enough, else words (never ngrams). */
-export function headlineSeries(fractal: FractalVariability | null | undefined): {
-	level: "statements" | "words" | null;
-	series: FractalScaling | null;
-} {
-	if (fractal?.statements?.byStepLength && confidenceFor(fractal.statements.byStepLength.n) !== "indicative")
-		return { level: "statements", series: fractal.statements.byStepLength };
-	if (fractal?.words?.byStepLength) return { level: "words", series: fractal.words.byStepLength };
-	if (fractal?.statements?.byStepLength) return { level: "statements", series: fractal.statements.byStepLength };
-	return { level: null, series: null };
+export function movementBand(
+	meanStep: number | null | undefined,
+	steps: number | null | undefined,
+): { movement: Movement | null; expected: number | null } {
+	if (meanStep == null || steps == null || !Number.isFinite(meanStep) || steps < MOVEMENT_REFERENCE.minSteps)
+		return { movement: null, expected: null };
+	const expected = MOVEMENT_REFERENCE.intercept + MOVEMENT_REFERENCE.slope * Math.log(steps);
+	const difference = meanStep - expected;
+	const movement: Movement =
+		difference < MOVEMENT_REFERENCE.close ? "close" : difference > MOVEMENT_REFERENCE.leaping ? "leaping" : "steady";
+	return { movement, expected: Number(expected.toFixed(3)) };
 }
 
 export function composeSignature(
@@ -457,15 +505,18 @@ export function composeSignature(
 ): Signature {
 	const score = diversity?.diversity_score?.toLowerCase();
 	const structure = (score && score in SIGNATURE_GRID ? score : null) as Structure | null;
-	const { level, series } = headlineSeries(fractal);
-	const band = rhythmBand(series?.alphaBounded);
-	const rhythm: GridRhythm | null = band === "persistent" ? "fractal" : band;
-	const label = structure && rhythm ? SIGNATURE_GRID[structure][rhythm] : null;
+	const words = fractal?.amplitude?.words;
+	const { movement, expected } = movementBand(words?.meanStep, words?.n);
+	const label = structure && movement ? SIGNATURE_GRID[structure][movement] : null;
 	return {
 		label,
 		structure,
-		rhythm,
-		rhythmSource: level,
+		structure_possible_values: STRUCTURE_VALUES,
+		movement,
+		movement_possible_values: MOVEMENT_VALUES,
+		label_possible_values: SIGNATURE_GRID,
+		movementSource: movement ? "network_dynamics.node_graph_path_amplitude.mean_step_relative_to_graph_radius" : null,
+		expectedMeanStep: expected,
 		summary: label ? SIGNATURE_SUMMARIES[label] : null,
 	};
 }
@@ -484,7 +535,9 @@ export interface Evidence {
 }
 
 export interface AiLikeness {
-	verdict: "leans generated" | "leans human" | "inconclusive";
+	verdict: "leaning AI" | "leaning human" | "mixed";
+	/** why: the pacing the verdict was read from (evenly paced, variably paced, or inconclusive) */
+	verdict_explanation: string;
 	/** -1 (human-like) to +1 (generated-like) */
 	score: number | null;
 	confidence: "low" | "medium";
@@ -635,12 +688,21 @@ export function estimateAiLikeness(input: {
 	const score = totalWeight > 0 ? round(evidence.reduce((sum, e) => sum + e.weight * e.direction, 0) / totalWeight, 2) : null;
 	const enough = evidence.length >= 3 && sentenceRhythm.sentences >= 30;
 	const verdict: AiLikeness["verdict"] =
-		score == null || !enough ? "inconclusive" : score >= 0.25 ? "leans generated" : score <= -0.25 ? "leans human" : "inconclusive";
+		score == null || !enough ? "mixed" : score >= 0.25 ? "leaning AI" : score <= -0.25 ? "leaning human" : "mixed";
+	const verdict_explanation =
+		score == null || !enough
+			? "Inconclusive: too little text or too few signals to read the pacing."
+			: score >= 0.25
+				? "Evenly paced: sentence lengths and moves between ideas are uniform, which is more common in generated text."
+				: score <= -0.25
+					? "Variably paced: sentence lengths and moves between ideas vary, which is more common in human writing."
+					: "Inconclusive: the pacing signals point in different directions.";
 	// Medium confidence only for a clear-cut profile with several agreeing
 	// signals; anything near the middle stays low.
 	const clearCut = score != null && Math.abs(score) >= 0.5;
 	return {
 		verdict,
+		verdict_explanation,
 		score,
 		confidence: enough && clearCut && evidence.length >= 4 ? "medium" : "low",
 		evidence,
@@ -662,46 +724,412 @@ export interface TextSignatureOutput {
 		readings: Record<string, string | null> | null;
 		degreeReadings: Record<string, string | null> | null;
 	};
-	rhythm: {
-		fractal_variability: FractalVariability | null;
-		readings: {
-			words: LevelReadings | null;
-			ngrams: LevelReadings | null;
-			/** the influence level, read on the betweenness-rank series; null under 64 words or on older backends */
-			influence: InfluenceReadings | null;
-		};
-	};
-	amplitude: Amplitude & {
-		readings: { words: Record<string, string | null> | null };
-	};
-	sentence_rhythm: SentenceRhythm & {
-		readings: Record<string, string | null>;
-		/** the backend's DFA on the sentence-length series; null under 64 sentences or on older backends */
-		scaling: SentenceScalingSummary | null;
-	};
+	/** the numbers, exactly as the API returns them, under their public names */
+	network_dynamics: NetworkDynamics | null;
+	/**
+	 * One plain sentence per measure, keyed exactly like network_dynamics, with a
+	 * `reliability` per DFA series and a `note` per block stating what limits
+	 * the reading. See interpretNetworkDynamics.
+	 */
+	readings: NetworkDynamicsReadings | null;
 	ai_likeness: AiLikeness;
 	notes: string[];
 }
 
 const NOTES = [
-	"Fractal levels are not comparable with each other: the word level reads lowest and the n-gram level higher by construction. Compare a level only with the same level of another text.",
-	"Amplitude is in units of the graph radius (RMS distance of the nodes from their centroid), so it is comparable across texts of different size.",
-	"sentence_rhythm counts prose statements only (fragments skipped); sentence_rhythm.scaling is the backend's DFA over every sentence of the text and says nothing about topics, only about pace. It degenerates on scripts written without spaces.",
+	"network_dynamics has three kinds of measure: fractal_variability holds DFA scaling exponents (dfa_alpha_global over scales 4 to N/4, dfa_alpha1 over 4 to 16, dfa_alpha2 over 16 to N/4); node_graph_path_amplitude and sentence_rhythm hold plain statistics, not fits.",
+	"Compare a DFA series only with the same series of another text of similar length: several of these measures change with text length alone.",
+	"node_graph_path_amplitude distances are divided by the graph radius (RMS distance of the nodes from their centroid), so they are comparable across graphs of different size.",
+	"sentence_rhythm counts prose statements only (fragments under 12 words are skipped); fractal_variability.sentence_word_count is a DFA over every sentence of the text, needs 64 sentences, and degenerates on scripts written without spaces.",
 	"structure.degree_distribution describes how concentrated connectivity is in the whole network before the node cap. Its gini and tail exponent are descriptors, never a scale-free or power-law finding: word networks are heavy-tailed for any text.",
-	"rhythm.readings.influence is read on the betweenness-rank series; the raw byBetweenness alpha is biased upward by hub spikes.",
+	"These measures describe how a text is built. They are not an AI detector: on held-out AI-written texts a composite of them caught one in four at the false-positive rate where a commercial detector caught three.",
 ];
+
+// ---------------------------------------------------------------------------
+// From the API's public names to the internal reading shape
+// ---------------------------------------------------------------------------
+
+const toScaling = (block: DfaSeriesBlock | null | undefined): FractalScaling | null =>
+	block
+		? ({
+				n: block.series_length,
+				alphaBounded: block.dfa_alpha_global ?? null,
+				alphaLabel: block.dfa_alpha_global_label ?? null,
+				alpha1: block.dfa_alpha1 ?? null,
+				alpha1Label: block.dfa_alpha1_label ?? null,
+				alpha2: block.dfa_alpha2 ?? null,
+				alpha2Label: block.dfa_alpha2_label ?? null,
+				multifractal: block.multifractal ?? null,
+			} as unknown as FractalScaling)
+		: null;
+
+/** network_dynamics, as returned by the API, in the shape the readers below were written for. */
+export function toReadingShape(dynamics: NetworkDynamics | null | undefined): FractalVariability | null {
+	if (!dynamics) return null;
+	const fv = dynamics.fractal_variability;
+	const amp = dynamics.node_graph_path_amplitude;
+	const rhythm = dynamics.sentence_rhythm;
+	return {
+		ngrams: { byRadialDistance: toScaling(fv?.ngram4_graph_radial_distance) },
+		sentenceLength: {
+			sentences: fv?.sentence_word_count_series_available ?? 0,
+			byWords: toScaling(fv?.sentence_word_count),
+		},
+		influence: { byBetweennessRank: toScaling(fv?.node_betweenness_rank) } as FractalVariability["influence"],
+		amplitude: {
+			graphRadius: amp?.graph_radius_rms ?? null,
+			words: amp
+				? {
+						n: amp.steps,
+						meanStep: amp.mean_step_relative_to_graph_radius ?? null,
+						cvStep: amp.step_cv ?? null,
+						lag1Autocorrelation: amp.step_lag1_autocorrelation ?? null,
+						crossClusterShare: amp.cross_cluster_step_share ?? null,
+						crossClusterRunCV: amp.cluster_dwell_cv ?? null,
+						meanRadial: amp.mean_radial_distance_relative_to_graph_radius ?? null,
+						cvRadial: amp.radial_distance_cv ?? null,
+					}
+				: null,
+		},
+		sentenceRhythm: rhythm
+			? {
+					sentences: rhythm.prose_sentences ?? 0,
+					skippedFragments: rhythm.skipped_fragments_under_12_words ?? 0,
+					meanLength: rhythm.mean_words_per_sentence ?? null,
+					cvLength: rhythm.words_per_sentence_cv ?? null,
+					lag1Autocorrelation: rhythm.words_per_sentence_lag1_autocorrelation ?? null,
+					shortShare: rhythm.share_under_8_words ?? null,
+					longShare: rhythm.share_over_30_words ?? null,
+					statements: rhythm.prose_statements ?? 0,
+				}
+			: undefined,
+	};
+}
+
+// Readers key their sentences by internal names; the output keys them like network_dynamics.
+const rekey = (
+	readings: Record<string, string | null> | null | undefined,
+	names: Record<string, string>,
+): Record<string, string | null> | null => {
+	if (!readings) return null;
+	const out: Record<string, string | null> = {};
+	for (const [key, value] of Object.entries(readings)) out[names[key] ?? key] = value;
+	return out;
+};
+
+const AMPLITUDE_NAMES: Record<string, string> = {
+	meanStep: "mean_step_relative_to_graph_radius",
+	cvStep: "step_cv",
+	lag1Autocorrelation: "step_lag1_autocorrelation",
+	crossClusterShare: "cross_cluster_step_share",
+	crossClusterRunCV: "cluster_dwell_cv",
+	cvRadial: "radial_distance_cv",
+};
+
+const RHYTHM_NAMES: Record<string, string> = {
+	cvLength: "words_per_sentence_cv",
+	shortShare: "share_under_8_words",
+	lag1Autocorrelation: "words_per_sentence_lag1_autocorrelation",
+};
+
+// ---------------------------------------------------------------------------
+// Interpretation of network_dynamics, field by field
+// ---------------------------------------------------------------------------
+
+export type Reading = Record<string, string | null>;
+
+export interface NetworkDynamicsReadings {
+	about: string;
+	fractal_variability: {
+		ngram4_graph_radial_distance: Reading | null;
+		sentence_word_count: Reading | null;
+		node_betweenness_rank: Reading | null;
+	};
+	node_graph_path_amplitude: Reading | null;
+	sentence_rhythm: Reading;
+}
+
+/*
+  Where a value sits is judged against the lower and upper third of a
+  reference corpus: 115 texts (100 pages and posts by one author, 15
+  AI-written texts) graphed at 150 nodes in November 2026. The cut points are
+  a starting calibration from that corpus, not population norms, and each
+  readings state only the value and what it means: the comparison set is an
+  internal calibration and is not mentioned to the reader.
+
+  The notes carry what the same study found about each measure: which ones
+  change with text length alone, which are stable within a text, and that none
+  of them is a detector. Evidence and figures:
+  infranodus-backend/docs/fractal-fields-table.md.
+*/
+const THIRDS: Record<string, [number, number]> = {
+	"ngram4.dfa_alpha_global": [0.785, 0.875],
+	"ngram4.dfa_alpha2": [0.63, 0.75],
+	"sentence.dfa_alpha_global": [0.63, 0.745],
+	"sentence.dfa_alpha1": [0.61, 0.73],
+	"betweenness.dfa_alpha1": [0.565, 0.6],
+	mean_step: [0.72, 0.85],
+	cross_cluster: [0.35, 0.45],
+	mean_radial: [0.89, 0.915],
+	radial_cv: [0.24, 0.275],
+	mean_words: [17.5, 21],
+	short_share: [0.05, 0.14],
+	long_share: [0.085, 0.16],
+};
+
+const third = (key: string, value: number | null | undefined): "low" | "mid" | "high" | null => {
+	if (value == null || !Number.isFinite(value)) return null;
+	const [lo, hi] = THIRDS[key];
+	return value < lo ? "low" : value > hi ? "high" : "mid";
+};
+
+const say = (
+	key: string,
+	value: number | null | undefined,
+	shown: string,
+	texts: { low: string; mid: string; high: string },
+): string | null => {
+	const band = third(key, value);
+	return band ? `${shown}: ${texts[band]}` : null;
+};
+
+const RELIABILITY: Record<Confidence, string> = {
+	none: "Under 64 points: the exponents are not meaningful.",
+	indicative: "64 to 127 points: a rough indication only.",
+	usable: "128 to 255 points: usable, with noticeable noise.",
+	reliable: "256 points or more: as reliable as this measure gets for a single text.",
+};
+
+const pct = (value: number) => `${Math.round(value * 100)}%`;
+
+const MEAN_STEP_TEXTS = {
+	low: "consecutive nodes sit close together for a text of this length, so the text stays in one neighbourhood of the graph.",
+	mid: "the text moves a typical distance between consecutive nodes for a text of this length.",
+	high: "the text jumps far across the graph between consecutive nodes for a text of this length.",
+};
+
+function readMeanStep(meanStep: number | null | undefined, steps: number | null | undefined): string | null {
+	if (meanStep == null || !Number.isFinite(meanStep)) return null;
+	const { movement } = movementBand(meanStep, steps);
+	const band = movement === "close" ? "low" : movement === "leaping" ? "high" : movement === "steady" ? "mid" : third("mean_step", meanStep);
+	return band ? `Mean step ${meanStep} graph radii: ${MEAN_STEP_TEXTS[band]}` : null;
+}
+
+export function interpretNetworkDynamics(dynamics: NetworkDynamics | null | undefined): NetworkDynamicsReadings | null {
+	if (!dynamics) return null;
+	const fv = dynamics.fractal_variability;
+	const amp = dynamics.node_graph_path_amplitude;
+	const rhythm = dynamics.sentence_rhythm;
+
+	const radial = fv?.ngram4_graph_radial_distance;
+	const sentence = fv?.sentence_word_count;
+	const rank = fv?.node_betweenness_rank;
+
+	return {
+		about:
+			"One sentence per measure, saying what the value means for this text. The measures describe how a text is built. They are not an AI detector and should not be reported as one.",
+		fractal_variability: {
+			ngram4_graph_radial_distance: radial
+				? {
+						reliability: RELIABILITY[confidenceFor(radial.series_length)],
+						dfa_alpha_global: say("ngram4.dfa_alpha_global", radial.dfa_alpha_global, `dfa_alpha_global ${radial.dfa_alpha_global}`, {
+							low: "the text's distance from its central theme changes with little memory, so it makes few sustained excursions.",
+							mid: "the text moves away from its central theme and back with moderate persistence.",
+							high: "the text makes long excursions away from its central theme and returns, and that pattern repeats across scales.",
+						}),
+						dfa_alpha2: say("ngram4.dfa_alpha2", radial.dfa_alpha2, `dfa_alpha2 ${radial.dfa_alpha2}`, {
+							low: "over long stretches the drift from the central theme is close to random.",
+							mid: "over long stretches the drift from the central theme is moderately persistent.",
+							high: "over long stretches the text keeps drifting in one direction before it returns.",
+						}),
+						note: "dfa_alpha_global falls as texts get longer, so compare it only with texts of similar length. dfa_alpha2 does not depend on length, but it can differ between the first and second half of the same text.",
+					}
+				: null,
+			sentence_word_count: sentence
+				? {
+						reliability: RELIABILITY[confidenceFor(sentence.series_length)],
+						dfa_alpha_global: say("sentence.dfa_alpha_global", sentence.dfa_alpha_global, `dfa_alpha_global ${sentence.dfa_alpha_global}`, {
+							low: "sentence length resets often, so long and short sentences do not cluster over long stretches.",
+							mid: "sentence length is moderately persistent.",
+							high: "sentence length is persistent: stretches of long sentences and stretches of short ones, at every scale.",
+						}),
+						dfa_alpha1: say("sentence.dfa_alpha1", sentence.dfa_alpha1, `dfa_alpha1 ${sentence.dfa_alpha1}`, {
+							low: "from one sentence to the next few, length is close to unpatterned.",
+							mid: "neighbouring sentences are moderately alike in length.",
+							high: "neighbouring sentences tend to be alike in length.",
+						}),
+						note: "Human-written texts tend to read higher (around 0.73) than AI-written ones (around 0.62). It needs at least 64 sentences, and for a single text the value is noisy, so treat it as a tendency.",
+					}
+				: fv
+					? {
+							reliability: `The text has ${fv.sentence_word_count_series_available} sentence(s), under the 64 needed, so no exponent was fitted.`,
+						}
+					: null,
+			node_betweenness_rank: rank
+				? {
+						reliability: RELIABILITY[confidenceFor(rank.series_length)],
+						dfa_alpha1: say("betweenness.dfa_alpha1", rank.dfa_alpha1, `dfa_alpha1 ${rank.dfa_alpha1}`, {
+							low: "central and peripheral concepts follow each other with little pattern at short range.",
+							mid: "central concepts recur with a weak short-range pattern.",
+							high: "central concepts come in bursts: stretches dense with hub concepts alternate with peripheral ones.",
+						}),
+						note: "A weak signal: it can differ between the first and second half of the same text, so treat it as a hint, not a firm description.",
+					}
+				: null,
+		},
+		node_graph_path_amplitude: amp
+			? {
+					// Judged against a path of the same length, exactly as the
+					// signature's movement is, so the two never disagree. The
+					// fixed cut points are the fallback for a path under 50 steps.
+					mean_step_relative_to_graph_radius: readMeanStep(amp.mean_step_relative_to_graph_radius, amp.steps),
+					cross_cluster_step_share:
+						amp.cross_cluster_step_share == null
+							? null
+							: say("cross_cluster", amp.cross_cluster_step_share, `${pct(amp.cross_cluster_step_share)} of steps cross into another topic cluster`, {
+									low: "the text settles inside a topic before moving on.",
+									mid: "the text changes topic at a moderate rate.",
+									high: "the text switches topic often.",
+								}),
+					mean_radial_distance_relative_to_graph_radius: say(
+						"mean_radial",
+						amp.mean_radial_distance_relative_to_graph_radius,
+						`Mean distance from the centre ${amp.mean_radial_distance_relative_to_graph_radius} graph radii`,
+						{
+							low: "the text keeps passing through its central concepts.",
+							mid: "the text sits at a typical distance from its central concepts.",
+							high: "the text spends its time in the periphery of the graph.",
+						},
+					),
+					radial_distance_cv: say("radial_cv", amp.radial_distance_cv, `Distance variation ${amp.radial_distance_cv}`, {
+						low: "the text keeps a steady distance from its centre.",
+						mid: "the text moves between its core and its edges to a moderate degree.",
+						high: "the text swings between its core and its edges.",
+					}),
+					note: "Mean step is read against what a text of this length usually shows. Cross-cluster share is not adjusted and rises with text length alone, so compare it with texts of similar length.",
+				}
+			: null,
+		sentence_rhythm: {
+			mean_words_per_sentence: say("mean_words", rhythm?.mean_words_per_sentence, `${rhythm?.mean_words_per_sentence} words per sentence on average`, {
+				low: "short sentences.",
+				mid: "sentences of typical length.",
+				high: "long sentences.",
+			}),
+			share_under_8_words:
+				rhythm?.share_under_8_words == null
+					? null
+					: say("short_share", rhythm.share_under_8_words, `${pct(rhythm.share_under_8_words)} of sentences are under 8 words`, {
+							low: "almost no short sentences.",
+							mid: "some short sentences.",
+							high: "many short, declarative sentences.",
+						}),
+			share_over_30_words:
+				rhythm?.share_over_30_words == null
+					? null
+					: say("long_share", rhythm.share_over_30_words, `${pct(rhythm.share_over_30_words)} of sentences are over 30 words`, {
+							low: "few long sentences.",
+							mid: "some long sentences.",
+							high: "many sentences are allowed to run long.",
+						}),
+			coverage: rhythm
+				? `${rhythm.prose_sentences} sentences were measured; ${rhythm.skipped_fragments_under_12_words} statements under 12 words (headings, list items, captions) were left out.`
+				: null,
+			note: "Sentence measures are stable within a text and separate kinds of text, so they describe a prose style. They reflect the habits of a source, and on their own they are not evidence of AI authorship.",
+		},
+	};
+}
+
+// Fields that only arrive with fractalExperimental keep the sentences the
+// older readers wrote for them, added without overwriting the ones above.
+function withExperimentalReadings(
+	readings: NetworkDynamicsReadings | null,
+	extra: {
+		radialScales: string | null;
+		radialSpectrum: string | null;
+		sentenceScales: string | null;
+		sentenceSpectrum: string | null;
+		rankScales: string | null;
+		rankSpectrum: string | null;
+		amplitude: Reading | null;
+		rhythm: Reading | null;
+	},
+): NetworkDynamicsReadings | null {
+	if (!readings) return null;
+	const add = (target: Reading | null, values: Reading) => {
+		if (!target) return;
+		for (const [key, value] of Object.entries(values)) if (value != null && target[key] == null) target[key] = value;
+	};
+	const fv = readings.fractal_variability;
+	add(fv.ngram4_graph_radial_distance, { short_versus_long_scales: extra.radialScales, multifractal: extra.radialSpectrum });
+	add(fv.sentence_word_count, { short_versus_long_scales: extra.sentenceScales, multifractal: extra.sentenceSpectrum });
+	add(fv.node_betweenness_rank, { short_versus_long_scales: extra.rankScales, multifractal: extra.rankSpectrum });
+	const only = (values: Reading | null, keys: string[]): Reading =>
+		Object.fromEntries(keys.map((key) => [key, values?.[key] ?? null]));
+	add(readings.node_graph_path_amplitude, only(extra.amplitude, ["step_cv", "step_lag1_autocorrelation", "cluster_dwell_cv"]));
+	add(readings.sentence_rhythm, only(extra.rhythm, ["words_per_sentence_cv", "words_per_sentence_lag1_autocorrelation"]));
+	return readings;
+}
+
+// The default set of network_dynamics fields, mirroring the backend's default
+// response (infranodus-backend/src/graph/fractalVariability.js). The tool
+// always fetches the full object, because ai_likeness needs the experimental
+// measures to have enough evidence, and shows only this set unless asked.
+const pickFields = <T extends object>(object: T | null | undefined, keys: string[]): T | null =>
+	object ? (Object.fromEntries(keys.filter((k) => k in object).map((k) => [k, (object as any)[k]])) as T) : null;
+
+export function toDefaultFields(dynamics: NetworkDynamics | null): NetworkDynamics | null {
+	if (!dynamics) return null;
+	const fv = dynamics.fractal_variability;
+	return {
+		fractal_variability: {
+			ngram4_graph_radial_distance: pickFields(fv?.ngram4_graph_radial_distance, ["series_length", "dfa_alpha_global", "dfa_alpha2"]),
+			sentence_word_count: pickFields(fv?.sentence_word_count, ["series_length", "dfa_alpha_global", "dfa_alpha1"]),
+			sentence_word_count_series_available: fv?.sentence_word_count_series_available ?? 0,
+			node_betweenness_rank: pickFields(fv?.node_betweenness_rank, ["series_length", "dfa_alpha1"]),
+		},
+		node_graph_path_amplitude: pickFields(dynamics.node_graph_path_amplitude, [
+			"steps",
+			"mean_step_relative_to_graph_radius",
+			"cross_cluster_step_share",
+			"mean_radial_distance_relative_to_graph_radius",
+			"radial_distance_cv",
+		]),
+		sentence_rhythm: pickFields(dynamics.sentence_rhythm, [
+			"prose_sentences",
+			"skipped_fragments_under_12_words",
+			"mean_words_per_sentence",
+			"share_under_8_words",
+			"share_over_30_words",
+		]) as NetworkDynamics["sentence_rhythm"],
+	};
+}
 
 export function buildTextSignature(input: {
 	modularity: number | null | undefined;
 	diversity: DiversityStats | null | undefined;
-	fractal: FractalVariability | null | undefined;
+	networkDynamics: NetworkDynamics | null | undefined;
 	degreeDistribution?: DegreeDistribution | null;
+	/** show the experimental fields and their readings too; ai_likeness uses them either way */
+	includeExperimental?: boolean;
 }): TextSignatureOutput {
-	const fractal = input.fractal ?? null;
+	const everything = input.networkDynamics ?? null;
+	// ai_likeness and the signature are computed from everything the API sent
+	const full = toReadingShape(everything);
+	// what is shown, and read out, is the default set unless asked otherwise
+	const networkDynamics = input.includeExperimental ? everything : toDefaultFields(everything);
+	const fractal = toReadingShape(networkDynamics);
 	const diversity = input.diversity ?? null;
 	const degreeDistribution = input.degreeDistribution ? trimDegreeDistribution(input.degreeDistribution) : null;
-	// Both blocks arrive inside fractal_variability; this server no longer
-	// rebuilds the path to compute them.
+	const emptyRhythm: SentenceRhythm = {
+		sentences: 0,
+		skippedFragments: 0,
+		meanLength: null,
+		cvLength: null,
+		lag1Autocorrelation: null,
+		shortShare: null,
+		longShare: null,
+		statements: 0,
+	};
 	const amplitude: Amplitude = fractal?.amplitude ?? { graphRadius: null, words: null };
 	const sentenceRhythm: SentenceRhythm = fractal?.sentenceRhythm ?? {
 		sentences: 0,
@@ -713,8 +1141,11 @@ export function buildTextSignature(input: {
 		longShare: null,
 		statements: 0,
 	};
+	const radial = fractal?.ngrams?.byRadialDistance ?? null;
+	const sentence = summariseSentenceScaling(fractal);
+	const influence = readInfluence(fractal);
 	return {
-		signature: composeSignature(diversity, fractal),
+		signature: composeSignature(diversity, full),
 		structure: {
 			modularity: input.modularity ?? null,
 			diversity_stats: diversity,
@@ -722,24 +1153,22 @@ export function buildTextSignature(input: {
 			readings: readStructure(diversity),
 			degreeReadings: readDegreeDistribution(degreeDistribution),
 		},
-		rhythm: {
-			fractal_variability: fractal,
-			readings: {
-				words: readLevel(fractal?.words),
-				ngrams: readLevel(fractal?.ngrams),
-				influence: readInfluence(fractal),
-			},
-		},
-		amplitude: {
-			...amplitude,
-			readings: { words: readAmplitude(amplitude.words) },
-		},
-		sentence_rhythm: {
-			...sentenceRhythm,
-			readings: readSentenceRhythm(sentenceRhythm),
-			scaling: summariseSentenceScaling(fractal),
-		},
-		ai_likeness: estimateAiLikeness({ sentenceRhythm, amplitude, fractal }),
+		network_dynamics: networkDynamics,
+		readings: withExperimentalReadings(interpretNetworkDynamics(networkDynamics), {
+			radialScales: radial ? readScales(radial) : null,
+			radialSpectrum: radial ? readMultifractal(radial) : null,
+			sentenceScales: sentence?.readings.scales ?? null,
+			sentenceSpectrum: sentence?.readings.multifractal ?? null,
+			rankScales: influence?.scales ?? null,
+			rankSpectrum: influence?.multifractal ?? null,
+			amplitude: rekey(readAmplitude(amplitude.words), AMPLITUDE_NAMES),
+			rhythm: rekey(readSentenceRhythm(sentenceRhythm), RHYTHM_NAMES),
+		}),
+		ai_likeness: estimateAiLikeness({
+			sentenceRhythm: full?.sentenceRhythm ?? emptyRhythm,
+			amplitude: full?.amplitude ?? { graphRadius: null, words: null },
+			fractal: full,
+		}),
 		notes: NOTES,
 	};
 }
