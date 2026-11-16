@@ -182,7 +182,14 @@ export interface FractalVariability {
 	 */
 	amplitude?: Amplitude;
 	sentenceRhythm?: SentenceRhythm;
-	sentenceLength?: { byWords: FractalScaling | null };
+	/**
+	 * DFA over the sequence of sentence lengths. `sentences` is the series
+	 * length and is always present; `byWords` is null under 64 sentences,
+	 * which is about half of normal prose. Read the exponent against texts of
+	 * similar length: the measure survives a length control but its
+	 * availability does not.
+	 */
+	sentenceLength?: { sentences: number; byWords: FractalScaling | null };
 	/**
 	 * Influence of the current word, one value per word occurrence of the word
 	 * path: node betweenness, rank-normalised to [0, 1]. Rank rather than raw,
