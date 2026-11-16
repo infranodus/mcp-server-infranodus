@@ -234,7 +234,12 @@ export function readInfluence(fractal: FractalVariability | null | undefined): I
 	const series = fractal?.influence?.byBetweennessRank;
 	if (!series) return null;
 	return {
-		byBetweennessRank: readInfluenceAlpha(series.alphaBounded),
+		// alpha1, not alphaBounded. On the 111-text corpus alphaBounded on this
+		// series separated 0.66 on one AI group and 0.51 - chance - on the
+		// other, with the direction flipping between them; alpha1 was weaker in
+		// absolute terms, 0.61/0.67, but pointed the same way in both. Of the
+		// numbers this series offers it is the only one worth a sentence.
+		byBetweennessRank: readInfluenceAlpha(series.alpha1),
 		scales: readScales(series),
 		multifractal: readMultifractal(series),
 		confidence: confidenceFor(series.n),

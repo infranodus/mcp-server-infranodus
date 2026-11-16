@@ -187,16 +187,22 @@ export interface FractalVariability {
 	sentenceLength?: { byWords: FractalScaling | null };
 	/**
 	 * Influence of the current word, one value per word occurrence of the word
-	 * path: node betweenness, node degree, and betweenness rank-normalised to
-	 * [0, 1]. Read byBetweennessRank: raw betweenness is spikes at the hubs and
-	 * its alpha is biased upward. The multifractal spectrum, when requested, is
-	 * on the rank series only. Null under 64 word occurrences; omitted by older
-	 * backends.
+	 * path: node betweenness, rank-normalised to [0, 1]. Rank rather than raw,
+	 * because raw betweenness is spikes at the hub concepts and a fit over it
+	 * reads the spikes rather than the ordering. The multifractal spectrum,
+	 * when requested, runs on this series. Null under 64 word occurrences;
+	 * omitted by older backends.
+	 *
+	 * byBetweenness and byDegree were here and are gone: neither separated
+	 * authored from generated text in a direction that held across both AI
+	 * groups, and together they were two thirds of this block's payload. They
+	 * stay optional in this type so a response from an older backend still
+	 * parses.
 	 */
 	influence?: {
-		byBetweenness: FractalScaling | null;
-		byDegree: FractalScaling | null;
 		byBetweennessRank: FractalScaling | null;
+		byBetweenness?: FractalScaling | null;
+		byDegree?: FractalScaling | null;
 	};
 }
 
