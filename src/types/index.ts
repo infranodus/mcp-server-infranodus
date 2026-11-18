@@ -143,7 +143,8 @@ export interface DfaSeriesBlock {
 /**
  * The backend's diagnosis of how a text moves through its graph: one of four
  * names from two questions, whether the text has a core (structure) and
- * whether it stays where it goes (memory, from the DFA exponents). Computed by
+ * whether it stays where it goes (memory: three DFA exponents and three measures
+ * of how the text moves between topics). Computed by
  * the backend so every client shows the same name; never recomputed here.
  */
 export interface TextType {
@@ -154,8 +155,10 @@ export interface TextType {
 	stays_where_it_goes: boolean | null;
 	/** "memory": judged from the DFA exponents; "movement": too short for them, judged from step size */
 	basis: "memory" | "movement" | null;
-	/** mean distance of the exponents from their corpus medians, in standard deviations; above 0 = stays */
+	/** mean distance of the measured parts from their typical values, in standard deviations; above 0 = stays */
 	memory_score: number | null;
+	/** how many of the six parts the score is the mean of; absent on older backends */
+	memory_parts?: number | null;
 	confidence: "clear" | "borderline" | null;
 }
 
@@ -165,6 +168,8 @@ export interface NetworkDynamics {
 	fractal_variability: {
 		/** distance from the path centroid, on 4-node windows of the node path */
 		ngram4_graph_radial_distance: DfaSeriesBlock | null;
+		/** distance from each 4-node window to the next one; a descriptor only, absent on older backends */
+		ngram4_graph_step_length?: DfaSeriesBlock | null;
 		/** words per sentence, in reading order; null under 64 sentences */
 		sentence_word_count: DfaSeriesBlock | null;
 		/** sentences found, reported even when sentence_word_count is null */

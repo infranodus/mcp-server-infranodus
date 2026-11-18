@@ -156,6 +156,7 @@ describe("toDefaultFields", () => {
 			"steps",
 			"mean_step_relative_to_graph_radius",
 			"cross_cluster_step_share",
+			"cluster_dwell_cv",
 			"mean_radial_distance_relative_to_graph_radius",
 			"radial_distance_cv",
 		]);
@@ -567,5 +568,58 @@ describe("analyze_text_signature handler", () => {
 		);
 		assert.equal(calls.length, 0);
 		assert.equal(result.isError, true);
+	});
+});
+
+describe("the 4-gram step series", () => {
+	const withStep = () => {
+		const dynamics = networkDynamicsFixture();
+		dynamics.fractal_variability.ngram4_graph_step_length = series(1058, 0.62, 0.72, 0.55);
+		return dynamics;
+	};
+
+	test("is shown by default with all three exponents, and read as a description", () => {
+		const shown = toDefaultFields(withStep());
+		assert.deepEqual(shown.fractal_variability.ngram4_graph_step_length, {
+			series_length: 1058,
+			dfa_alpha_global: 0.62,
+			dfa_alpha1: 0.72,
+			dfa_alpha2: 0.55,
+		});
+		const reading = interpretNetworkDynamics(shown).fractal_variability.ngram4_graph_step_length;
+		assert.deepEqual(Object.keys(reading), ["reliability", "dfa_alpha_global", "dfa_alpha1", "dfa_alpha2", "note"]);
+		assert.match(reading.dfa_alpha_global, /^dfa_alpha_global 0\.62: .*runs of moderate length/);
+		assert.match(reading.dfa_alpha1, /^dfa_alpha1 0\.72: .*alike in size/);
+		assert.match(reading.dfa_alpha2, /^dfa_alpha2 0\.55: .*no settled or restless phases/);
+		assert.match(reading.note, /description only/);
+	});
+
+	test("is absent, not null, against a backend that does not return it", () => {
+		const shown = toDefaultFields(networkDynamicsFixture());
+		assert.ok(!("ngram4_graph_step_length" in shown.fractal_variability));
+		assert.ok(!("ngram4_graph_step_length" in interpretNetworkDynamics(shown).fractal_variability));
+	});
+});
+
+describe("the six-part memory score", () => {
+	test("dwell CV is a default field with its own reading, and absent against an older backend", () => {
+		const shown = toDefaultFields(networkDynamicsFixture());
+		assert.equal(shown.node_graph_path_amplitude.cluster_dwell_cv, 1.116);
+		assert.match(interpretNetworkDynamics(shown).node_graph_path_amplitude.cluster_dwell_cv, /^Variation of the stays inside a topic 1\.116: .*stays long in some topics/);
+		const older = networkDynamicsFixture();
+		delete older.node_graph_path_amplitude.cluster_dwell_cv;
+		const olderShown = toDefaultFields(older);
+		assert.ok(!("cluster_dwell_cv" in olderShown.node_graph_path_amplitude));
+		assert.ok(!("cluster_dwell_cv" in interpretNetworkDynamics(olderShown).node_graph_path_amplitude));
+	});
+
+	test("the signature names the two answers with their short words and says how many parts were measured", () => {
+		const signature = composeSignature({ ...REFRAIN, memory_parts: 5 });
+		// the summary is the backend's own description; the possible values carry the wording
+		assert.match(signature.label_possible_values.refrain, /keeps moving \(roams\)/);
+		assert.match(signature.label_possible_values["deep dive"], /stays where it goes \(dwells\)/);
+		assert.equal(signature.memory_parts, 5);
+		assert.match(signature.basis_explanation, /cluster_dwell_cv/);
+		assert.equal(composeSignature(REFRAIN).memory_parts, REFRAIN.memory_parts ?? null);
 	});
 });

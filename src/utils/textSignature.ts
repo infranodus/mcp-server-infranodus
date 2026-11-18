@@ -441,16 +441,16 @@ const STRUCTURE_VALUES: Record<Structure, string> = {
 
 const TEXT_TYPE_VALUES: Record<NonNullable<TextType["label"]>, string> = {
 	"deep dive":
-		"Has a core and stays where it goes: the text goes into its main topic, stays there for a while, comes back to the core and goes out again.",
+		"Has a core and stays where it goes (dwells): the text goes into its main topic, stays there for a while, comes back to the core and goes out again.",
 	refrain:
-		"Has a core and keeps moving: the text keeps returning to the same core at an even rate, without settling into any part of it.",
-	chapters: "No single core and stays where it goes: the text moves through several topics and stays in each for a while.",
-	sweep: "No single core and keeps moving: the text touches many topics at an even rate, never settling.",
+		"Has a core and keeps moving (roams): the text keeps returning to the same core at an even rate, without settling into any part of it.",
+	chapters: "No single core and stays where it goes (dwells): the text moves through several topics and stays in each for a while.",
+	sweep: "No single core and keeps moving (roams): the text touches many topics at an even rate, never settling.",
 };
 
 const BASIS_TEXTS: Record<NonNullable<TextType["basis"]>, string> = {
 	memory:
-		"Judged from the DFA exponents (ngram4_graph_radial_distance.dfa_alpha2, node_betweenness_rank.dfa_alpha1, sentence_word_count.dfa_alpha_global): whether the path, the core concepts and the sentence lengths come in lasting phases.",
+		"Judged from up to six measures, averaged with equal weight. Three DFA exponents (ngram4_graph_radial_distance.dfa_alpha2, node_betweenness_rank.dfa_alpha1, sentence_word_count.dfa_alpha_global): whether the path, the core concepts and the sentence lengths come in lasting phases. And three measures of how the text moves between topics, each read against a path of the same length (cross_cluster_step_share reversed, cluster_dwell_cv, ngram4_graph_step_length.dfa_alpha1): a text that stays where it goes (dwells) switches topic less, has more uneven stays and takes steps that come in runs. memory_parts says how many of the six could be measured.",
 	movement:
 		"The text is too short for the DFA exponents, so this is judged from the size of its steps and is a weak reading.",
 };
@@ -471,8 +471,10 @@ export interface Signature {
 	/** what the stays / keeps moving reading rests on */
 	basis: TextType["basis"];
 	basis_explanation: string | null;
-	/** mean distance of the exponents from their corpus medians, in standard deviations; above 0 = stays */
+	/** mean distance of the measured parts from their typical values, in standard deviations; above 0 = stays where it goes (dwells) */
 	memory_score: number | null;
+	/** how many of the six parts the score is the mean of; null from a backend that does not say */
+	memory_parts: number | null;
 	/** "borderline": close to the dividing line, the neighbouring type is nearly as likely */
 	confidence: TextType["confidence"];
 	note: string;
@@ -504,6 +506,7 @@ export function composeSignature(textType: TextType | null | undefined): Signatu
 		basis: type?.basis ?? null,
 		basis_explanation: type?.basis ? BASIS_TEXTS[type.basis] : null,
 		memory_score: type?.memory_score ?? null,
+		memory_parts: type?.memory_parts ?? null,
 		confidence: type?.confidence ?? null,
 		note: "The text type describes how a text moves through its own graph. Human-written text tends towards the types that stay where they go (deep dive, chapters) and AI-generated text towards sweep, but these are tendencies of moderate strength: never present the type as evidence of who wrote a text.",
 	};
@@ -830,6 +833,8 @@ export interface NetworkDynamicsReadings {
 	about: string;
 	fractal_variability: {
 		ngram4_graph_radial_distance: Reading | null;
+		/** present only when the backend returned the step series */
+		ngram4_graph_step_length?: Reading | null;
 		sentence_word_count: Reading | null;
 		node_betweenness_rank: Reading | null;
 	};
@@ -853,11 +858,17 @@ export interface NetworkDynamicsReadings {
 const THIRDS: Record<string, [number, number]> = {
 	"ngram4.dfa_alpha_global": [0.785, 0.875],
 	"ngram4.dfa_alpha2": [0.63, 0.75],
+	// step series of the 4-gram path: thirds of the 40-text retest (same cut
+	// points as the graph panel, infranodus-graph networkDynamicsReadings.js)
+	"ngram4_step.dfa_alpha_global": [0.6, 0.635],
+	"ngram4_step.dfa_alpha1": [0.67, 0.715],
+	"ngram4_step.dfa_alpha2": [0.56, 0.62],
 	"sentence.dfa_alpha_global": [0.63, 0.745],
 	"sentence.dfa_alpha1": [0.61, 0.73],
 	"betweenness.dfa_alpha1": [0.565, 0.6],
 	mean_step: [0.72, 0.85],
 	cross_cluster: [0.35, 0.45],
+	dwell_cv: [0.88, 1.0],
 	mean_radial: [0.89, 0.915],
 	radial_cv: [0.24, 0.275],
 	mean_words: [17.5, 21],
@@ -910,6 +921,7 @@ export function interpretNetworkDynamics(dynamics: NetworkDynamics | null | unde
 	const rhythm = dynamics.sentence_rhythm;
 
 	const radial = fv?.ngram4_graph_radial_distance;
+	const step = fv?.ngram4_graph_step_length;
 	const sentence = fv?.sentence_word_count;
 	const rank = fv?.node_betweenness_rank;
 
@@ -926,20 +938,45 @@ export function interpretNetworkDynamics(dynamics: NetworkDynamics | null | unde
 							high: "the text makes long excursions away from its central theme and returns, and that pattern repeats across scales.",
 						}),
 						dfa_alpha2: say("ngram4.dfa_alpha2", radial.dfa_alpha2, `dfa_alpha2 ${radial.dfa_alpha2}`, {
-							low: "over long stretches the drift from the central theme is close to random.",
-							mid: "over long stretches the drift from the central theme is moderately persistent.",
-							high: "over long stretches the text keeps drifting in one direction before it returns.",
+							low: "over long stretches the distance from the core is close to random: the text circles at much the same distance instead of moving in phases.",
+							mid: "the text moves in phases of moderate length, some near its core concepts and some out in the periphery.",
+							high: "the text moves in long phases: it stays near its core concepts for a while, then out in the periphery for a while, before it returns.",
 						}),
 						note: "dfa_alpha_global falls as texts get longer, so compare it only with texts of similar length. dfa_alpha2 does not depend on length, but it can differ between the first and second half of the same text.",
 					}
 				: null,
+			// only when the backend returned the step series, so the keys are
+			// unchanged against an older backend
+			...(step
+				? {
+						ngram4_graph_step_length: {
+							reliability: RELIABILITY[confidenceFor(step.series_length)],
+							dfa_alpha_global: say("ngram4_step.dfa_alpha_global", step.dfa_alpha_global, `dfa_alpha_global ${step.dfa_alpha_global}`, {
+								low: "small and large steps are mixed with little pattern.",
+								mid: "small and large steps come in runs of moderate length.",
+								high: "the text alternates settled stretches of small steps with restless stretches of large ones.",
+							}),
+							dfa_alpha1: say("ngram4_step.dfa_alpha1", step.dfa_alpha1, `dfa_alpha1 ${step.dfa_alpha1}`, {
+								low: "from one step to the next few, step size is close to unpatterned.",
+								mid: "neighbouring steps are moderately alike in size.",
+								high: "neighbouring steps tend to be alike in size.",
+							}),
+							dfa_alpha2: say("ngram4_step.dfa_alpha2", step.dfa_alpha2, `dfa_alpha2 ${step.dfa_alpha2}`, {
+								low: "over long stretches step size is close to random: the text has no settled or restless phases.",
+								mid: "the text has settled and restless phases of moderate length.",
+								high: "the text has long settled phases and long restless ones.",
+							}),
+							note: "The step series is the distance from each window of 4 consecutive nodes to the next. Its exponents describe the pattern of the movement, not its amount: a text can switch topic often and still read high. They do not tell human-written from AI-written text apart, so report them as a description only. dfa_alpha1 is one of the six measures the text type is read from; dfa_alpha_global and dfa_alpha2 are not.",
+						},
+					}
+				: {}),
 			sentence_word_count: sentence
 				? {
 						reliability: RELIABILITY[confidenceFor(sentence.series_length)],
 						dfa_alpha_global: say("sentence.dfa_alpha_global", sentence.dfa_alpha_global, `dfa_alpha_global ${sentence.dfa_alpha_global}`, {
-							low: "sentence length resets often, so long and short sentences do not cluster over long stretches.",
-							mid: "sentence length is moderately persistent.",
-							high: "sentence length is persistent: stretches of long sentences and stretches of short ones, at every scale.",
+							low: "sentence length resets often: long and short sentences do not come in runs, and one length says little about the next.",
+							mid: "sentence length is moderately persistent: long and short sentences come in runs of moderate length.",
+							high: "sentence length is persistent: runs of long sentences and runs of short ones, with shorter runs nested inside longer ones.",
 						}),
 						dfa_alpha1: say("sentence.dfa_alpha1", sentence.dfa_alpha1, `dfa_alpha1 ${sentence.dfa_alpha1}`, {
 							low: "from one sentence to the next few, length is close to unpatterned.",
@@ -957,9 +994,9 @@ export function interpretNetworkDynamics(dynamics: NetworkDynamics | null | unde
 				? {
 						reliability: RELIABILITY[confidenceFor(rank.series_length)],
 						dfa_alpha1: say("betweenness.dfa_alpha1", rank.dfa_alpha1, `dfa_alpha1 ${rank.dfa_alpha1}`, {
-							low: "central and peripheral concepts follow each other with little pattern at short range.",
-							mid: "central concepts recur with a weak short-range pattern.",
-							high: "central concepts come in bursts: stretches dense with hub concepts alternate with peripheral ones.",
+							low: "core and peripheral concepts follow each other with little pattern: the core comes back at a steady rate.",
+							mid: "core concepts come back in weak bursts.",
+							high: "core concepts come back in bursts: stretches on the hub concepts alternate with stretches away from them.",
 						}),
 						note: "A weak signal: it can differ between the first and second half of the same text, so treat it as a hint, not a firm description.",
 					}
@@ -979,20 +1016,31 @@ export function interpretNetworkDynamics(dynamics: NetworkDynamics | null | unde
 									mid: "the text changes topic at a moderate rate.",
 									high: "the text switches topic often.",
 								}),
+					// only when the backend returned it, so the keys are unchanged
+					// against an older backend
+					...(amp.cluster_dwell_cv == null
+						? {}
+						: {
+								cluster_dwell_cv: say("dwell_cv", amp.cluster_dwell_cv, `Variation of the stays inside a topic ${amp.cluster_dwell_cv}`, {
+									low: "the text spends about the same time in every topic it visits.",
+									mid: "some topics get longer stays than others.",
+									high: "the text stays long in some topics and only passes through others.",
+								}),
+							}),
 					mean_radial_distance_relative_to_graph_radius: say(
 						"mean_radial",
 						amp.mean_radial_distance_relative_to_graph_radius,
 						`Mean distance from the centre ${amp.mean_radial_distance_relative_to_graph_radius} graph radii`,
 						{
-							low: "the text keeps passing through its central concepts.",
+							low: "the text is anchored: it keeps coming back to its central concepts.",
 							mid: "the text sits at a typical distance from its central concepts.",
-							high: "the text spends its time in the periphery of the graph.",
+							high: "the text lives in the periphery of the graph, touching many topics without dwelling on its core.",
 						},
 					),
 					radial_distance_cv: say("radial_cv", amp.radial_distance_cv, `Distance variation ${amp.radial_distance_cv}`, {
-						low: "the text keeps a steady distance from its centre.",
-						mid: "the text moves between its core and its edges to a moderate degree.",
-						high: "the text swings between its core and its edges.",
+						low: "the text keeps a steady distance from its centre, without going deep into the core or far out.",
+						mid: "the text travels between its core and its edges to a moderate degree.",
+						high: "the text travels far out to its edges and comes back to its core.",
 					}),
 					note: "Mean step is read against what a text of this length usually shows. Cross-cluster share is not adjusted and rises with text length alone, so compare it with texts of similar length.",
 				}
@@ -1080,6 +1128,10 @@ export function toDefaultFields(dynamics: NetworkDynamics | null): NetworkDynami
 	return {
 		fractal_variability: {
 			ngram4_graph_radial_distance: pickSeries(fv?.ngram4_graph_radial_distance, ["series_length", "dfa_alpha_global", "dfa_alpha2"]),
+			// a descriptor with all three exponents; left out against an older backend
+			...(fv?.ngram4_graph_step_length
+				? { ngram4_graph_step_length: pickSeries(fv.ngram4_graph_step_length, ["series_length", "dfa_alpha_global", "dfa_alpha1", "dfa_alpha2"]) }
+				: {}),
 			sentence_word_count: pickSeries(fv?.sentence_word_count, ["series_length", "dfa_alpha_global", "dfa_alpha1"]),
 			sentence_word_count_series_available: fv?.sentence_word_count_series_available ?? 0,
 			node_betweenness_rank: pickSeries(fv?.node_betweenness_rank, ["series_length", "dfa_alpha1"]),
@@ -1088,6 +1140,8 @@ export function toDefaultFields(dynamics: NetworkDynamics | null): NetworkDynami
 			"steps",
 			"mean_step_relative_to_graph_radius",
 			"cross_cluster_step_share",
+			// part of the text type's memory score; absent on older backends
+			...(dynamics.node_graph_path_amplitude?.cluster_dwell_cv == null ? [] : ["cluster_dwell_cv"]),
 			"mean_radial_distance_relative_to_graph_radius",
 			"radial_distance_cv",
 		]),
