@@ -366,9 +366,22 @@ describe("estimateAiLikeness", () => {
 		assert.equal(estimateAiLikeness(inputFor(short)).evidence.some((x) => x.signal === RADIAL), false, "under 128 steps it is left out");
 	});
 
-	test("sentence-length CV and short-sentence share are not used as evidence", () => {
+	test("sentence-length CV and short-sentence share only nudge the score", () => {
 		const ai = estimateAiLikeness(inputFor(networkDynamicsFixture()));
-		assert.equal(ai.evidence.some((e) => /sentence length variability|short sentences/.test(e.signal)), false);
+		const cv = ai.evidence.find((e) => e.signal === "sentence length variability (CV)");
+		assert.equal(cv.weight, 0.5);
+		const short = ai.evidence.find((e) => e.signal === "share of short sentences");
+		if (short) assert.equal(short.weight, 0.25);
+	});
+
+	test("the two burstiness signals do not count towards the signals a verdict needs", () => {
+		const dynamics = networkDynamicsFixture();
+		dynamics.fractal_variability.ngram4_graph_radial_distance = series(1059, 0.6, 0.6, 0.6);
+		dynamics.fractal_variability.sentence_word_count = series(100, 0.5, 0.5, 0.5); // too short to count
+		dynamics.node_graph_path_amplitude = { ...dynamics.node_graph_path_amplitude, step_cv: 0.7, cluster_dwell_cv: 1.0 }; // neutral
+		const ai = estimateAiLikeness(inputFor(dynamics));
+		assert.ok(ai.evidence.some((e) => e.signal === "sentence length variability (CV)"));
+		assert.equal(ai.verdict, "mixed", "radial plus burstiness alone is not enough");
 	});
 
 	test("flat, evenly paced text leans AI", () => {

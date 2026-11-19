@@ -543,6 +543,10 @@ const CAVEATS = [
 	"Under about 30 sentences or 128 path steps the rhythm measures are noisy and the verdict should be read as inconclusive.",
 ];
 
+/** low weights for the two burstiness signals that pointed the wrong way on the reference corpus */
+const MINOR_WEIGHT = { cv: 0.5, short: 0.25 };
+const MINOR_SIGNALS = new Set(["sentence length variability (CV)", "share of short sentences"]);
+
 export function estimateAiLikeness(input: {
 	sentenceRhythm: SentenceRhythm;
 	amplitude: Amplitude;
@@ -574,9 +578,39 @@ export function estimateAiLikeness(input: {
 		});
 	}
 
-	// Sentence-length CV and the share of short sentences are not used: on the
-	// same held-out texts both pointed the wrong way (AUC 0.18 and 0.12) and
-	// pulled the score below chance. They stay in the readings as descriptors.
+	// Classic burstiness, kept at a low weight. The stylometry literature reads
+	// uneven sentence lengths and free use of short sentences as human, but on
+	// our one-author reference corpus both pointed the wrong way (AUC 0.18 and
+	// 0.12), probably because the author writes long sentences and fragments
+	// under 12 words are skipped before the CV is taken. Until texts by other
+	// authors settle it they only nudge the score, and they do not count
+	// towards the minimum number of signals a verdict needs.
+	if (sentenceRhythm.cvLength != null && sentenceRhythm.sentences >= 10) {
+		const cv = sentenceRhythm.cvLength;
+		const direction = cv < 0.35 ? 1 : cv < 0.5 ? 0.3 : cv < 0.7 ? -0.5 : -1;
+		evidence.push({
+			signal: "sentence length variability (CV)",
+			value: cv,
+			direction,
+			weight: MINOR_WEIGHT.cv,
+			reading:
+				direction > 0
+					? "Uniform sentence lengths, the flat rhythm often seen in generated text."
+					: "Uneven sentence lengths, the bursty rhythm often seen in human prose.",
+		});
+	}
+	if (sentenceRhythm.shortShare != null && sentenceRhythm.sentences >= 20) {
+		const share = sentenceRhythm.shortShare;
+		const direction = share < 0.05 ? 0.5 : share > 0.15 ? -0.5 : 0;
+		if (direction !== 0)
+			evidence.push({
+				signal: "share of short sentences",
+				value: share,
+				direction,
+				weight: MINOR_WEIGHT.short,
+				reading: direction > 0 ? "Almost no short sentences." : "Short sentences are used freely.",
+			});
+	}
 
 	// The classic sentence-length series (Drozdz et al.): 1/f rhythm across
 	// sentences is the literary signature; no memory across sentences is the
@@ -679,7 +713,8 @@ export function estimateAiLikeness(input: {
 	// Radial persistence carries a third of the usual weight on its own, so with
 	// it one more agreeing or disagreeing signal is enough to read a verdict.
 	const radialUsed = evidence.some((e) => e.signal.startsWith("persistence of distance from the core theme"));
-	const enough = (evidence.length >= 3 || (radialUsed && evidence.length >= 2)) && sentenceRhythm.sentences >= 30;
+	const counted = evidence.filter((e) => !MINOR_SIGNALS.has(e.signal)).length;
+	const enough = (counted >= 3 || (radialUsed && counted >= 2)) && sentenceRhythm.sentences >= 30;
 	const verdict: AiLikeness["verdict"] =
 		score == null || !enough ? "mixed" : score >= 0.25 ? "leaning AI" : score <= -0.25 ? "leaning human" : "mixed";
 	const verdict_explanation =
