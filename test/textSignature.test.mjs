@@ -342,12 +342,46 @@ describe("estimateAiLikeness", () => {
 		return { sentenceRhythm: shape.sentenceRhythm, amplitude: shape.amplitude, fractal: shape };
 	};
 
+	const RADIAL = "persistence of distance from the core theme (4-gram radial DFA alpha)";
+
 	test("variably paced text leans human, with the reason in verdict_explanation", () => {
-		const ai = estimateAiLikeness(inputFor(networkDynamicsFixture()));
+		const human = networkDynamicsFixture();
+		human.fractal_variability.ngram4_graph_radial_distance = series(1059, 0.92, 1.1, 0.8);
+		const ai = estimateAiLikeness(inputFor(human));
 		assert.equal(ai.verdict, "leaning human");
 		assert.match(ai.verdict_explanation, /^Variably paced/);
 		assert.ok(ai.score < 0);
-		assert.ok(ai.evidence.some((e) => e.signal === "sentence length variability (CV)" && e.direction < 0));
+		assert.ok(ai.evidence.some((e) => e.signal === RADIAL && e.direction === -1 && e.weight === 3));
+	});
+
+	test("radial persistence is the heaviest signal and is linear around 0.80", () => {
+		for (const [alpha, direction] of [[0.8, 0], [0.76, 0.5], [0.84, -0.5], [0.6, 1], [1.0, -1]]) {
+			const dynamics = networkDynamicsFixture();
+			dynamics.fractal_variability.ngram4_graph_radial_distance = series(1059, alpha, 1.1, 0.7);
+			const e = estimateAiLikeness(inputFor(dynamics)).evidence.find((x) => x.signal === RADIAL);
+			assert.equal(e.direction, direction, String(alpha));
+		}
+		const short = networkDynamicsFixture();
+		short.fractal_variability.ngram4_graph_radial_distance = series(100, 0.6, 0.6, 0.6);
+		assert.equal(estimateAiLikeness(inputFor(short)).evidence.some((x) => x.signal === RADIAL), false, "under 128 steps it is left out");
+	});
+
+	test("sentence-length CV and short-sentence share only nudge the score", () => {
+		const ai = estimateAiLikeness(inputFor(networkDynamicsFixture()));
+		const cv = ai.evidence.find((e) => e.signal === "sentence length variability (CV)");
+		assert.equal(cv.weight, 0.5);
+		const short = ai.evidence.find((e) => e.signal === "share of short sentences");
+		if (short) assert.equal(short.weight, 0.25);
+	});
+
+	test("the two burstiness signals do not count towards the signals a verdict needs", () => {
+		const dynamics = networkDynamicsFixture();
+		dynamics.fractal_variability.ngram4_graph_radial_distance = series(1059, 0.6, 0.6, 0.6);
+		dynamics.fractal_variability.sentence_word_count = series(100, 0.5, 0.5, 0.5); // too short to count
+		dynamics.node_graph_path_amplitude = { ...dynamics.node_graph_path_amplitude, step_cv: 0.7, cluster_dwell_cv: 1.0 }; // neutral
+		const ai = estimateAiLikeness(inputFor(dynamics));
+		assert.ok(ai.evidence.some((e) => e.signal === "sentence length variability (CV)"));
+		assert.equal(ai.verdict, "mixed", "radial plus burstiness alone is not enough");
 	});
 
 	test("flat, evenly paced text leans AI", () => {
@@ -355,6 +389,7 @@ describe("estimateAiLikeness", () => {
 		flat.sentence_rhythm = { ...flat.sentence_rhythm, words_per_sentence_cv: 0.2, share_under_8_words: 0, share_over_30_words: 0, words_per_sentence_lag1_autocorrelation: 0 };
 		flat.fractal_variability.sentence_word_count = series(191, 0.5, 0.5, 0.5);
 		flat.node_graph_path_amplitude = { ...flat.node_graph_path_amplitude, step_cv: 0.3, cluster_dwell_cv: 0.2 };
+		flat.fractal_variability.ngram4_graph_radial_distance = series(1059, 0.7, 0.7, 0.6);
 		const ai = estimateAiLikeness(inputFor(flat));
 		assert.equal(ai.verdict, "leaning AI");
 		assert.match(ai.verdict_explanation, /^Evenly paced/);
@@ -436,7 +471,7 @@ describe("buildTextSignature", () => {
 		const hidden = buildTextSignature(input());
 		const shown = buildTextSignature(input({ includeExperimental: true }));
 		assert.deepEqual(hidden.ai_likeness, shown.ai_likeness);
-		assert.ok(hidden.ai_likeness.evidence.some((e) => e.signal === "sentence length variability (CV)"));
+		assert.ok(hidden.ai_likeness.evidence.some((e) => e.signal.startsWith("persistence of distance from the core theme")));
 	});
 
 	test("the histogram of the degree distribution is trimmed to 40 rows", () => {

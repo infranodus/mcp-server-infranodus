@@ -538,10 +538,14 @@ export interface AiLikeness {
 
 const CAVEATS = [
 	"This is a stylistic tendency read from rhythm and structure, not a detection result; never treat it as proof of authorship.",
-	"The thresholds are heuristics from the DFA and stylometry literature. On a 50-page check against a commercial detector they caught only uniformly paced template text; AI-drafted pages that were edited or humanized read as human here.",
+	"The thresholds are heuristics from the DFA literature and a one-author reference corpus of about 100 texts graphed at 150 concepts; with a different concept cap the radial-persistence signal is not calibrated. The radial-persistence exponent falls with text length, so long texts lean towards the AI side on it: compare a text only with texts of similar length. AI-drafted pages that were edited or humanized can still read as human here.",
 	"Even pacing is also typical of human technical, legal, and non-native writing; uneven pacing can be prompted or paraphrased into generated text.",
 	"Under about 30 sentences or 128 path steps the rhythm measures are noisy and the verdict should be read as inconclusive.",
 ];
+
+/** low weights for the two burstiness signals that pointed the wrong way on the reference corpus */
+const MINOR_WEIGHT = { cv: 0.5, short: 0.25 };
+const MINOR_SIGNALS = new Set(["sentence length variability (CV)", "share of short sentences"]);
 
 export function estimateAiLikeness(input: {
 	sentenceRhythm: SentenceRhythm;
@@ -551,7 +555,41 @@ export function estimateAiLikeness(input: {
 	const evidence: Evidence[] = [];
 	const { sentenceRhythm, amplitude, fractal } = input;
 
-	// Classic burstiness: the strongest cheap signal.
+	// Persistence of the distance from the core theme along the 4-gram path:
+	// the strongest structural signal we have measured. When a human text moves
+	// away from its core into a tangent or a detail, it stays away for a while
+	// and then comes back (higher alpha); AI drafts touch the tangent and snap
+	// back to the core (lower alpha). Calibrated at the default 150-node cap on
+	// a one-author corpus (November 2026). The exponent also falls with text
+	// length, and the AI texts there were about twice as long, so the raw AUC
+	// (0.89) overstates it: on length-matched pairs the AI text read lower in
+	// 14 of 16, while a linear length correction leaves AUC 0.65. dfa_alpha2,
+	// less tied to length, did no better once length was controlled and is
+	// noisier, so the bounded exponent is used. Weight 3 with a second signal
+	// required: lower weights lost AI texts without sparing long human ones.
+	// Linear from +1 at 0.72 to -1 at 0.88, centred on 0.80.
+	const radial = fractal?.ngrams?.byRadialDistance;
+	if (radial?.alphaBounded != null && confidenceFor(radial.n) !== "none" && confidenceFor(radial.n) !== "indicative") {
+		const direction = Math.round(Math.max(-1, Math.min(1, (0.8 - radial.alphaBounded) / 0.08)) * 100) / 100;
+		evidence.push({
+			signal: "persistence of distance from the core theme (4-gram radial DFA alpha)",
+			value: radial.alphaBounded,
+			direction,
+			weight: 3,
+			reading:
+				direction > 0
+					? "After a tangent the text snaps back to its core theme: distance from the core has little memory."
+					: "When the text moves away from its core into a tangent or a detail, it stays away for a while and then comes back.",
+		});
+	}
+
+	// Classic burstiness, kept at a low weight. The stylometry literature reads
+	// uneven sentence lengths and free use of short sentences as human, but on
+	// our one-author reference corpus both pointed the wrong way (AUC 0.18 and
+	// 0.12), probably because the author writes long sentences and fragments
+	// under 12 words are skipped before the CV is taken. Until texts by other
+	// authors settle it they only nudge the score, and they do not count
+	// towards the minimum number of signals a verdict needs.
 	if (sentenceRhythm.cvLength != null && sentenceRhythm.sentences >= 10) {
 		const cv = sentenceRhythm.cvLength;
 		const direction = cv < 0.35 ? 1 : cv < 0.5 ? 0.3 : cv < 0.7 ? -0.5 : -1;
@@ -559,11 +597,11 @@ export function estimateAiLikeness(input: {
 			signal: "sentence length variability (CV)",
 			value: cv,
 			direction,
-			weight: 2,
+			weight: MINOR_WEIGHT.cv,
 			reading:
 				direction > 0
-					? "Uniform sentence lengths, the flat rhythm typical of generated text."
-					: "Uneven sentence lengths, the bursty rhythm typical of human prose.",
+					? "Uniform sentence lengths, the flat rhythm often seen in generated text."
+					: "Uneven sentence lengths, the bursty rhythm often seen in human prose.",
 		});
 	}
 	if (sentenceRhythm.shortShare != null && sentenceRhythm.sentences >= 20) {
@@ -574,7 +612,7 @@ export function estimateAiLikeness(input: {
 				signal: "share of short sentences",
 				value: share,
 				direction,
-				weight: 0.5,
+				weight: MINOR_WEIGHT.short,
 				reading: direction > 0 ? "Almost no short sentences." : "Short sentences are used freely.",
 			});
 	}
@@ -677,16 +715,20 @@ export function estimateAiLikeness(input: {
 
 	const totalWeight = evidence.reduce((sum, e) => sum + e.weight, 0);
 	const score = totalWeight > 0 ? round(evidence.reduce((sum, e) => sum + e.weight * e.direction, 0) / totalWeight, 2) : null;
-	const enough = evidence.length >= 3 && sentenceRhythm.sentences >= 30;
+	// Radial persistence carries a third of the usual weight on its own, so with
+	// it one more agreeing or disagreeing signal is enough to read a verdict.
+	const radialUsed = evidence.some((e) => e.signal.startsWith("persistence of distance from the core theme"));
+	const counted = evidence.filter((e) => !MINOR_SIGNALS.has(e.signal)).length;
+	const enough = (counted >= 3 || (radialUsed && counted >= 2)) && sentenceRhythm.sentences >= 30;
 	const verdict: AiLikeness["verdict"] =
 		score == null || !enough ? "mixed" : score >= 0.25 ? "leaning AI" : score <= -0.25 ? "leaning human" : "mixed";
 	const verdict_explanation =
 		score == null || !enough
 			? "Inconclusive: too little text or too few signals to read the pacing."
 			: score >= 0.25
-				? "Evenly paced: sentence lengths and moves between ideas are uniform, which is more common in generated text."
+				? "Evenly paced: the text snaps back to its core after each tangent and its moves between ideas are uniform, which is more common in generated text."
 				: score <= -0.25
-					? "Variably paced: sentence lengths and moves between ideas vary, which is more common in human writing."
+					? "Variably paced: the text stays with its tangents before coming back to the core, and its moves between ideas vary, which is more common in human writing."
 					: "Inconclusive: the pacing signals point in different directions.";
 	// Medium confidence only for a clear-cut profile with several agreeing
 	// signals; anything near the middle stays low.
