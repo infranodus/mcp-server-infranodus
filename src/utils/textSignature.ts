@@ -538,7 +538,7 @@ export interface AiLikeness {
 
 const CAVEATS = [
 	"This is a stylistic tendency read from rhythm and structure, not a detection result; never treat it as proof of authorship.",
-	"The thresholds are heuristics from the DFA literature and a one-author reference corpus of about 100 texts graphed at 150 concepts; with a different concept cap the radial-persistence signal is not calibrated. On held-out texts the score ranked AI drafts below human ones (AUC 0.87), but AI-drafted pages that were edited or humanized can still read as human here.",
+	"The thresholds are heuristics from the DFA literature and a one-author reference corpus of about 100 texts graphed at 150 concepts; with a different concept cap the radial-persistence signal is not calibrated. The radial-persistence exponent falls with text length, so long texts lean towards the AI side on it: compare a text only with texts of similar length. AI-drafted pages that were edited or humanized can still read as human here.",
 	"Even pacing is also typical of human technical, legal, and non-native writing; uneven pacing can be prompted or paraphrased into generated text.",
 	"Under about 30 sentences or 128 path steps the rhythm measures are noisy and the verdict should be read as inconclusive.",
 ];
@@ -559,9 +559,14 @@ export function estimateAiLikeness(input: {
 	// the strongest structural signal we have measured. When a human text moves
 	// away from its core into a tangent or a detail, it stays away for a while
 	// and then comes back (higher alpha); AI drafts touch the tangent and snap
-	// back to the core (lower alpha). AUC 0.86 on 77 held-out texts and 8/10 in
-	// a blind test, calibrated at the default 150-node cap (November 2026,
-	// infranodus-backend docs/todo/vector-search-and-embedding-dfa.md).
+	// back to the core (lower alpha). Calibrated at the default 150-node cap on
+	// a one-author corpus (November 2026). The exponent also falls with text
+	// length, and the AI texts there were about twice as long, so the raw AUC
+	// (0.89) overstates it: on length-matched pairs the AI text read lower in
+	// 14 of 16, while a linear length correction leaves AUC 0.65. dfa_alpha2,
+	// less tied to length, did no better once length was controlled and is
+	// noisier, so the bounded exponent is used. Weight 3 with a second signal
+	// required: lower weights lost AI texts without sparing long human ones.
 	// Linear from +1 at 0.72 to -1 at 0.88, centred on 0.80.
 	const radial = fractal?.ngrams?.byRadialDistance;
 	if (radial?.alphaBounded != null && confidenceFor(radial.n) !== "none" && confidenceFor(radial.n) !== "indicative") {
