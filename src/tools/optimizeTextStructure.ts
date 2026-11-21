@@ -42,6 +42,7 @@ export const optimizeTextStructureTool = {
 				extendedGraphSummary: "true",
 				includeGraph: "true",
 				aiTopics: "true",
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 			});
 
 			const endpoint = `/graphAndAdvice?${queryParams.toString()}`;
@@ -91,7 +92,10 @@ export const optimizeTextStructureTool = {
 				};
 			}
 
-			const optimizationResult = generateOptimizationResult(response);
+			const optimizationResult = generateOptimizationResult(
+				response,
+				params.fractalExperimental ?? false,
+			);
 
 			return {
 				content: [

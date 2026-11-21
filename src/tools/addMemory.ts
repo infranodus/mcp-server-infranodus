@@ -102,6 +102,7 @@ export const addMemoryTool = {
 				doNotSave: "false",
 				addStats: "true",
 				...(params.multifractal ? { multifractal: "true" } : {}),
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
@@ -150,6 +151,8 @@ export const addMemoryTool = {
 				includeGraph,
 				includeNodesAndEdges,
 				buildingEntitiesGraph,
+				false,
+				params.fractalExperimental ?? false,
 			);
 
 			return {

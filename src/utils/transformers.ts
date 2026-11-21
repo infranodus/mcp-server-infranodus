@@ -1,5 +1,6 @@
 import {
 	DegreeDistribution,
+	NetworkDynamics,
 	GraphResponse,
 	SearchResponse,
 	KnowledgeGraphOutput,
@@ -42,6 +43,58 @@ export function trimDegreeDistribution(
 }
 
 /**
+ * Default surface of the network statistics in tool output. The server reads
+ * none of the other fields to interpret a result, so by default only these
+ * are returned: the text type, the radial-distance DFA series, and the size
+ * and concentration of the degree distribution. fractalExperimental: true
+ * asks the API for every field and returns them as they come.
+ */
+export function compactNetworkDynamics(
+	dynamics: NetworkDynamics | null | undefined,
+): NetworkDynamics | null | undefined {
+	if (!dynamics) return dynamics;
+	return {
+		text_type: dynamics.text_type ?? null,
+		fractal_variability: {
+			ngram4_graph_radial_distance:
+				dynamics.fractal_variability?.ngram4_graph_radial_distance ?? null,
+		},
+	} as unknown as NetworkDynamics;
+}
+
+export function compactDegreeDistribution(
+	distribution: DegreeDistribution | null | undefined,
+): DegreeDistribution | null | undefined {
+	if (!distribution) return distribution;
+	return {
+		nodes: distribution.nodes,
+		edges: distribution.edges,
+		gini: distribution.gini,
+		tail: distribution.tail ?? null,
+	} as DegreeDistribution;
+}
+
+/** The network statistics of one response, compact unless fractalExperimental. */
+export function networkStatsOf(
+	attributes: { network_dynamics?: NetworkDynamics; degree_distribution?: DegreeDistribution } | undefined,
+	fractalExperimental: boolean,
+	fullGraph: boolean = false,
+): { network_dynamics?: NetworkDynamics; degree_distribution?: DegreeDistribution } {
+	const out: { network_dynamics?: NetworkDynamics; degree_distribution?: DegreeDistribution } = {};
+	if (attributes?.network_dynamics) {
+		out.network_dynamics = fractalExperimental
+			? attributes.network_dynamics
+			: (compactNetworkDynamics(attributes.network_dynamics) as NetworkDynamics);
+	}
+	if (attributes?.degree_distribution) {
+		out.degree_distribution = fractalExperimental
+			? trimDegreeDistribution(attributes.degree_distribution, fullGraph)
+			: (compactDegreeDistribution(attributes.degree_distribution) as DegreeDistribution);
+	}
+	return out;
+}
+
+/**
  * The graph's insight clusters as the API describes them: one line per gap
  * depth, each naming the 1–3 clusters the AI bridges by default and their role
  * (gap / bridge / influence). Undefined when the API sent none (an older
@@ -58,6 +111,7 @@ export function transformToStructuredOutput(
 	includeNodesAndEdges: boolean = false,
 	buildingEntitiesGraph: boolean = false,
 	fullGraph: boolean = false,
+	fractalExperimental: boolean = false,
 ): KnowledgeGraphOutput {
 	const output: KnowledgeGraphOutput = {
 		statistics: {
@@ -105,15 +159,21 @@ export function transformToStructuredOutput(
 			output.statistics.diversity_stats = graph.attributes.diversity_stats;
 		}
 
-		if (graph.attributes?.network_dynamics) {
-			output.statistics.network_dynamics = graph.attributes.network_dynamics;
+		const networkStats = networkStatsOf(graph.attributes, fractalExperimental, fullGraph);
+		if (networkStats.network_dynamics) {
+			output.statistics.network_dynamics = networkStats.network_dynamics;
 		}
-
-		if (graph.attributes?.degree_distribution) {
-			output.statistics.degree_distribution = trimDegreeDistribution(
-				graph.attributes.degree_distribution,
-				fullGraph,
-			);
+		if (networkStats.degree_distribution) {
+			output.statistics.degree_distribution = networkStats.degree_distribution;
+		}
+		// The raw graph below carries the same attributes: same surface there.
+		if (graph.attributes && !fractalExperimental) {
+			if (graph.attributes.network_dynamics) {
+				graph.attributes.network_dynamics = networkStats.network_dynamics;
+			}
+			if (graph.attributes.degree_distribution) {
+				graph.attributes.degree_distribution = networkStats.degree_distribution;
+			}
 		}
 
 		if (graph.attributes?.top_influential_nodes) {
@@ -482,6 +542,7 @@ export function generateResponses(data: GraphResponse): ResponsesOutput {
 
 export function generateOptimizationResult(
 	data: GraphResponse,
+	fractalExperimental: boolean = false,
 ): OptimizeTextOutput {
 	const output: OptimizeTextOutput = {};
 
@@ -494,15 +555,15 @@ export function generateOptimizationResult(
 			data.graph.graphologyGraph.attributes.diversity_stats;
 	}
 
-	if (data.graph?.graphologyGraph?.attributes?.network_dynamics) {
-		output.network_dynamics =
-			data.graph.graphologyGraph.attributes.network_dynamics;
+	const networkStats = networkStatsOf(
+		data.graph?.graphologyGraph?.attributes as any,
+		fractalExperimental,
+	);
+	if (networkStats.network_dynamics) {
+		output.network_dynamics = networkStats.network_dynamics;
 	}
-
-	if (data.graph?.graphologyGraph?.attributes?.degree_distribution) {
-		output.degree_distribution = trimDegreeDistribution(
-			data.graph.graphologyGraph.attributes.degree_distribution,
-		);
+	if (networkStats.degree_distribution) {
+		output.degree_distribution = networkStats.degree_distribution;
 	}
 
 	if (data.extendedGraphSummary) {

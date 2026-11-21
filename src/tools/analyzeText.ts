@@ -43,6 +43,7 @@ export const analyzeTextTool = {
 				doNotSave: "true",
 				addStats: "true",
 				...(params.multifractal ? { multifractal: "true" } : {}),
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: "true",
@@ -85,7 +86,8 @@ export const analyzeTextTool = {
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph,
-				fullGraph
+				fullGraph,
+				params.fractalExperimental ?? false,
 			);
 
 			return {
