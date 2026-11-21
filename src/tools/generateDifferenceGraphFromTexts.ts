@@ -99,6 +99,7 @@ export const generateDifferenceGraphFromTextsTool = {
 				doNotSave: "true",
 				addStats: "true",
 				...(params.multifractal ? { multifractal: "true" } : {}),
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
@@ -137,7 +138,10 @@ export const generateDifferenceGraphFromTextsTool = {
 			const structuredOutput = transformToStructuredOutput(
 				response,
 				includeGraph,
-				includeNodesAndEdges
+				includeNodesAndEdges,
+				false,
+				false,
+				params.fractalExperimental ?? false,
 			);
 
 			return {

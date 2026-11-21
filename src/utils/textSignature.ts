@@ -29,7 +29,7 @@ import type {
 // Re-exported so existing importers of these shapes keep working now that
 // they are declared next to the response type they arrive in.
 export type { Amplitude, AmplitudeStats, SentenceRhythm };
-import { trimDegreeDistribution } from "./transformers.js";
+import { compactDegreeDistribution, trimDegreeDistribution } from "./transformers.js";
 
 // ---------------------------------------------------------------------------
 // Statistics kept for the readings below
@@ -1212,7 +1212,12 @@ export function buildTextSignature(input: {
 	const networkDynamics = input.includeExperimental ? everything : toDefaultFields(everything);
 	const fractal = toReadingShape(networkDynamics);
 	const diversity = input.diversity ?? null;
-	const degreeDistribution = input.degreeDistribution ? trimDegreeDistribution(input.degreeDistribution) : null;
+	// the readings use nodes, gini and tail; the histogram only with includeExperimental
+	const degreeDistribution = input.degreeDistribution
+		? input.includeExperimental
+			? trimDegreeDistribution(input.degreeDistribution)
+			: (compactDegreeDistribution(input.degreeDistribution) ?? null)
+		: null;
 	const emptyRhythm: SentenceRhythm = {
 		sentences: 0,
 		skippedFragments: 0,

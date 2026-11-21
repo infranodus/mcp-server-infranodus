@@ -46,6 +46,7 @@ export const analyzeExistingGraphTool = {
 				doNotSave: "true",
 				addStats: "true",
 				...(params.multifractal ? { multifractal: "true" } : {}),
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: params.includeGraphSummary ? "true" : "false",
 				extendedGraphSummary: "true",
@@ -90,6 +91,7 @@ export const analyzeExistingGraphTool = {
 				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph,
 				fullGraph,
+				params.fractalExperimental ?? false,
 			);
 
 			return {
