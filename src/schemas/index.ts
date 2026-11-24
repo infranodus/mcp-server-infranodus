@@ -35,14 +35,14 @@ const multifractalField = z
 
 /**
  * Opt-in full network statistics. By default the tools return a compact
- * surface of network_dynamics (text_type and the ngram4_graph_radial_distance
+ * surface of network_dynamics (text_type, gait and the ngram4_graph_radial_distance
  * series) and degree_distribution (nodes, edges, gini, tail).
  */
 const fractalExperimentalField = z
 	.boolean()
 	.default(false)
 	.describe(
-		"Return every network statistics field: the full network_dynamics (all fractal_variability DFA series and exponents, node_graph_path_amplitude, sentence_rhythm, text_type) and the degree_distribution histogram. Off by default, when network_dynamics carries only text_type and fractal_variability.ngram4_graph_radial_distance, and degree_distribution only nodes, edges, gini and tail. Set it only when the user explicitly asks for the additional fractal parameters.",
+		"Return every network statistics field: the full network_dynamics (all fractal_variability DFA series and exponents, node_graph_path_amplitude, sentence_rhythm, text_type, gait) and the degree_distribution histogram. Off by default, when network_dynamics carries only text_type, gait and fractal_variability.ngram4_graph_radial_distance, and degree_distribution only nodes, edges, gini and tail. Set it only when the user explicitly asks for the additional fractal parameters.",
 	);
 
 const statementsField = z

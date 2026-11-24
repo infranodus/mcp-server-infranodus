@@ -12,6 +12,7 @@ import { analyzeTextSignatureTool } from "../dist/tools/analyzeTextSignature.js"
 import {
 	buildTextSignature,
 	composeSignature,
+	composeGait,
 	confidenceFor,
 	estimateAiLikeness,
 	interpretNetworkDynamics,
@@ -21,6 +22,7 @@ import {
 	toDefaultFields,
 	toReadingShape,
 } from "../dist/utils/textSignature.js";
+import { compactNetworkDynamics } from "../dist/utils/transformers.js";
 import { diversityFixture, degreeDistributionFixture, parseToolResult } from "./helpers/statsSurface.mjs";
 
 const CONFIG = { apiBase: "https://api.test/api/v1", apiKey: "test-key" };
@@ -329,6 +331,50 @@ describe("composeSignature", () => {
 		const unnamed = composeSignature({ ...REFRAIN, label: null, description: null, stays_where_it_goes: null, basis: null });
 		assert.equal(unnamed.label, null);
 		assert.equal(unnamed.has_core, true);
+	});
+});
+
+describe("composeGait", () => {
+	const WANDER = { label: "wander", description: "Takes long excursions without a centre to return to.", structure: "dispersed", phases: "long", radial_dfa_alpha2: 0.82 };
+
+	test("passes the backend's gait through with the twelve names and three bands", () => {
+		const gait = composeGait(WANDER);
+		assert.equal(gait.label, "wander");
+		assert.equal(gait.description, WANDER.description);
+		assert.equal(gait.structure, "dispersed");
+		assert.equal(gait.phases, "long");
+		assert.equal(gait.radial_dfa_alpha2, 0.82);
+		assert.deepEqual(Object.keys(gait.label_possible_values), [
+			"dig", "study", "anthology", "wander",
+			"thesis", "argument", "survey", "notebook",
+			"chant", "summary", "catalogue", "scatter",
+		]);
+		assert.deepEqual(Object.keys(gait.phases_possible_values), ["long", "some", "none"]);
+		assert.match(gait.note, /never as evidence of who wrote it/);
+	});
+
+	test("is left out when the backend sent no gait, and empty when it sent null", () => {
+		assert.equal(composeGait(undefined), undefined);
+		const empty = composeGait(null);
+		assert.equal(empty.label, null);
+		assert.equal(empty.phases, null);
+		assert.equal(Object.keys(empty.label_possible_values).length, 12);
+	});
+
+	test("buildTextSignature carries the gait only when the backend sends one", () => {
+		const base = { modularity: 0.5, diversity: diversityFixture(), networkDynamics: { text_type: REFRAIN, fractal_variability: {} } };
+		assert.equal("gait" in buildTextSignature(base), false);
+		const withGait = buildTextSignature({ ...base, networkDynamics: { ...base.networkDynamics, gait: WANDER } });
+		assert.equal(withGait.gait.label, "wander");
+	});
+});
+
+describe("compactNetworkDynamics", () => {
+	test("keeps the gait in the default surface, and leaves it out against an older backend", () => {
+		const dynamics = { text_type: REFRAIN, gait: { label: "chant" }, fractal_variability: { ngram4_graph_radial_distance: null }, sentence_rhythm: {} };
+		assert.deepEqual(Object.keys(compactNetworkDynamics(dynamics)), ["text_type", "gait", "fractal_variability"]);
+		const { gait, ...older } = dynamics;
+		assert.deepEqual(Object.keys(compactNetworkDynamics(older)), ["text_type", "fractal_variability"]);
 	});
 });
 

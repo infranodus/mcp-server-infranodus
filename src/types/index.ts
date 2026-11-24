@@ -162,9 +162,30 @@ export interface TextType {
 	confidence: "clear" | "borderline" | null;
 }
 
+/**
+ * The backend's gait: one of twelve names for how a text walks through its
+ * map, from structure (across) and the radial DFA alpha2 (down: long phases
+ * above 0.75, some 0.63-0.75, none below 0.63). A proposal not yet tested on
+ * labelled texts. Computed by the backend; never recomputed here.
+ */
+export type GaitLabel =
+	| "dig" | "study" | "anthology" | "wander"
+	| "thesis" | "argument" | "survey" | "notebook"
+	| "chant" | "summary" | "catalogue" | "scatter";
+
+export interface Gait {
+	label: GaitLabel | null;
+	description: string | null;
+	structure: "biased" | "focused" | "diversified" | "dispersed" | null;
+	phases: "long" | "some" | "none" | null;
+	radial_dfa_alpha2: number | null;
+}
+
 export interface NetworkDynamics {
 	/** absent from a backend that does not compute it yet */
 	text_type?: TextType | null;
+	/** absent from a backend that does not compute it yet */
+	gait?: Gait | null;
 	fractal_variability: {
 		/** distance from the path centroid, on 4-node windows of the node path */
 		ngram4_graph_radial_distance: DfaSeriesBlock | null;

@@ -15,6 +15,8 @@
  */
 import type {
 	TextType,
+	Gait,
+	GaitLabel,
 	Amplitude,
 	AmplitudeStats,
 	DegreeDistribution,
@@ -480,6 +482,48 @@ export interface Signature {
 	note: string;
 }
 
+const GAIT_VALUES: Record<GaitLabel, string> = {
+	dig: "Biased, long phases: goes deep into one idea, out to its edges and back.",
+	study: "Focused, long phases: stays in parts of a connected structure, then moves on.",
+	anthology: "Diversified, long phases: settles into one topic after another.",
+	wander: "Dispersed, long phases: takes long excursions without a centre to return to.",
+	thesis: "Biased, some phases: argues one idea, with some development around it.",
+	argument: "Focused, some phases: builds a case through linked points.",
+	survey: "Diversified, some phases: covers several topics, each with some depth.",
+	notebook: "Dispersed, some phases: loose topics, with occasional runs on one.",
+	chant: "Biased, no phases: repeats the same hub at an even rate.",
+	summary: "Focused, no phases: touches the core again and again without staying.",
+	catalogue: "Diversified, no phases: lists many topics at the same pace.",
+	scatter: "Dispersed, no phases: hops between unrelated points.",
+};
+
+const PHASE_VALUES: Record<NonNullable<Gait["phases"]>, string> = {
+	long: "Radial DFA alpha2 above 0.75: the text stays near its core or out in the periphery for long stretches.",
+	some: "Radial DFA alpha2 from 0.63 to 0.75: some lasting stretches.",
+	none: "Radial DFA alpha2 below 0.63: the distance from the core changes with no lasting stretches.",
+};
+
+export interface GaitReading extends Gait {
+	label_possible_values: Record<GaitLabel, string>;
+	phases_possible_values: Record<NonNullable<Gait["phases"]>, string>;
+	note: string;
+}
+
+/** The backend's gait with its possible values; undefined when the backend sent none. */
+export function composeGait(gait: Gait | null | undefined): GaitReading | undefined {
+	if (gait === undefined) return undefined;
+	return {
+		label: gait?.label ?? null,
+		description: gait?.description ?? (gait?.label ? GAIT_VALUES[gait.label] : null),
+		structure: gait?.structure ?? null,
+		phases: gait?.phases ?? null,
+		radial_dfa_alpha2: gait?.radial_dfa_alpha2 ?? null,
+		label_possible_values: GAIT_VALUES,
+		phases_possible_values: PHASE_VALUES,
+		note: "The gait combines structure with one exponent, the radial DFA alpha2, so it can differ from the text type, which reads memory from up to six parts. It is a proposal not yet tested on labelled texts: present it as a description of how the text moves, never as evidence of who wrote it.",
+	};
+}
+
 export function movementBand(
 	meanStep: number | null | undefined,
 	steps: number | null | undefined,
@@ -749,6 +793,8 @@ export function estimateAiLikeness(input: {
 
 export interface TextSignatureOutput {
 	signature: Signature;
+	/** the backend's gait; absent when the backend does not compute it */
+	gait?: GaitReading;
 	structure: {
 		modularity: number | null;
 		diversity_stats: DiversityStats | null;
@@ -1244,6 +1290,7 @@ export function buildTextSignature(input: {
 	const influence = readInfluence(fractal);
 	return {
 		signature: composeSignature(everything?.text_type),
+		...(everything?.gait === undefined ? {} : { gait: composeGait(everything.gait) }),
 		structure: {
 			modularity: input.modularity ?? null,
 			diversity_stats: diversity,
