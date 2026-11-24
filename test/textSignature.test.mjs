@@ -474,8 +474,11 @@ describe("buildTextSignature", () => {
 		assert.ok(hidden.ai_likeness.evidence.some((e) => e.signal.startsWith("persistence of distance from the core theme")));
 	});
 
-	test("the histogram of the degree distribution is trimmed to 40 rows", () => {
-		const wide = buildTextSignature(input({ degreeDistribution: degreeDistributionFixture({ rows: 70 }) }));
+	test("the degree histogram is left out by default and trimmed to 40 rows with includeExperimental", () => {
+		const fixture = degreeDistributionFixture({ rows: 70 });
+		const compact = buildTextSignature(input({ degreeDistribution: fixture }));
+		assert.deepEqual(compact.structure.degree_distribution, { nodes: fixture.nodes, edges: fixture.edges, gini: fixture.gini, tail: fixture.tail });
+		const wide = buildTextSignature(input({ degreeDistribution: fixture, includeExperimental: true }));
 		assert.equal(wide.structure.degree_distribution.histogram.length, 40);
 		assert.equal(wide.structure.degree_distribution.histogramTruncated, true);
 		const none = buildTextSignature(input({ degreeDistribution: null }));
@@ -570,7 +573,8 @@ describe("analyze_text_signature handler", () => {
 		const output = parseToolResult(result);
 		assert.equal(output.signature.label, "refrain");
 		assert.deepEqual(output.structure.diversity_stats, diversityFixture());
-		assert.deepEqual(output.structure.degree_distribution, degreeDistributionFixture());
+		const degrees = degreeDistributionFixture();
+		assert.deepEqual(output.structure.degree_distribution, { nodes: degrees.nodes, edges: degrees.edges, gini: degrees.gini, tail: degrees.tail });
 		// the default fields are shown although every field was fetched
 		assert.equal("step_cv" in output.network_dynamics.node_graph_path_amplitude, false);
 		assert.equal(typeof output.readings.sentence_rhythm.coverage, "string");

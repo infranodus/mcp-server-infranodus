@@ -65,6 +65,7 @@ export const generateKnowledgeGraphTool = {
 				doNotSave: "true",
 				addStats: "true",
 				...(params.multifractal ? { multifractal: "true" } : {}),
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
@@ -120,7 +121,8 @@ export const generateKnowledgeGraphTool = {
 				includeGraph || fullGraph,
 				includeNodesAndEdges || fullGraph,
 				buildingEntitiesGraph,
-				fullGraph
+				fullGraph,
+				params.fractalExperimental ?? false,
 			);
 
 			return {

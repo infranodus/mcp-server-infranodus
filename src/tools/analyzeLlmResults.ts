@@ -144,6 +144,7 @@ export const analyzeLlmResultsTool = {
 					doNotSave: "true",
 					addStats: "true",
 					...(params.multifractal ? { multifractal: "true" } : {}),
+					...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 					includeStatements: includeStatements ? "true" : "false",
 					includeGraphSummary: "false",
 					extendedGraphSummary: includeAnalytics ? "true" : "false",
@@ -175,6 +176,8 @@ export const analyzeLlmResultsTool = {
 						includeGraph,
 						includeGraph,
 						modifyAnalyzedText !== "none",
+						false,
+						params.fractalExperimental ?? false,
 					);
 
 					if (includeAnalytics) {

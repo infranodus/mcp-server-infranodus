@@ -189,7 +189,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 	for (const { name, tool, endpoint, params } of GRAPH_TOOLS) {
 		for (const flag of [false, true]) {
 			test(`${name} (multifractal: ${flag})`, async () => {
-				const { result, calls } = await withFakeApi(() => tool.handler(params(flag)));
+				const { result, calls } = await withFakeApi(() => tool.handler({ ...params(flag), fractalExperimental: true }));
 				const output = parseToolResult(result);
 
 				const graphCalls = calls.filter((c) => c.url.includes(`${endpoint}?`));
@@ -201,6 +201,8 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 					flag ? "true" : null,
 					flag ? "multifractal=true must be sent when the flag is on" : "multifractal must be absent when the flag is off",
 				);
+
+				assert.equal(query.get("fractalExperimental"), "true", "fractalExperimental=true must be sent when the flag is on");
 
 				assertStructuredStatistics(output.statistics, { spectrum: "null", textType: "required" });
 				assert.deepEqual(output.statistics.diversity_stats, DIVERSITY, "diversity_stats is forwarded unchanged");
@@ -225,7 +227,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		globalThis.fetch = async () => fakeResponse(graphResponse(short));
 		try {
 			const result = await runWithConfig(CONFIG, () =>
-				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, fractalExperimental: true }),
 			);
 			const output = parseToolResult(result);
 			const { computedSeries } = assertStructuredStatistics(output.statistics, { spectrum: "null" });
@@ -245,7 +247,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		globalThis.fetch = async () => fakeResponse(graphResponse(withSpectrum));
 		try {
 			const output = parseToolResult(await runWithConfig(CONFIG, () =>
-				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, multifractal: true }),
+				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, multifractal: true, fractalExperimental: true }),
 			));
 			const { computedSpectra } = assertStructuredStatistics(output.statistics, { spectrum: "required" });
 			assert.equal(computedSpectra, 3);
@@ -261,7 +263,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		globalThis.fetch = async () => fakeResponse(graphResponse(DYNAMICS, wide));
 		try {
 			const trimmed = parseToolResult(await runWithConfig(CONFIG, () =>
-				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+				analyzeTextTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, fractalExperimental: true }),
 			));
 			assertDegreeDistribution(trimmed.statistics.degree_distribution);
 			assert.equal(trimmed.statistics.degree_distribution.histogram.length, 40);
@@ -271,7 +273,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 			assert.deepEqual(trimmed.statistics.degree_distribution.tail, wide.tail);
 
 			const full = parseToolResult(await runWithConfig(CONFIG, () =>
-				analyzeTextTool.handler({ text: TEXT, fullGraph: true, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+				analyzeTextTool.handler({ text: TEXT, fullGraph: true, includeGraph: true, includeStatements: false, addNodesAndEdges: false, fractalExperimental: true }),
 			));
 			assert.deepEqual(full.statistics.degree_distribution, wide, "fullGraph keeps the whole histogram");
 			assert.ok(!("histogramTruncated" in full.statistics.degree_distribution));
@@ -286,7 +288,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		globalThis.fetch = async () => fakeResponse(graphResponse(DYNAMICS, small));
 		try {
 			const output = parseToolResult(await runWithConfig(CONFIG, () =>
-				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, fractalExperimental: true }),
 			));
 			assertStructuredStatistics(output.statistics, { degreeDistribution: "required" });
 			assert.deepEqual(output.statistics.degree_distribution, small);
@@ -307,7 +309,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		};
 		try {
 			const output = parseToolResult(await runWithConfig(CONFIG, () =>
-				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, fractalExperimental: true }),
 			));
 			assertStructuredStatistics(output.statistics, { spectrum: "null" });
 			assert.deepEqual(output.statistics.network_dynamics, older);
@@ -326,7 +328,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		};
 		try {
 			const result = await runWithConfig(CONFIG, () =>
-				analyzeTextTool.handler({ text: TEXT, includeGraph: false, includeStatements: false, addNodesAndEdges: false }),
+				analyzeTextTool.handler({ text: TEXT, includeGraph: false, includeStatements: false, addNodesAndEdges: false, fractalExperimental: true }),
 			);
 			const output = parseToolResult(result);
 			assert.deepEqual(output.statistics, { modularity: 0, diversity_stats: {}, clusterCount: 0 });
@@ -345,7 +347,7 @@ describe("graph tools: statistics surface and multifractal flag", () => {
 		};
 		try {
 			const result = await runWithConfig(CONFIG, () =>
-				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false }),
+				generateKnowledgeGraphTool.handler({ text: TEXT, includeGraph: true, includeStatements: false, addNodesAndEdges: false, fractalExperimental: true }),
 			);
 			const output = parseToolResult(result);
 			assert.deepEqual(output.statistics.diversity_stats, DIVERSITY);
@@ -366,7 +368,7 @@ describe("optimize tools: top-level statistics surface", () => {
 		["optimize_reasoning", optimizeReasoningTool],
 	]) {
 		test(name, async () => {
-			const { result, calls } = await withFakeApi(() => tool.handler({ text: TEXT }));
+			const { result, calls } = await withFakeApi(() => tool.handler({ text: TEXT, fractalExperimental: true }));
 			const output = parseToolResult(result);
 
 			assert.equal(calls.length, 1);
@@ -387,7 +389,7 @@ describe("optimize tools: top-level statistics surface", () => {
 
 	test("optimize_knowledge_base nests network_dynamics inside statistics", async () => {
 		const { result, calls } = await withFakeApi(() =>
-			optimizeKnowledgeBaseTool.handler({ text: TEXT, includeLatent: false }),
+			optimizeKnowledgeBaseTool.handler({ text: TEXT, includeLatent: false, fractalExperimental: true }),
 		);
 		const report = parseToolResult(result);
 
@@ -404,5 +406,69 @@ describe("optimize tools: top-level statistics surface", () => {
 		assertNetworkDynamics(network_dynamics, { textType: "required", where: "report.statistics.network_dynamics" });
 		assert.deepEqual(network_dynamics, DYNAMICS);
 		assert.equal(report.state, "diversified");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Default surface: without fractalExperimental, network_dynamics carries only
+// text_type and the ngram4_graph_radial_distance series, degree_distribution
+// only nodes, edges, gini and tail; the flag is not sent to the API.
+// ---------------------------------------------------------------------------
+const COMPACT_DYNAMICS = {
+	text_type: DYNAMICS.text_type,
+	fractal_variability: {
+		ngram4_graph_radial_distance: DYNAMICS.fractal_variability.ngram4_graph_radial_distance,
+	},
+};
+const COMPACT_DEGREES = { nodes: DEGREES.nodes, edges: DEGREES.edges, gini: DEGREES.gini, tail: DEGREES.tail };
+
+describe("default surface: compact network statistics", () => {
+	for (const { name, tool, endpoint, params } of GRAPH_TOOLS) {
+		test(name, async () => {
+			const { result, calls } = await withFakeApi(() => tool.handler(params(false)));
+			const output = parseToolResult(result);
+			const graphCall = calls.find((c) => c.url.includes(`${endpoint}?`));
+			assert.equal(queryOf(graphCall.url).get("fractalExperimental"), null, "fractalExperimental is not sent by default");
+			assert.deepEqual(output.statistics.network_dynamics, COMPACT_DYNAMICS);
+			assert.deepEqual(output.statistics.degree_distribution, COMPACT_DEGREES);
+			assert.deepEqual(output.knowledgeGraph.attributes.network_dynamics, COMPACT_DYNAMICS, "the raw graph carries the same surface");
+			assert.deepEqual(output.knowledgeGraph.attributes.degree_distribution, COMPACT_DEGREES);
+			assert.deepEqual(output.statistics.diversity_stats, DIVERSITY, "diversity_stats is untouched");
+		});
+	}
+
+	for (const [name, tool] of [
+		["optimize_text_structure", optimizeTextStructureTool],
+		["optimize_reasoning", optimizeReasoningTool],
+	]) {
+		test(name, async () => {
+			const { result, calls } = await withFakeApi(() => tool.handler({ text: TEXT }));
+			const output = parseToolResult(result);
+			assert.equal(queryOf(calls[0].url).get("fractalExperimental"), null);
+			assert.deepEqual(output.network_dynamics, COMPACT_DYNAMICS);
+			assert.deepEqual(output.degree_distribution, COMPACT_DEGREES);
+		});
+	}
+
+	test("optimize_knowledge_base", async () => {
+		const { result, calls } = await withFakeApi(() =>
+			optimizeKnowledgeBaseTool.handler({ text: TEXT, includeLatent: false }),
+		);
+		const report = parseToolResult(result);
+		const develop = calls.find((c) => c.url.includes("/graphAndAdvice?"));
+		assert.equal(queryOf(develop.url).get("fractalExperimental"), null);
+		assert.deepEqual(report.statistics.network_dynamics, COMPACT_DYNAMICS);
+		assert.deepEqual(report.statistics.degree_distribution, COMPACT_DEGREES);
+	});
+
+	test("fractalExperimental: true is forwarded by the optimize tools", async () => {
+		for (const tool of [optimizeTextStructureTool, optimizeReasoningTool]) {
+			const { calls } = await withFakeApi(() => tool.handler({ text: TEXT, fractalExperimental: true }));
+			assert.equal(queryOf(calls[0].url).get("fractalExperimental"), "true");
+		}
+		const { calls } = await withFakeApi(() =>
+			optimizeKnowledgeBaseTool.handler({ text: TEXT, includeLatent: false, fractalExperimental: true }),
+		);
+		assert.equal(queryOf(calls.find((c) => c.url.includes("/graphAndAdvice?")).url).get("fractalExperimental"), "true");
 	});
 });

@@ -98,6 +98,7 @@ export const generateOverlapGraphFromTextsTool = {
 				doNotSave: "true",
 				addStats: "true",
 				...(params.multifractal ? { multifractal: "true" } : {}),
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 				includeStatements: params.includeStatements ? "true" : "false",
 				includeGraphSummary: "false",
 				extendedGraphSummary: "true",
@@ -136,7 +137,10 @@ export const generateOverlapGraphFromTextsTool = {
 			const structuredOutput = transformToStructuredOutput(
 				response,
 				includeGraph,
-				includeNodesAndEdges
+				includeNodesAndEdges,
+				false,
+				false,
+				params.fractalExperimental ?? false,
 			);
 
 			return {

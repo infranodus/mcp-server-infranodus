@@ -179,6 +179,7 @@ export const optimizeKnowledgeBaseTool = {
 				aiTopics: "true",
 				optimize: mode,
 				gapDepth: gapDepth.toString(),
+				...(params.fractalExperimental ? { fractalExperimental: "true" } : {}),
 			});
 			const develop: GraphResponse = await makeInfraNodusRequest(
 				`/graphAndAdvice?${developQuery.toString()}`,
@@ -190,7 +191,10 @@ export const optimizeKnowledgeBaseTool = {
 				},
 			);
 			if (develop.error) return errorContent(errorText(develop.error));
-			const optimization = generateOptimizationResult(develop);
+			const optimization = generateOptimizationResult(
+				develop,
+				params.fractalExperimental ?? false,
+			);
 			const stateRaw =
 				develop.extendedGraphSummary?.diversityStatistics?.diversity_score ??
 				(develop.graph?.graphologyGraph?.attributes?.diversity_stats as any)
