@@ -194,4 +194,59 @@ describe("generate_ontology_graph without saving", () => {
 		assert.equal(graph.body.modifyAnalyzedText, undefined);
 		assert.equal(graph.body.text, "[[Allen Ginsberg]] [wrote] [[Howl]]");
 	});
+
+	const aiCalls = (calls) => calls.filter((c) => c.url.includes("/aiAdvice"));
+
+	test("sends the user's relation codes in the prompt and instructions as systemPrompt", async () => {
+		const { calls } = await run(generateOntologyGraphTool, { parse: (p) => p }, {
+			prompt: "the Beat Generation",
+			relations: ["influenced", "[published]", "  "],
+			instructions: "only people and books",
+			saveGraph: false,
+		});
+		const [ai] = aiCalls(calls);
+		assert.equal(
+			ai.body.prompt[0].content,
+			"the Beat Generation\n\nUse only these relation codes: [influenced], [published]",
+		);
+		assert.equal(ai.body.systemPrompt, "only people and books");
+	});
+
+	test("applies relations to every text chunk, and neither field when absent", async () => {
+		const text = Array.from({ length: 300 }, (_, i) => `Line ${i} about the Beats.`).join("\n");
+		const { calls } = await run(generateOntologyGraphTool, { parse: (p) => p }, {
+			text,
+			chunkSize: 2000,
+			relations: ["influenced"],
+			saveGraph: false,
+		});
+		const ai = aiCalls(calls);
+		assert.ok(ai.length > 1);
+		for (const call of ai) {
+			assert.ok(call.body.prompt[0].content.endsWith("\n\nUse only these relation codes: [influenced]"));
+			assert.equal(call.body.systemPrompt, undefined);
+		}
+
+		const plain = await run(generateOntologyGraphTool, { parse: (p) => p }, {
+			prompt: "the Beat Generation",
+			saveGraph: false,
+		});
+		const [plainAi] = aiCalls(plain.calls);
+		assert.equal(plainAi.body.prompt[0].content, "the Beat Generation");
+		assert.equal(plainAi.body.systemPrompt, undefined);
+	});
+
+	test("procedural mode ignores relations but keeps instructions", async () => {
+		const { calls } = await run(generateOntologyGraphTool, { parse: (p) => p }, {
+			text: "The router hands requests to the handler.",
+			ontologyMode: "procedural",
+			relations: ["calls"],
+			instructions: "focus on the request path",
+			saveGraph: false,
+		});
+		const [ai] = aiCalls(calls);
+		assert.equal(ai.body.aiQueryType, "digest");
+		assert.ok(!ai.body.prompt[0].content.includes("relation codes"));
+		assert.equal(ai.body.systemPrompt, "focus on the request path");
+	});
 });

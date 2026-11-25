@@ -25,6 +25,18 @@ const PREAMBLES: Record<"general" | "codebase" | "procedural", string> = {
 		"The text below is content from a project — its documentation, notes, source code, or a structure map of files, imports and exports. Write the digest of how this project works.",
 };
 
+/**
+ * The app's "Use my own relations" line (AiGraphImport.jsx): the ontology
+ * system prompt yields its default codes "unless the user provides their own".
+ */
+export function relationCodesLine(relations: string[] | undefined): string {
+	const codes = (relations ?? [])
+		.map((relation) => relation.trim().replace(/^\[+|\]+$/g, "").trim())
+		.filter(Boolean);
+	if (codes.length === 0) return "";
+	return `\n\nUse only these relation codes: ${codes.map((code) => `[${code}]`).join(", ")}`;
+}
+
 /** Read an existing graph's statements (doNotSave; a missing name errors). */
 async function readGraphStatements(graphName: string): Promise<string[]> {
 	const query = new URLSearchParams({
@@ -149,6 +161,9 @@ export const generateOntologyGraphTool = {
 			// One AI call per chunk; with saveGraph every call appends to the same
 			// graph. Raw statements come back only when NOT saving — saving
 			// returns a redirect — so both are collected across chunks.
+			const relationsLine =
+				mode === "procedural" ? "" : relationCodesLine(params.relations);
+			const instructions = params.instructions?.trim();
 			const progress = new ProgressReporter(context ?? {}, chunks.length);
 			const rawOntologyStatements: string[] = [];
 			let response: any = null;
@@ -159,11 +174,11 @@ export const generateOntologyGraphTool = {
 					`${mode === "procedural" ? "Writing digest" : "Generating ontology"}: chunk ${index + 1} of ${chunks.length}`,
 				);
 				const content =
-					source === "prompt"
+					(source === "prompt"
 						? chunk
 						: `${PREAMBLES[mode]}${
 								chunks.length > 1 ? ` (part ${index + 1} of ${chunks.length})` : ""
-							}\n\n${chunk}`;
+							}\n\n${chunk}`) + relationsLine;
 				const requestBody: any = {
 					saveToGraphAndRedirect: saveGraph,
 					contextName: graphName,
@@ -174,6 +189,9 @@ export const generateOntologyGraphTool = {
 					mode: "gptchat",
 					modelToUse: params.modelToUse ?? DEFAULT_GRAPH_MODEL,
 					prompt: [{ role: "user", content }],
+					// The app's `instructions` field travels as systemPrompt too; the
+					// server appends it to the ontology / digest system prompt.
+					...(instructions ? { systemPrompt: instructions } : {}),
 					modifyAnalyzedText: "none",
 					// A digest is an ordinary statements graph, not an ontology context.
 					...(mode === "procedural" ? {} : { contextType: "ONTOLOGY" }),

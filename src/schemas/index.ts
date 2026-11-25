@@ -689,6 +689,18 @@ export const GenerateOntologyGraphSchema = z.object({
 		.describe(
 			"Characters per chunk for text / sourceGraphName inputs (split on line boundaries). Smaller chunks give more detailed, more expensive ontologies. Default 12000.",
 		),
+	relations: z
+		.array(z.string().trim().min(1))
+		.optional()
+		.describe(
+			"Your own relation codes to use instead of the default ones ([isA], [partOf], [hasAttribute], [relatedTo], [dependentOn], [causes], [locatedIn], [occursAt], [derivedFrom], [opposes]), e.g. ['causes', 'blocks', 'enables']. Square brackets are optional. Applied to every chunk of every source. Ignored in ontologyMode 'procedural', whose statements carry type tags, not relations.",
+		),
+	instructions: z
+		.string()
+		.optional()
+		.describe(
+			"The user's own instructions for the AI model, e.g. 'only people and organizations' or 'focus on the 1950-1970 period'. Sent with every chunk. They can change which entities and relations to include, the scope and the number of statements, but not the output format.",
+		),
 	graphName: z
 		.string()
 		.optional()
