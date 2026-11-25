@@ -250,3 +250,70 @@ describe("generate_ontology_graph without saving", () => {
 		assert.equal(ai.body.systemPrompt, "focus on the request path");
 	});
 });
+
+describe("analyze_llm_results", async () => {
+	const { analyzeLlmResultsTool, splitModelAnswers } = await import("../dist/tools/analyzeLlmResults.js");
+	const { AnalyzeLlmResultsSchema } = await import("../dist/schemas/index.js");
+	const aiCalls = (calls) => calls.filter((c) => c.url.includes("/aiAdvice"));
+	const MODEL_ANSWERS = [
+		"```",
+		"? recommendation | What is the best espresso machine for beginners?",
+		"The Breville Bambino is a common pick.",
+		"Gaggia Classic is a sturdier option.",
+		"? cost | How much should I spend?",
+		"Expect 300 to 700 dollars.",
+		"```",
+	].join("\n");
+
+	test("splitModelAnswers turns question lines into categories, as the app does", () => {
+		const { statements, categories, answers } = splitModelAnswers([
+			"? Comparison | A or B?",
+			"A is cheaper.",
+			"? untagged question",
+			"B lasts longer.",
+		]);
+		assert.deepEqual(statements, ["A is cheaper.", "B lasts longer."]);
+		assert.deepEqual(categories, [["intent: comparison", "A or B?"], ["untagged question"]]);
+		assert.deepEqual(answers, [
+			{ intent: "comparison", question: "A or B?", answers: ["A is cheaper."] },
+			{ question: "untagged question", answers: ["B lasts longer."] },
+		]);
+	});
+
+	test("overview sends instructions as systemPrompt and hides search terms the way the server reads it", async () => {
+		const { calls } = await run(analyzeLlmResultsTool, AnalyzeLlmResultsSchema, {
+			prompt: "espresso",
+			instructions: "only home machines",
+			context: "x",
+		});
+		const [ai] = aiCalls(calls);
+		assert.equal(ai.body.aiQueryType, "llm graph");
+		assert.equal(ai.body.systemPrompt, "only home machines");
+		assert.equal(ai.body.excludesearchquery, "1");
+		assert.equal(ai.body.hideSearchTerms, undefined);
+	});
+
+	test("modelAnswers sends 'model answers', drops instructions, and builds the graph with question categories", async () => {
+		const { result, calls } = await run(analyzeLlmResultsTool, AnalyzeLlmResultsSchema, {
+			prompt: "espresso machines",
+			answerMode: "modelAnswers",
+			instructions: "ignored here",
+			context: "x",
+			__stub: { aiAnswer: MODEL_ANSWERS },
+		});
+		const [ai] = aiCalls(calls);
+		assert.equal(ai.body.aiQueryType, "model answers");
+		assert.equal(ai.body.systemPrompt, undefined);
+		const [graph] = graphCalls(calls);
+		assert.deepEqual(graph.body.statements, [
+			"The Breville Bambino is a common pick.",
+			"Gaggia Classic is a sturdier option.",
+			"Expect 300 to 700 dollars.",
+		]);
+		assert.deepEqual(graph.body.categories[2], ["intent: cost", "How much should I spend?"]);
+		const output = JSON.parse(result.content[0].text);
+		assert.equal(output.modelAnswers.length, 2);
+		assert.equal(output.modelAnswers[0].intent, "recommendation");
+		assert.equal(output.modelAnswers[0].answers.length, 2);
+	});
+});

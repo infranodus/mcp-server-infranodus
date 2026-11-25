@@ -536,6 +536,8 @@ export interface OntologyGraphOutput {
 	ontologyStatements?: string[];
 	// The raw LLM completions, one per item (for analyze_llm_results); returned when includeStatements is true, whether or not the graph is saved
 	llmStatements?: string[];
+	// analyze_llm_results with answerMode 'modelAnswers' (unsaved): the answers grouped by the question they answer
+	modelAnswers?: { intent?: string; question: string; answers: string[] }[];
 	// Optional graph + analytics (from a follow-up /graphAndStatements call)
 	statistics?: {
 		modularity: number;

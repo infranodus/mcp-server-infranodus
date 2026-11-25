@@ -196,7 +196,6 @@ export const generateOntologyGraphTool = {
 					// A digest is an ordinary statements graph, not an ontology context.
 					...(mode === "procedural" ? {} : { contextType: "ONTOLOGY" }),
 					replaceEntities: false,
-					hideSearchTerms: true,
 				};
 				const chunkResponse = await makeInfraNodusRequest("/aiAdvice", requestBody);
 				// The /aiAdvice endpoint returns error envelopes with HTTP 200, so
