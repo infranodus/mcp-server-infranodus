@@ -6,6 +6,7 @@ import {
 	type WikilinksMode,
 	type WikilinksPayload,
 } from "./wikilinksMode.js";
+import { StatementFilter } from "./statementFilter.js";
 
 export interface GraphInputParams {
 	text?: string;
@@ -126,7 +127,7 @@ export async function resolveGraphInput(
 export type ContextItem =
 	| { text: string }
 	| { url: string }
-	| { graphName: string }
+	| { graphName: string; statementFilter?: StatementFilter }
 	| { statements: string[]; categories?: string[][]; timestamps?: string[] };
 
 type ResolvedItem =
@@ -160,6 +161,7 @@ export async function resolveContexts(
 	items: ContextItem[],
 	fetchGraphTextByName: (
 		graphName: string,
+		statementFilter?: StatementFilter,
 	) => Promise<{ ok: true; text: string } | { ok: false; error: string }>,
 	options: { categoriesAsNodes?: boolean } = {},
 ): Promise<ResolvedContexts> {
@@ -204,7 +206,10 @@ export async function resolveContexts(
 			continue;
 		}
 		if ("graphName" in item) {
-			const result = await fetchGraphTextByName(item.graphName);
+			const result = await fetchGraphTextByName(
+				item.graphName,
+				item.statementFilter,
+			);
 			if (!result.ok)
 				return {
 					ok: false,

@@ -10,6 +10,7 @@ import {
 	generateResponses,
 } from "../utils/transformers.js";
 import { DEFAULT_AI_MODEL } from "../config/models.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -68,6 +69,7 @@ export const generateResearchIdeasTool = {
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
+					...statementFilterBody(params.statementFilter),
 					userName: params.userName ?? "",
 					aiTopics: "true",
 					requestMode: params.shouldTranscend ? "transcend" : "response",

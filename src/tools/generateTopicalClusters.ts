@@ -6,6 +6,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateTopics } from "../utils/transformers.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -56,6 +57,7 @@ export const generateTopicalClustersTool = {
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
+					...statementFilterBody(params.statementFilter),
 					userName: params.userName ?? "",
 				};
 			} else {

@@ -4,6 +4,7 @@ import { RetrieveContextForPromptFromGraphSchema } from "../schemas/index.js";
 import { makeInfraNodusRequest } from "../api/client.js";
 import { transformToGraphRagOutput } from "../utils/transformers.js";
 import { savedGraphWikilinksModeBody } from "../utils/wikilinksMode.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 export const retrieveContextForPromptFromGraphTool = {
 	name: "retrieve_from_knowledge_base",
@@ -41,6 +42,7 @@ export const retrieveContextForPromptFromGraphTool = {
 
 			const requestBody: any = {
 				name: params.graphName,
+				...statementFilterBody(params.statementFilter),
 				aiTopics: "true",
 				requestMode: "search",
 				prompt: params.prompt ? params.prompt : "",

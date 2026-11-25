@@ -123,6 +123,10 @@ export function transformToStructuredOutput(
 		},
 	};
 
+	if (data.statementFilter) {
+		output.statementFilter = data.statementFilter;
+	}
+
 	if (data.graphSummary) {
 		output.graphSummary = data.graphSummary;
 	}

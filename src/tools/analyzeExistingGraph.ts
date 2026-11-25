@@ -7,6 +7,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { savedGraphWikilinksModeBody } from "../utils/wikilinksMode.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -67,6 +68,7 @@ export const analyzeExistingGraphTool = {
 			const endpoint = `/graphAndStatements?${queryParams.toString()}`;
 			const requestBody = {
 				name: params.graphName,
+				...statementFilterBody(params.statementFilter),
 				aiTopics: "true",
 				userName: params.userName ?? "",
 				...savedGraphWikilinksModeBody(params.wikilinksMode),

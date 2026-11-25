@@ -26,6 +26,47 @@ import {
  * graph-generation tools whose endpoints (/graphAndStatements,
  * /graphsAndStatements) honor the flag.
  */
+const statementFilterField = z
+	.object({
+		categories: z
+			.array(z.string().min(1))
+			.optional()
+			.describe(
+				"Statement tags (the categories stored on statements). Matched whatever their case.",
+			),
+		categoryMatch: z
+			.enum(["any", "all"])
+			.optional()
+			.describe(
+				"'any' (default): statements with at least one of the tags. 'all': only statements that carry every tag.",
+			),
+		from: z
+			.string()
+			.optional()
+			.describe(
+				"Only statements dated on or after this ISO 8601 date, e.g. '2026-03-01' or '2026-03-01T14:30:00Z'.",
+			),
+		to: z
+			.string()
+			.optional()
+			.describe(
+				"Only statements dated on or before this ISO 8601 date. A day without a time covers that whole day.",
+			),
+		slice: z
+			.object({
+				from: z.number().min(0).max(1).default(0),
+				to: z.number().min(0).max(1).default(1),
+			})
+			.optional()
+			.describe(
+				"A share of the statements in time order, by count: { from: 0.8, to: 1 } is the latest fifth, { from: 0, to: 0.8 } everything before it, { from: 0, to: 0.5 } the first half. Start included, end excluded, so neighbouring slices share nothing and leave nothing out. Applied after the tags and dates.",
+			),
+	})
+	.optional()
+	.describe(
+		`Only when a saved graph is read (graphName, sourceGraphName, or a { graphName } context): build the graph from part of its statements instead of all of them — by tag, by date, or by a slice of the statements in time order. A statement's date is the timestamp it was uploaded with, else its upload time; statements with the same date keep the order of the text. A large graph is not sampled when the filtered part has under 9,000 statements. Tools that return the graph's analytics also return statementFilter: matched (by tags and dates), selected (after the slice) and total; a filter that matches nothing is an error. To see what is new in the latest part of a graph, use difference_between_texts with the same graphName twice: the earlier slice first ({ from: 0, to: 0.8 }), then the latest ({ from: 0.8, to: 1 }); overlap_between_texts with the same two items gives what stays constant.`,
+	);
+
 const multifractalField = z
 	.boolean()
 	.default(false)
@@ -471,6 +512,7 @@ export const AnalyzeExistingGraphSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph in your account to retrieve`,
 		),
+	statementFilter: statementFilterField,
 	userName: z
 		.string()
 		.optional()
@@ -604,6 +646,7 @@ export const GenerateContentGapsSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 });
 export const GenerateContentGapsSchema = GenerateContentGapsSchemaBase.refine(
 	(data) =>
@@ -638,6 +681,7 @@ export const generateContextualHintSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	userName: z
 		.string()
 		.optional()
@@ -674,6 +718,7 @@ export const GenerateOntologyGraphSchema = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph whose statements are the source: they are read back, chunked, and an ontology is generated from each chunk into the graph named by graphName. Use it to condense a fully ingested repo, vault, or corpus graph (e.g. repo-<project>-docs or repo-<project>-structure) into an ontology, or — with ontologyMode 'procedural' — into a digest of how the project works. Provide exactly one of: prompt, text, sourceGraphName.`,
 		),
+	statementFilter: statementFilterField,
 	ontologyMode: z
 		.enum(["general", "codebase", "procedural"])
 		.default("general")
@@ -846,6 +891,7 @@ export const GenerateTopicalClustersSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	userName: z
 		.string()
 		.optional()
@@ -924,6 +970,7 @@ export const GenerateResearchQuestionsSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph in your account to generate research questions from. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	userName: z
 		.string()
 		.optional()
@@ -985,6 +1032,7 @@ export const GenerateResearchIdeasSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	userName: z
 		.string()
 		.optional()
@@ -1058,6 +1106,7 @@ export const OptimizeTextStructureSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	responseType: z
 		.enum(["response", "idea", "question", "transcend"])
 		.default("response")
@@ -1127,6 +1176,7 @@ export const DevelopLatentConceptsSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	requestMode: z
 		.enum(["question", "transcend"])
 		.default("transcend")
@@ -1157,6 +1207,7 @@ export const RetrieveContextForPromptFromGraphSchema = z.object({
 		.describe(
 			`Name of the existing ${brand.name} graph in your account to retrieve`,
 		),
+	statementFilter: statementFilterField,
 	userName: z
 		.string()
 		.optional()
@@ -1226,6 +1277,7 @@ export const GetNodeNeighborhoodSchema = z.object({
 		.string()
 		.min(1, "Graph name is required")
 		.describe(`Name of the existing ${brand.name} graph in your account`),
+	statementFilter: statementFilterField,
 	node: z
 		.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(5)])
 		.describe(
@@ -1312,6 +1364,7 @@ export const GenerateResponsesFromGraphSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph in your account to retrieve. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	userName: z
 		.string()
 		.optional()
@@ -1449,6 +1502,7 @@ const contextItemTextUrlOrGraphSchema = z.union([
 				.describe(
 					`Name of an existing ${brand.name} graph; its statements are retrieved and used as text.`,
 				),
+			statementFilter: statementFilterField,
 		})
 		.strict()
 		.describe(`Context from an existing ${brand.name} graph by name.`),
@@ -1459,7 +1513,7 @@ const GenerateOverlapGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts are required for overlap")
 		.describe(
-			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array of sources to analyze and find content overlaps for. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string } (optionally with statementFilter, so one graph can be given twice with different slices). Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	categoriesAsNodes: categoriesAsNodesField,
 	modifyAnalyzedText: z
@@ -1497,7 +1551,7 @@ const GenerateDifferenceGraphFromTextsSchemaBase = z.object({
 		.array(contextItemTextUrlOrGraphSchema)
 		.min(2, "At least two contexts (target + one reference) are required")
 		.describe(
-			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string }. Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
+			"Array where the FIRST item is the target to analyze for missing parts; REMAINING items are reference sources. Each item is an object with exactly one of: { text: string }, { statements: string[] } (optionally with categories / timestamps), { url: string }, or { graphName: string } (optionally with statementFilter, so one graph can be given twice with different slices). Example: [{ text: '...' }, { url: 'https://...' }, { graphName: 'my-graph' }].",
 		),
 	categoriesAsNodes: categoriesAsNodesField,
 	modifyAnalyzedText: z
@@ -2042,6 +2096,7 @@ export const DevelopTextToolSchemaBase = z.object({
 		.describe(
 			`Name of an existing ${brand.name} graph to use. Provide one of: text, url, or graphName.`,
 		),
+	statementFilter: statementFilterField,
 	useSeveralGaps: z
 		.boolean()
 		.default(false)
@@ -2314,6 +2369,7 @@ export const OptimizeKnowledgeBaseSchema = z.object({
 		.describe(
 			`Name of the saved ${brand.name} graph that represents the project: e.g. repo-<project>-digest or vault-<project>-digest (the LLM-written digest of how it works), repo-<project>-structure (the deterministic map of files, imports, exports), repo-<project>-docs, vault-<project>-links, or learn-<project>. Provide this or statements/text.`,
 		),
+	statementFilter: statementFilterField,
 	statements: statementsField,
 	categories: categoriesField,
 	categoriesAsNodes: categoriesAsNodesField,

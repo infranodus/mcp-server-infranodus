@@ -12,6 +12,10 @@ import { ProgressReporter } from "../utils/progress.js";
 import { chunkByLines } from "../utils/chunkByLines.js";
 import { WIKILINKS_ONLY_SETTINGS } from "../utils/wikilinksMode.js";
 import { DEFAULT_GRAPH_MODEL } from "../config/models.js";
+import {
+	StatementFilter,
+	statementFilterBody,
+} from "../utils/statementFilter.js";
 
 // Re-exported: the tests and other tools import it from here.
 export { chunkByLines };
@@ -38,7 +42,10 @@ export function relationCodesLine(relations: string[] | undefined): string {
 }
 
 /** Read an existing graph's statements (doNotSave; a missing name errors). */
-async function readGraphStatements(graphName: string): Promise<string[]> {
+async function readGraphStatements(
+	graphName: string,
+	statementFilter?: StatementFilter,
+): Promise<string[]> {
 	const query = new URLSearchParams({
 		doNotSave: "true",
 		addStats: "false",
@@ -53,6 +60,7 @@ async function readGraphStatements(graphName: string): Promise<string[]> {
 	const response = await makeInfraNodusRequest(`/graphAndStatements?${query}`, {
 		name: graphName,
 		aiTopics: "false",
+		...statementFilterBody(statementFilter),
 	});
 	if (response.error) {
 		throw new Error(
@@ -144,7 +152,10 @@ export const generateOntologyGraphTool = {
 				chunks = chunkByLines(text, params.chunkSize ?? 12000);
 			} else {
 				source = "graph";
-				const statements = await readGraphStatements(sourceGraphName as string);
+				const statements = await readGraphStatements(
+					sourceGraphName as string,
+					params.statementFilter,
+				);
 				if (statements.length === 0) {
 					return errorContent(
 						`Graph "${sourceGraphName}" has no statements to build an ontology from.`,
