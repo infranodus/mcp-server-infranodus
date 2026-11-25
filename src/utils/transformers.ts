@@ -338,8 +338,11 @@ export function extractLineSeparatedStatements(data: GraphResponse): string[] {
 			return content.split("\n");
 		})
 		.map((line) => line.trim())
-		.filter((line) => line.length > 0);
+		.filter((line) => line.length > 0 && !CODE_FENCE_LINE.test(line));
 }
+
+// Models often wrap their statements in a ``` / ```text block.
+const CODE_FENCE_LINE = /^(```|~~~)[\w-]*$/;
 
 // For intro-search style responses: each "choice" is one full LLM completion
 // (typically a paragraph), and the graph treats each completion as a single
