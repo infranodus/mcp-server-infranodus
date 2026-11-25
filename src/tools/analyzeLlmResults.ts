@@ -32,6 +32,50 @@ function slugify(text: string): string {
 		.slice(0, 30);
 }
 
+export interface ModelAnswer {
+	intent?: string;
+	question: string;
+	answers: string[];
+}
+
+/**
+ * Same split as the app's splitModelAnswers (routes/ai.js): a "? intent |
+ * question" line is not a statement — its intent and question become the
+ * categories of the answer lines below it.
+ */
+export function splitModelAnswers(lines: string[]): {
+	statements: string[];
+	categories: string[][];
+	answers: ModelAnswer[];
+} {
+	const statements: string[] = [];
+	const categories: string[][] = [];
+	const answers: ModelAnswer[] = [];
+	let current: string[] = [];
+	let currentAnswer: ModelAnswer | null = null;
+	for (const line of lines) {
+		if (line.startsWith("?")) {
+			const [intent, ...question] = line
+				.slice(1)
+				.split("|")
+				.map((part) => part.trim());
+			current = question.length
+				? [`intent: ${intent.toLowerCase()}`, question.join(" | ")]
+				: [intent];
+			currentAnswer = question.length
+				? { intent: intent.toLowerCase(), question: question.join(" | "), answers: [] }
+				: { question: intent, answers: [] };
+			answers.push(currentAnswer);
+			continue;
+		}
+		if (!line) continue;
+		statements.push(line);
+		categories.push(current);
+		currentAnswer?.answers.push(line);
+	}
+	return { statements, categories, answers };
+}
+
 function defaultGraphName(prompt: string): string {
 	const timestamp = new Date().toISOString().slice(2, 16).replace(/[-:T]/g, "");
 	const slug = slugify(prompt.split(" ").slice(0, 3).join(" "));
@@ -43,7 +87,7 @@ export const analyzeLlmResultsTool = {
 	definition: {
 		title: "Analyze How an LLM Sees a Topic",
 		description:
-			"Ask an LLM to describe a topic, then turn its response into a knowledge graph that reveals how the model frames it — main concepts, clusters, content gaps, and the relations between them. Useful for probing model bias, surfacing the implicit structure of an LLM's view on a subject, or comparing how different models describe the same topic. ",
+			"Ask an LLM to describe a topic, then turn its response into a knowledge graph that reveals how the model frames it — main concepts, clusters, content gaps, and the relations between them. Useful for probing model bias, surfacing the implicit structure of an LLM's view on a subject, or comparing how different models describe the same topic. With answerMode: 'modelAnswers' it shows what AI models say instead: the questions people ask an AI assistant about the topic and the model's answer to each, with the brands and sources it names, every statement tagged with its question and intent — for LLMO and content planning.",
 		inputSchema: AnalyzeLlmResultsSchema.shape,
 		annotations: {
 			readOnlyHint: false,
@@ -59,6 +103,10 @@ export const analyzeLlmResultsTool = {
 			const includeAnalytics = params.includeAnalytics !== false;
 			const includeStatements = params.includeStatements !== false;
 			const modifyAnalyzedText = params.modifyAnalyzedText ?? "none";
+			const modelAnswers = params.answerMode === "modelAnswers";
+			// "What AI models say" records what the model answers on its own, so
+			// it takes no instructions (the app hides the field for it too).
+			const instructions = modelAnswers ? undefined : params.instructions?.trim();
 			const contextType =
 				modifyAnalyzedText === "none" ? "STANDARD" : "WIKILINKS";
 			const graphName =
@@ -67,14 +115,17 @@ export const analyzeLlmResultsTool = {
 			const requestBody: any = {
 				saveToGraphAndRedirect: saveGraph,
 				contextName: graphName,
-				aiQueryType: "llm graph",
+				aiQueryType: modelAnswers ? "model answers" : "llm graph",
 				mode: "gptchat",
 				modelToUse: params.modelToUse ?? DEFAULT_GRAPH_MODEL,
 				prompt: [{ role: "user", content: params.prompt }],
+				...(instructions ? { systemPrompt: instructions } : {}),
 				modifyAnalyzedText,
 				contextType,
 				replaceEntities: false,
-				hideSearchTerms: true,
+				// The app's "Hide search terms" switch (on by default): the saved
+				// graph's link gets ?stopwords= for prompts of up to three words.
+				excludesearchquery: "1",
 			};
 
 			const response = await makeInfraNodusRequest("/aiAdvice", requestBody);
@@ -95,7 +146,9 @@ export const analyzeLlmResultsTool = {
 			// statements in their final, post-processing shape (entity detection
 			// applied, etc.), so those are preferred for llmStatements whenever the
 			// graph is built; these raw ones are the fallback.
-			const rawChoiceStatements = extractLineSeparatedStatements(response);
+			const rawLines = extractLineSeparatedStatements(response);
+			const split = modelAnswers ? splitModelAnswers(rawLines) : null;
+			const rawChoiceStatements = split ? split.statements : rawLines;
 
 			let output: OntologyGraphOutput;
 
@@ -118,15 +171,17 @@ export const analyzeLlmResultsTool = {
 					graphUrl: `${base}${redirectUrl}`,
 					editUrl: `${base}${redirectUrl}`,
 					viewUrl: `${base}${viewUrl}`,
-					message: `LLM overview graph "${graphName}" generated and saved.`,
+					message: `${modelAnswers ? "Model answers" : "LLM overview"} graph "${graphName}" generated and saved.`,
 				};
 			} else {
 				output = {
 					saved: false,
 					message:
 						rawChoiceStatements.length > 0
-							? `LLM overview generated (not saved): ${rawChoiceStatements.length} statement(s) returned. Use saveGraph: true to persist it as a ${brand.name} graph.`
-							: "The LLM did not return any statements. Try a more specific prompt or a different model.",
+							? `${modelAnswers ? `Model answers generated (not saved): ${split?.answers.length ?? 0} question(s), ` : "LLM overview generated (not saved): "}${rawChoiceStatements.length} statement(s) returned. Use saveGraph: true to persist it as a ${brand.name} graph.`
+							: modelAnswers
+								? "The LLM returned no answers. Try again or choose another model."
+								: "The LLM did not return any statements. Try a more specific prompt or a different model.",
 				};
 			}
 
@@ -158,7 +213,9 @@ export const analyzeLlmResultsTool = {
 				const graphRequestBody: any = saveGraph
 					? { name: graphName, aiTopics, userName: "" }
 					: {
-							text: rawChoiceStatements.join("\n"),
+							...(split
+								? { statements: split.statements, categories: split.categories }
+								: { text: rawChoiceStatements.join("\n") }),
 							aiTopics,
 							modifyAnalyzedText,
 						};
@@ -220,6 +277,12 @@ export const analyzeLlmResultsTool = {
 				rawChoiceStatements.length > 0
 			) {
 				output.llmStatements = rawChoiceStatements;
+			}
+			// Saving returns a redirect, not the completions, so the answers can
+			// be grouped by question only for an unsaved run; a saved graph keeps
+			// the question and intent as each statement's categories.
+			if (includeStatements && split && split.answers.length > 0) {
+				output.modelAnswers = split.answers;
 			}
 
 			return {

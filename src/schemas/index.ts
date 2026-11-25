@@ -35,14 +35,14 @@ const multifractalField = z
 
 /**
  * Opt-in full network statistics. By default the tools return a compact
- * surface of network_dynamics (text_type and the ngram4_graph_radial_distance
+ * surface of network_dynamics (text_type, gait and the ngram4_graph_radial_distance
  * series) and degree_distribution (nodes, edges, gini, tail).
  */
 const fractalExperimentalField = z
 	.boolean()
 	.default(false)
 	.describe(
-		"Return every network statistics field: the full network_dynamics (all fractal_variability DFA series and exponents, node_graph_path_amplitude, sentence_rhythm, text_type) and the degree_distribution histogram. Off by default, when network_dynamics carries only text_type and fractal_variability.ngram4_graph_radial_distance, and degree_distribution only nodes, edges, gini and tail. Set it only when the user explicitly asks for the additional fractal parameters.",
+		"Return every network statistics field: the full network_dynamics (all fractal_variability DFA series and exponents, node_graph_path_amplitude, sentence_rhythm, text_type, gait) and the degree_distribution histogram. Off by default, when network_dynamics carries only text_type, gait and fractal_variability.ngram4_graph_radial_distance, and degree_distribution only nodes, edges, gini and tail. Set it only when the user explicitly asks for the additional fractal parameters.",
 	);
 
 const statementsField = z
@@ -689,6 +689,18 @@ export const GenerateOntologyGraphSchema = z.object({
 		.describe(
 			"Characters per chunk for text / sourceGraphName inputs (split on line boundaries). Smaller chunks give more detailed, more expensive ontologies. Default 12000.",
 		),
+	relations: z
+		.array(z.string().trim().min(1))
+		.optional()
+		.describe(
+			"Your own relation codes to use instead of the default ones ([isA], [partOf], [hasAttribute], [relatedTo], [dependentOn], [causes], [locatedIn], [occursAt], [derivedFrom], [opposes]), e.g. ['causes', 'blocks', 'enables']. Square brackets are optional. Applied to every chunk of every source. Ignored in ontologyMode 'procedural', whose statements carry type tags, not relations.",
+		),
+	instructions: z
+		.string()
+		.optional()
+		.describe(
+			"The user's own instructions for the AI model, e.g. 'only people and organizations' or 'focus on the 1950-1970 period'. Sent with every chunk. They can change which entities and relations to include, the scope and the number of statements, but not the output format.",
+		),
 	graphName: z
 		.string()
 		.optional()
@@ -767,13 +779,25 @@ export const AnalyzeLlmResultsSchema = z.object({
 		.enum(["none", "detectEntities", "extractEntitiesOnly"])
 		.default("none")
 		.describe(
-			"How the LLM output is parsed into the graph. 'none' = plain word co-occurrence (contextType STANDARD); 'detectEntities' = mix named entities with words (contextType WIKILINKS, default — best balanced overview); 'extractEntitiesOnly' = entity-only graph (contextType WIKILINKS, cleanest entity view).",
+			"How the LLM output is parsed into the graph. 'none' (default) = plain word co-occurrence (contextType STANDARD); 'detectEntities' = mix named entities with words (contextType WIKILINKS, best balanced overview); 'extractEntitiesOnly' = entity-only graph (contextType WIKILINKS, cleanest entity view).",
+		),
+	answerMode: z
+		.enum(["overview", "modelAnswers"])
+		.default("overview")
+		.describe(
+			"'overview' (default): the model describes the topic in a set of statements — how it frames the subject. 'modelAnswers': what AI models say, for LLMO and content planning — the model lists the questions people ask an AI assistant about the topic (recommendation, comparison, alternatives, how-to, problem, cost, trust, definition) and answers each as it would in a new chat, naming the brands and sources it would name. Every statement is tagged with its question and 'intent: <type>' as categories, so the saved graph can be filtered by them, and the response groups the answers by question (modelAnswers). Takes no instructions: it records what the model says on its own.",
+		),
+	instructions: z
+		.string()
+		.optional()
+		.describe(
+			"Only with answerMode 'overview'. The user's own instructions for the AI model, e.g. 'focus on open-source tools' or 'only the period after 2020'. They can change the scope, the angle and the number of statements, but not the output format. Ignored in 'modelAnswers'.",
 		),
 	saveGraph: z
 		.boolean()
 		.default(false)
 		.describe(
-			`Whether to save the LLM overview as a persistent ${brand.name} graph (true by default). Set to false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.`,
+			`Whether to save the LLM overview as a persistent ${brand.name} graph (false by default). Set to true when the user wants to keep the graph, filter it in the app, or reuse it later; leave it false if the user asks not to save, or when you only need a one-off look at how the LLM frames the topic for the current conversation.`,
 		),
 	multifractal: multifractalField,
 	fractalExperimental: fractalExperimentalField,

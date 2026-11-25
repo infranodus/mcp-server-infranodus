@@ -45,7 +45,7 @@ export function trimDegreeDistribution(
 /**
  * Default surface of the network statistics in tool output. The server reads
  * none of the other fields to interpret a result, so by default only these
- * are returned: the text type, the radial-distance DFA series, and the size
+ * are returned: the text type, the gait, the radial-distance DFA series, and the size
  * and concentration of the degree distribution. fractalExperimental: true
  * asks the API for every field and returns them as they come.
  */
@@ -55,6 +55,8 @@ export function compactNetworkDynamics(
 	if (!dynamics) return dynamics;
 	return {
 		text_type: dynamics.text_type ?? null,
+		// left out against a backend that does not compute it yet
+		...(dynamics.gait === undefined ? {} : { gait: dynamics.gait }),
 		fractal_variability: {
 			ngram4_graph_radial_distance:
 				dynamics.fractal_variability?.ngram4_graph_radial_distance ?? null,
@@ -336,8 +338,11 @@ export function extractLineSeparatedStatements(data: GraphResponse): string[] {
 			return content.split("\n");
 		})
 		.map((line) => line.trim())
-		.filter((line) => line.length > 0);
+		.filter((line) => line.length > 0 && !CODE_FENCE_LINE.test(line));
 }
+
+// Models often wrap their statements in a ``` / ```text block.
+const CODE_FENCE_LINE = /^(```|~~~)[\w-]*$/;
 
 // For intro-search style responses: each "choice" is one full LLM completion
 // (typically a paragraph), and the graph treats each completion as a single

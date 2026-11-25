@@ -20,3 +20,12 @@ test("chunkByLines keeps an oversized single line and drops blank-only chunks", 
 	assert.deepEqual(chunkByLines("\n\n  \n", 100), []);
 	assert.deepEqual(chunkByLines("a\nb", 100), ["a\nb"]);
 });
+
+test("extractLineSeparatedStatements drops the code fences models wrap statements in", async () => {
+	const { extractLineSeparatedStatements } = await import("../dist/utils/transformers.js");
+	const content = ["```text", "[[a]] causes [[b]] [causes]", "", "```", "~~~", "[[b]] is part of [[c]] [partOf]", "```json"].join("\n");
+	assert.deepEqual(extractLineSeparatedStatements({ choices: [{ message: { content } }] }), [
+		"[[a]] causes [[b]] [causes]",
+		"[[b]] is part of [[c]] [partOf]",
+	]);
+});
