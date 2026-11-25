@@ -7,6 +7,7 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateResearchQuestions } from "../utils/transformers.js";
 import { DEFAULT_AI_MODEL } from "../config/models.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -66,6 +67,7 @@ export const generateResearchQuestionsTool = {
 			if (params.graphName?.trim()) {
 				requestBody = {
 					name: params.graphName,
+					...statementFilterBody(params.statementFilter),
 					userName: params.userName ?? "",
 					aiTopics: "true",
 					requestMode: "question",

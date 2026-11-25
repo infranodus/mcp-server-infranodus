@@ -6,6 +6,7 @@ import {
 import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveGraphInput } from "../utils/graphInput.js";
 import { generateGaps } from "../utils/transformers.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -53,7 +54,10 @@ export const generateContentGapsTool = {
 				name?: string;
 			};
 			if (params.graphName?.trim()) {
-				requestBody = { name: params.graphName };
+				requestBody = {
+					name: params.graphName,
+					...statementFilterBody(params.statementFilter),
+				};
 			} else {
 				const input = await resolveGraphInput(params);
 				if (!input.ok) return errorContent(input.error);

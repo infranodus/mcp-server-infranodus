@@ -18,6 +18,7 @@ import {
 import type { GraphResponse, ToolHandlerContext } from "../types/index.js";
 import { ProgressReporter } from "../utils/progress.js";
 import { DEFAULT_AI_MODEL } from "../config/models.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -124,7 +125,10 @@ export const optimizeKnowledgeBaseTool = {
 			let sourceBody: Record<string, unknown>;
 			let sourceLabel: string;
 			if (params.graphName?.trim()) {
-				sourceBody = { name: params.graphName.trim() };
+				sourceBody = {
+					name: params.graphName.trim(),
+					...statementFilterBody(params.statementFilter),
+				};
 				sourceLabel = params.graphName.trim();
 			} else if (params.saveAs?.trim()) {
 				// Save the submitted digest as a graph first (heading lines become

@@ -13,6 +13,7 @@ import {
 	extractLatentConceptsIdeas,
 } from "../utils/transformers.js";
 import { DEFAULT_AI_MODEL } from "../config/models.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -94,6 +95,7 @@ export const developTextTool = {
 			const requestBodyResearch: any = useGraph
 				? {
 						name: params.graphName,
+						...statementFilterBody(params.statementFilter),
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
@@ -141,6 +143,7 @@ export const developTextTool = {
 			const requestBodyLatent: any = useGraph
 				? {
 						name: params.graphName,
+						...statementFilterBody(params.statementFilter),
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,
@@ -188,6 +191,7 @@ export const developTextTool = {
 			const requestBodyBridges: any = useGraph
 				? {
 						name: params.graphName,
+						...statementFilterBody(params.statementFilter),
 						aiTopics: "true",
 						requestMode: params.transcendDiscourse ? "transcend" : "question",
 						modelToUse: params.modelToUse ?? DEFAULT_AI_MODEL,

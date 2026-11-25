@@ -3,6 +3,7 @@ import { brand } from "../config/brand.js";
 import { GetNodeNeighborhoodSchema } from "../schemas/index.js";
 import { callMemoryEndpoint } from "../api/client.js";
 import { savedGraphWikilinksModeBody } from "../utils/wikilinksMode.js";
+import { statementFilterBody } from "../utils/statementFilter.js";
 
 function textResult(value: unknown, isError = false) {
 	return {
@@ -35,6 +36,7 @@ export const getNodeNeighborhoodTool = {
 			const nodes = Array.isArray(params.node) ? params.node : [params.node];
 			const response = await callMemoryEndpoint("/nodeNeighborhood", {
 				name: params.graphName,
+				...statementFilterBody(params.statementFilter),
 				nodes,
 				hops: params.hops ?? 2,
 				maxNeighbors: params.maxNeighbors ?? 30,

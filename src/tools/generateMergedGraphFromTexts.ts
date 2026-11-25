@@ -8,6 +8,10 @@ import { makeInfraNodusRequest } from "../api/client.js";
 import { resolveContexts } from "../utils/graphInput.js";
 import { transformToStructuredOutput } from "../utils/transformers.js";
 import type { GraphResponse } from "../types/index.js";
+import {
+	StatementFilter,
+	statementFilterBody,
+} from "../utils/statementFilter.js";
 
 function errorContent(message: string) {
 	return {
@@ -20,7 +24,8 @@ function errorContent(message: string) {
 
 /** Fetches an existing graph by name with includeStatements and returns its statements joined as text. */
 async function fetchGraphTextByName(
-	graphName: string
+	graphName: string,
+	statementFilter?: StatementFilter,
 ): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
 	const queryParams = new URLSearchParams({
 		doNotSave: "true",
@@ -35,7 +40,11 @@ async function fetchGraphTextByName(
 		optimize: "develop",
 	});
 	const endpoint = `/graphAndStatements?${queryParams.toString()}`;
-	const requestBody = { name: graphName, aiTopics: "true" };
+	const requestBody = {
+		name: graphName,
+		aiTopics: "true",
+		...statementFilterBody(statementFilter),
+	};
 	let response: GraphResponse;
 	try {
 		response = await makeInfraNodusRequest(endpoint, requestBody);

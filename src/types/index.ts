@@ -362,6 +362,8 @@ export interface DegreeDistribution {
 }
 
 export interface GraphResponse {
+	/** Set when a statementFilter narrowed the saved graph: statements passing its tags and dates, used after the slice, and in the whole graph. */
+	statementFilter?: { matched: number; selected: number; total: number };
 	statements?: Statement[];
 	graph?: {
 		graphologyGraph: {
@@ -478,6 +480,8 @@ export interface SearchResponse {
 }
 
 export interface KnowledgeGraphOutput {
+	/** Set when a statementFilter narrowed the saved graph: statements passing its tags and dates, used after the slice, and in the whole graph. */
+	statementFilter?: { matched: number; selected: number; total: number };
 	statistics: {
 		modularity: number;
 		diversity_stats?: any;
